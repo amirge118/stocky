@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /Users/amirgefen/Documents/CursorP/learnCursor/frontend && npm run dev 2>&1)",
+      "Bash(cd /Users/amirgefen/Documents/CursorP/learnCursor/backend && uvicorn app.main:app --reload 2>&1)",
+      "Bash(./venv/bin/uvicorn app.main:app:*)",
+      "Bash(./venv/bin/python:*)",
+      "Bash(curl:*)",
+      "Bash(grep:*)",
+      "Bash(./venv/bin/pip install:*)",
+      "Bash(lsof:*)",
+      "Bash(tail:*)",
+      "Bash(python3:*)",
+      "Bash(echo:*)",
+      "Bash(cd:*)"
+    ]
+  }
+}

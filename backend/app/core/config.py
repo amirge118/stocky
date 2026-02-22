@@ -1,0 +1,37 @@
+from typing import Optional
+
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    # Database
+    database_url: str = ""
+
+    # JWT Authentication
+    secret_key: str = ""
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+
+    # AI Services
+    openai_api_key: str = ""
+    anthropic_api_key: str = ""
+
+    # CORS
+    cors_origins: str = "http://localhost:3000"
+
+    # Optional
+    redis_url: Optional[str] = None
+    environment: str = "development"
+    log_level: str = "INFO"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Parse CORS origins string into list."""
+        return [origin.strip() for origin in self.cors_origins.split(",")]
+
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+
+
+settings = Settings()

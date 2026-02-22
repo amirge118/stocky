@@ -1,0 +1,444 @@
+# Backend Architecture Rules: FastAPI Stock Insight App
+
+## Future Improvements Documentation
+
+### ⚠️ MANDATORY: Document All Ideas
+
+**For EVERY request, feature, or idea related to backend:**
+
+1. **Add to FUTURE_IMPROVEMENTS.md** (root directory):
+   - Every backend feature request
+   - Every API improvement idea
+   - Every performance optimization suggestion
+   - Every infrastructure improvement
+   - Every technical debt item
+
+2. **Categorize appropriately**:
+   - Backend Improvements → Database & Performance
+   - Backend Improvements → API Enhancements
+   - Backend Improvements → Authentication & Security
+   - Backend Improvements → Features
+   - Backend Improvements → Monitoring & Observability
+
+3. **Include context**: Brief description of why this improvement is valuable
+
+**Example**:
+```markdown
+### API Enhancements
+- [ ] Add API rate limiting per user/IP [HIGH]
+- [ ] Implement WebSocket support for real-time stock updates [MEDIUM]
+```
+
+**DO NOT implement features without documenting ideas in FUTURE_IMPROVEMENTS.md first!**
+
+## File Structure & Organization
+
+### ⚠️ MANDATORY: Follow Project Structure Standards
+
+**When creating ANY new file:**
+
+1. **Check existing structure** - Look for similar files in `backend/` to understand patterns
+2. **Follow directory conventions**:
+   - Models → `app/models/`
+   - Services → `app/services/`
+   - API endpoints → `app/api/v1/endpoints/`
+   - Schemas → `app/schemas/`
+   - Tests → `tests/unit/` or `tests/integration/`
+3. **Use consistent naming**:
+   - Python files: `snake_case.py`
+   - Test files: `test_<module_name>.py`
+4. **Update documentation** - Add references in relevant docs
+
+**Before creating new files, search for similar files to understand the structure!**
+
+## Database Connection Requirements
+
+### ⚠️ MANDATORY: Database Connection Checks
+
+**Before starting the backend server or running database operations:**
+
+1. **Always verify database connection**:
+   - Check PostgreSQL is running: `pg_isready` or `brew services list | grep postgresql`
+   - Verify database exists: `psql -U postgres -lqt | grep stock_insight`
+   - Test connection programmatically before starting server
+
+2. **Error handling for database failures**:
+   - Display clear error messages indicating:
+     - PostgreSQL not running → "PostgreSQL may not be running. Start with: brew services start postgresql@14"
+     - Authentication failed → "Database credentials incorrect. Check backend/.env"
+     - Database doesn't exist → "Database 'stock_insight' not found. Run: ./scripts/setup-database-and-run.sh"
+     - Connection refused → "Cannot connect to PostgreSQL. Check if service is running."
+
+3. **Startup scripts must check database**:
+   - `scripts/start.sh` MUST verify database connection before starting backend
+   - `scripts/setup-database-and-run.sh` MUST verify connection after setup
+   - Display connection status clearly in console output
+
+4. **Test database vs Production database**:
+   - Tests use in-memory SQLite (`sqlite+aiosqlite:///:memory:`) - no connection needed
+   - Production/development uses PostgreSQL - connection MUST be verified
+   - Never assume database is available - always check first
+
+**Example error output:**
+```
+❌ Database connection failed: OSError: Connect call failed
+   → PostgreSQL may not be running
+   → Start PostgreSQL: brew services start postgresql@14
+```
+
+## Backend Stack Overview
+- **Framework**: FastAPI 0.109.0
+- **Language**: Python 3.11+
+- **ASGI Server**: Uvicorn 0.27.0
+- **Database ORM**: SQLAlchemy 2.0.25
+- **Database Driver**: asyncpg 0.29.0 (PostgreSQL async)
+- **Validation**: Pydantic 2.5.3
+- **Migrations**: Alembic 1.13.1
+- **Authentication**: python-jose[cryptography] 3.3.0
+- **Password Hashing**: passlib[bcrypt] 1.7.4
+- **HTTP Client**: httpx 0.26.0 (for external APIs)
+- **Stock Data**: yfinance 0.2.33
+- **AI/ML**: openai 1.10.0, anthropic 0.18.1
+- **Caching**: redis 5.0.1 (optional)
+- **Rate Limiting**: slowapi 0.1.9
+- **Testing**: pytest 7.4.4, pytest-asyncio 0.23.3
+- **Code Quality**: black 24.1.1, ruff 0.1.11, mypy 1.8.0
+
+## Project Structure
+
+```
+backend/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                  # FastAPI application entry point
+│   ├── core/                   # Core configuration
+│   │   ├── __init__.py
+│   │   ├── config.py           # Settings and environment
+│   │   ├── security.py        # Authentication & authorization
+│   │   ├── database.py         # Database connection
+│   │   └── dependencies.py     # Shared dependencies
+│   ├── api/                    # API route handlers
+│   │   ├── __init__.py
+│   │   ├── deps.py             # Route dependencies
+│   │   └── v1/                 # API version 1
+│   │       ├── __init__.py
+│   │       ├── router.py       # Main router
+│   │       ├── endpoints/      # Endpoint modules
+│   │       │   ├── stocks.py
+│   │       │   ├── insights.py
+│   │       │   └── auth.py
+│   │       └── schemas/         # Pydantic schemas
+│   │           ├── stock.py
+│   │           ├── insight.py
+│   │           └── auth.py
+│   ├── models/                 # SQLAlchemy models
+│   │   ├── __init__.py
+│   │   ├── base.py             # Base model class
+│   │   ├── stock.py
+│   │   ├── insight.py
+│   │   └── user.py
+│   ├── schemas/                 # Pydantic schemas (shared)
+│   │   ├── __init__.py
+│   │   ├── common.py           # Common schemas
+│   │   └── error.py             # Error response schemas
+│   ├── services/                # Business logic layer
+│   │   ├── __init__.py
+│   │   ├── stock_service.py
+│   │   ├── insight_service.py
+│   │   └── ai_service.py
+│   ├── repositories/            # Data access layer (optional)
+│   │   ├── __init__.py
+│   │   └── stock_repository.py
+│   ├── utils/                   # Utility functions
+│   │   ├── __init__.py
+│   │   ├── validators.py
+│   │   └── formatters.py
+│   └── middleware/              # Custom middleware
+│       ├── __init__.py
+│       ├── logging.py
+│       └── error_handler.py
+├── tests/                       # Test suite
+│   ├── __init__.py
+│   ├── conftest.py             # Pytest fixtures
+│   ├── unit/                   # Unit tests
+│   │   ├── test_services.py
+│   │   └── test_utils.py
+│   ├── integration/            # Integration tests
+│   │   ├── test_api.py
+│   │   └── test_database.py
+│   └── e2e/                    # E2E tests
+│       └── test_flows.py
+├── alembic/                     # Database migrations
+│   ├── versions/
+│   ├── env.py
+│   └── script.py.mako
+├── .env                         # Environment variables (gitignored)
+├── .env.example                 # Example env file
+├── requirements.txt             # Python dependencies
+├── requirements-dev.txt         # Development dependencies
+├── pyproject.toml               # Project configuration (black, ruff, mypy)
+├── alembic.ini                  # Alembic configuration
+└── README.md                    # Backend documentation
+```
+
+## Architecture Principles
+
+### 1. Layered Architecture
+```
+API Routes (FastAPI routers)
+    ↓
+Schemas (Pydantic validation)
+    ↓
+Services (Business logic)
+    ↓
+Repositories/Models (Data access)
+    ↓
+Database/External APIs
+```
+
+### 2. Dependency Injection
+- Use FastAPI's dependency injection system
+- Share database sessions via dependencies
+- Inject services into route handlers
+- Use dependencies for authentication
+
+### 3. Async First
+- Use `async def` for all route handlers
+- Use async database operations (asyncpg)
+- Use async HTTP client (httpx) for external APIs
+- Avoid blocking I/O operations
+
+### 4. Type Safety
+- Use type hints for all functions
+- Use Pydantic models for validation
+- Use SQLAlchemy models with type hints
+- Enable mypy for type checking
+
+### 5. Error Handling
+- Use HTTPException for expected errors
+- Global exception handlers for unexpected errors
+- Consistent error response format
+- Log all errors with context
+
+## Key Dependencies & Versions
+
+### Core Framework
+- `fastapi@0.109.0` - FastAPI framework
+- `uvicorn[standard]@0.27.0` - ASGI server
+- `python-multipart@0.0.6` - Form data parsing
+
+### Database
+- `sqlalchemy@2.0.25` - SQL toolkit and ORM
+- `asyncpg@0.29.0` - PostgreSQL async driver
+- `alembic@1.13.1` - Database migrations
+
+### Validation & Serialization
+- `pydantic@2.5.3` - Data validation (v2)
+- `pydantic-settings@2.1.0` - Settings management
+- `email-validator@2.1.0` - Email validation
+
+### Authentication & Security
+- `python-jose[cryptography]@3.3.0` - JWT handling
+- `passlib[bcrypt]@1.7.4` - Password hashing
+- `python-multipart@0.0.6` - Form parsing
+- `bcrypt@4.1.2` - Password hashing algorithm
+
+### HTTP & External APIs
+- `httpx@0.26.0` - Async HTTP client
+- `yfinance@0.2.33` - Yahoo Finance API wrapper
+
+### AI/ML Services
+- `openai@1.10.0` - OpenAI API client
+- `anthropic@0.18.1` - Anthropic API client
+
+### Caching & Performance
+- `redis@5.0.1` - Redis client (optional)
+- `slowapi@0.1.9` - Rate limiting
+
+### Development Tools
+- `black@24.1.1` - Code formatter
+- `ruff@0.1.11` - Fast linter
+- `mypy@1.8.0` - Static type checker
+- `pre-commit@3.6.0` - Git hooks
+
+### Testing
+- `pytest@7.4.4` - Test framework
+- `pytest-asyncio@0.23.3` - Async test support
+- `httpx@0.26.0` - Test client
+- `pytest-cov@4.1.0` - Coverage reporting
+
+## Best Practices for FastAPI 0.109
+
+### 1. Application Setup
+- Use lifespan context manager (not @app.on_event)
+- Configure CORS properly
+- Set up middleware for logging/errors
+- Use dependency injection
+
+### 2. Route Handlers
+- Use `async def` for all handlers
+- Use type hints for all parameters
+- Use Pydantic models for request/response
+- Return proper HTTP status codes
+
+### 3. Pydantic v2 Patterns
+- Use `model_config` instead of `Config` class
+- Use `Field` for field validation
+- Use `@field_validator` for custom validation
+- Use `@model_validator` for model-level validation
+
+### 4. SQLAlchemy 2.0 Patterns
+- Use `select()` instead of `query()`
+- Use async session (`AsyncSession`)
+- Use `selectinload`/`joinedload` for eager loading
+- Use type hints with models
+
+### 5. Error Handling
+- Use HTTPException for expected errors
+- Global exception handlers for unexpected errors
+- Consistent error response format
+- Log errors with context
+
+## Database Configuration
+
+### Connection String Format
+```
+postgresql+asyncpg://user:password@host:port/database
+```
+
+### Session Management
+- Use async session factory
+- Use dependency injection for sessions
+- Commit on success, rollback on error
+- Close sessions properly
+
+## Environment Variables
+
+### Required Variables
+- `DATABASE_URL` - PostgreSQL connection string
+- `SECRET_KEY` - JWT secret key
+- `ALGORITHM` - JWT algorithm (HS256)
+- `ACCESS_TOKEN_EXPIRE_MINUTES` - Token expiration
+- `OPENAI_API_KEY` - OpenAI API key
+- `ANTHROPIC_API_KEY` - Anthropic API key
+- `CORS_ORIGINS` - Allowed CORS origins
+
+### Optional Variables
+- `REDIS_URL` - Redis connection (for caching)
+- `ENVIRONMENT` - Environment (development/production)
+- `LOG_LEVEL` - Logging level
+
+## MANDATORY TESTING REQUIREMENTS
+
+### ⚠️ CRITICAL: Tests Must Be Written for ALL Code
+
+**When implementing ANY feature, you MUST:**
+
+1. **Write Unit Tests** (`tests/unit/test_*.py`):
+   - Test all service functions
+   - Test all utility functions
+   - Test all model methods
+   - Aim for 80%+ code coverage
+   - Test both success and error cases
+
+2. **Write Integration Tests** (`tests/integration/test_*.py`):
+   - Test all API endpoints
+   - Test database operations
+   - Test service interactions
+   - Test error handling
+
+3. **Write E2E Tests** (`tests/e2e/test_*.py`) for critical flows:
+   - Test complete user workflows
+   - Test authentication flows
+   - Test data persistence
+
+### Test Structure Requirements
+
+For every new file created (`app/services/stock_service.py`), create:
+- `tests/unit/test_stock_service.py` - Unit tests
+- `tests/integration/test_stock_endpoints.py` - Integration tests (if API endpoints)
+
+### Test Naming Convention
+- Test files: `test_<module_name>.py`
+- Test functions: `test_<function_name>_<scenario>`
+- Example: `test_create_stock_success`, `test_create_stock_duplicate_raises_error`
+
+### Test Checklist Before Completing Implementation
+
+- [ ] Unit tests written for all service functions
+- [ ] Integration tests written for all API endpoints
+- [ ] Error cases tested
+- [ ] Edge cases tested
+- [ ] Tests pass (`pytest`)
+- [ ] Code coverage > 80% (`pytest --cov`)
+
+### Example Test Pattern
+
+```python
+@pytest.mark.asyncio
+async def test_function_name_success(db_session):
+    """Test successful case."""
+    # Arrange
+    # Act
+    # Assert
+
+@pytest.mark.asyncio
+async def test_function_name_error_case(db_session):
+    """Test error case."""
+    # Arrange
+    # Act & Assert
+    with pytest.raises(HTTPException):
+        ...
+```
+
+**DO NOT mark implementation as complete without tests!**
+
+## Code Style Guidelines
+
+### Function Definitions
+- Use type hints for all parameters
+- Use `async def` for async functions
+- Use descriptive names with verbs
+- Keep functions small and focused
+
+### File Naming
+- Use lowercase with underscores (`stock_service.py`)
+- Match file name to main class/function
+- Use descriptive names
+
+### Import Organization
+1. Standard library imports
+2. Third-party imports
+3. Local application imports
+
+## Testing Strategy
+
+### Unit Tests
+- Test services in isolation
+- Mock external dependencies
+- Test business logic
+- Test error cases
+
+### Integration Tests
+- Test API endpoints
+- Test database operations
+- Test authentication
+- Test error handling
+
+### E2E Tests
+- Test complete flows
+- Test with real database
+- Test external API integration
+
+## Key Rules
+
+1. **Always** use `async def` for route handlers
+2. **Always** use type hints
+3. **Always** validate input with Pydantic
+4. **Always** use async database operations
+5. **Never** use blocking I/O
+6. **Always** handle errors properly
+7. **Always** use dependency injection
+8. **Always** document endpoints
+9. **Always** write tests
+10. **Always** follow PEP 8 style guide

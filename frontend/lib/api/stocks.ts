@@ -1,0 +1,72 @@
+import { get, post, put, del } from "./client"
+import type {
+  Stock,
+  StockAIAnalysis,
+  StockCreate,
+  StockData,
+  StockHistoryResponse,
+  StockInfoResponse,
+  StockListResponse,
+  StockNewsItem,
+  StockSearchResult,
+  StockUpdate,
+} from "@/types/stock"
+
+export interface GetStocksOptions {
+  page?: number
+  limit?: number
+}
+
+export async function getStocks(
+  options?: GetStocksOptions
+): Promise<StockListResponse> {
+  const params = new URLSearchParams()
+  if (options?.page) params.append("page", options.page.toString())
+  if (options?.limit) params.append("limit", options.limit.toString())
+
+  const query = params.toString()
+  return get<StockListResponse>(`/api/v1/stocks${query ? `?${query}` : ""}`)
+}
+
+export async function getStock(symbol: string): Promise<Stock> {
+  return get<Stock>(`/api/v1/stocks/${symbol}`)
+}
+
+export async function createStock(data: StockCreate): Promise<Stock> {
+  return post<Stock>("/api/v1/stocks", data)
+}
+
+export async function updateStock(
+  symbol: string,
+  data: StockUpdate
+): Promise<Stock> {
+  return put<Stock>(`/api/v1/stocks/${symbol}`, data)
+}
+
+export async function deleteStock(symbol: string): Promise<void> {
+  await del(`/api/v1/stocks/${symbol}`)
+}
+
+export async function fetchStockData(symbol: string): Promise<StockData> {
+  return get<StockData>(`/api/v1/stocks/${symbol}/data`)
+}
+
+export async function searchStocks(query: string): Promise<StockSearchResult[]> {
+  return get<StockSearchResult[]>(`/api/v1/stocks/search?q=${encodeURIComponent(query)}`)
+}
+
+export async function getStockHistory(symbol: string, period: string): Promise<StockHistoryResponse> {
+  return get<StockHistoryResponse>(`/api/v1/stocks/${symbol}/history?period=${period}`)
+}
+
+export async function getStockInfo(symbol: string): Promise<StockInfoResponse> {
+  return get<StockInfoResponse>(`/api/v1/stocks/${symbol}/info`)
+}
+
+export async function getStockNews(symbol: string): Promise<StockNewsItem[]> {
+  return get<StockNewsItem[]>(`/api/v1/stocks/${symbol}/news`)
+}
+
+export async function getStockAnalysis(symbol: string): Promise<StockAIAnalysis> {
+  return get<StockAIAnalysis>(`/api/v1/stocks/${symbol}/analysis`)
+}

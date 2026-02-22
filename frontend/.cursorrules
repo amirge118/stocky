@@ -1,0 +1,383 @@
+# Frontend Architecture Rules: Next.js 15 Stock Insight App
+
+## Future Improvements Documentation
+
+### ⚠️ MANDATORY: Document All Ideas
+
+**For EVERY request, feature, or idea related to frontend:**
+
+1. **Add to FUTURE_IMPROVEMENTS.md** (root directory):
+   - Every frontend feature request
+   - Every UI/UX improvement idea
+   - Every performance optimization suggestion
+   - Every component enhancement
+   - Every user experience improvement
+
+2. **Categorize appropriately**:
+   - Frontend Improvements → User Experience
+   - Frontend Improvements → Performance
+   - Frontend Improvements → Features
+   - Frontend Improvements → State Management
+
+3. **Include context**: Brief description of why this improvement is valuable
+
+**Example**:
+```markdown
+### Features
+- [ ] Add stock search with autocomplete [HIGH]
+- [ ] Implement stock charts and graphs (Chart.js, Recharts) [MEDIUM]
+```
+
+**DO NOT implement features without documenting ideas in FUTURE_IMPROVEMENTS.md first!**
+
+## File Structure & Organization
+
+### ⚠️ MANDATORY: Follow Project Structure Standards
+
+**When creating ANY new file:**
+
+1. **Check existing structure** - Look for similar files in `frontend/` to understand patterns
+2. **Follow directory conventions**:
+   - Pages → `app/`
+   - Components → `components/features/` or `components/shared/`
+   - API clients → `lib/api/`
+   - Types → `types/`
+   - Tests → `__tests__/` or `e2e/`
+3. **Use consistent naming**:
+   - Components: `PascalCase.tsx`
+   - Utilities: `camelCase.ts`
+   - Test files: `<Component>.test.tsx` or `<module>.test.ts`
+4. **Update documentation** - Add references in relevant docs
+
+**Before creating new files, search for similar files to understand the structure!**
+
+## Frontend Stack Overview
+- **Framework**: Next.js 15.1.0 (App Router)
+- **Language**: TypeScript 5.3.3
+- **UI Framework**: React 19.0.0
+- **Styling**: Tailwind CSS 3.4.1
+- **Component Library**: Shadcn UI (latest)
+- **State Management**: TanStack Query (React Query) 5.17.0
+- **Form Management**: React Hook Form 7.49.3 + Zod 3.22.4
+- **HTTP Client**: Native Fetch API (built-in)
+- **Testing**: Jest 29.7.0 + React Testing Library 14.1.2
+- **E2E Testing**: Playwright 1.41.0
+
+## Project Structure
+
+```
+frontend/
+├── app/                          # Next.js 15 App Router
+│   ├── (auth)/                   # Route group for auth pages
+│   │   ├── login/
+│   │   └── register/
+│   ├── (dashboard)/             # Route group for dashboard
+│   │   ├── stocks/
+│   │   │   ├── [symbol]/
+│   │   │   └── page.tsx
+│   │   └── insights/
+│   ├── api/                     # API routes (server-side)
+│   ├── layout.tsx               # Root layout
+│   ├── page.tsx                 # Home page
+│   ├── loading.tsx              # Global loading UI
+│   ├── error.tsx                # Global error boundary
+│   └── not-found.tsx            # 404 page
+├── components/
+│   ├── ui/                      # Shadcn UI components
+│   │   ├── button.tsx
+│   │   ├── card.tsx
+│   │   ├── input.tsx
+│   │   └── ...
+│   ├── features/                # Feature-specific components
+│   │   ├── stocks/
+│   │   │   ├── StockCard.tsx
+│   │   │   ├── StockList.tsx
+│   │   │   └── StockChart.tsx
+│   │   └── insights/
+│   ├── layout/                   # Layout components
+│   │   ├── Header.tsx
+│   │   ├── Sidebar.tsx
+│   │   └── Footer.tsx
+│   └── shared/                  # Shared components
+│       ├── ErrorBoundary.tsx
+│       └── LoadingSpinner.tsx
+├── lib/
+│   ├── api/                     # API client functions
+│   │   ├── client.ts            # Base API client
+│   │   ├── stocks.ts            # Stock API functions
+│   │   └── insights.ts          # Insights API functions
+│   ├── hooks/                    # Custom React hooks
+│   │   ├── useStock.ts
+│   │   └── useStocks.ts
+│   └── utils/                   # Utility functions
+│       ├── formatters.ts
+│       └── validators.ts
+├── types/                        # TypeScript type definitions
+│   ├── api.ts                   # API response types
+│   ├── stock.ts                 # Stock-related types
+│   └── index.ts                 # Re-export all types
+├── hooks/                        # Custom hooks (alternative location)
+├── public/                       # Static assets
+│   ├── images/
+│   └── icons/
+├── styles/                       # Global styles
+│   └── globals.css              # Tailwind imports
+├── .env.local                    # Environment variables (gitignored)
+├── .env.example                  # Example env file
+├── next.config.js                # Next.js configuration
+├── tailwind.config.ts            # Tailwind configuration
+├── tsconfig.json                 # TypeScript configuration
+├── package.json                  # Dependencies
+└── jest.config.js                # Jest configuration
+```
+
+## Architecture Principles
+
+### 1. Server Components First
+- Default to Server Components for data fetching
+- Use 'use client' only when necessary (interactivity, hooks, browser APIs)
+- Keep Server Components at the top of component tree
+
+### 2. Data Fetching Strategy
+- **Server Components**: Fetch data directly in Server Components
+- **Client Components**: Use TanStack Query for client-side data fetching
+- **Never**: Fetch in useEffect for initial render
+
+### 3. State Management
+- **Server State**: TanStack Query (React Query)
+- **Client State**: React hooks (useState, useReducer)
+- **Global UI State**: Context API (theme, auth)
+- **Form State**: React Hook Form + Zod
+
+### 4. API Communication
+- Centralized API client in `lib/api/`
+- Type-safe API functions with TypeScript
+- Consistent error handling
+- Environment-based API base URL
+
+### 5. Component Organization
+- **UI Components**: Reusable, presentational components
+- **Feature Components**: Domain-specific components
+- **Layout Components**: Page structure components
+- **Shared Components**: Common utilities
+
+## Key Dependencies & Versions
+
+### Core Framework
+- `next@15.1.0` - Next.js framework
+- `react@19.0.0` - React library
+- `react-dom@19.0.0` - React DOM renderer
+- `typescript@5.3.3` - TypeScript compiler
+
+### State & Data Fetching
+- `@tanstack/react-query@5.17.0` - Server state management
+- `@tanstack/react-query-devtools@5.17.0` - Dev tools (dev only)
+
+### Forms & Validation
+- `react-hook-form@7.49.3` - Form state management
+- `@hookform/resolvers@3.3.4` - Form validation resolvers
+- `zod@3.22.4` - Schema validation (matches backend Pydantic)
+
+### Styling
+- `tailwindcss@3.4.1` - Utility-first CSS framework
+- `postcss@8.4.35` - CSS processor
+- `autoprefixer@10.4.17` - CSS vendor prefixer
+- `clsx@2.1.0` - Conditional class names
+- `tailwind-merge@2.2.1` - Merge Tailwind classes
+
+### UI Components
+- `@radix-ui/*` - Headless UI primitives (via Shadcn)
+- `lucide-react@0.344.0` - Icon library
+- `class-variance-authority@0.7.0` - Component variants
+
+### Development Tools
+- `@types/node@20.11.5` - Node.js types
+- `@types/react@19.0.1` - React types
+- `@types/react-dom@19.0.1` - React DOM types
+- `eslint@8.56.0` - Linter
+- `eslint-config-next@15.1.0` - Next.js ESLint config
+- `prettier@3.2.4` - Code formatter
+
+### Testing
+- `jest@29.7.0` - Test framework
+- `@testing-library/react@14.1.2` - React testing utilities
+- `@testing-library/jest-dom@6.1.5` - Jest DOM matchers
+- `@testing-library/user-event@14.5.1` - User interaction testing
+- `jest-environment-jsdom@29.7.0` - JSDOM environment
+- `@playwright/test@1.41.0` - E2E testing
+
+## Best Practices for Next.js 15
+
+### 1. App Router Patterns
+- Use route groups `(folder)` for organization
+- Use `layout.tsx` for shared UI across routes
+- Use `loading.tsx` for loading states
+- Use `error.tsx` for error boundaries
+- Use `not-found.tsx` for 404 pages
+
+### 2. Server Components
+- Fetch data directly in Server Components
+- Use async/await for data fetching
+- Pass data as props to Client Components
+- Keep Server Components at the top level
+
+### 3. Client Components
+- Mark with 'use client' directive
+- Use for interactivity (onClick, useState, useEffect)
+- Use for browser APIs (localStorage, window)
+- Use for third-party libraries requiring client-side
+
+### 4. Data Fetching
+- Server Components: Direct async data fetching
+- Client Components: TanStack Query
+- Revalidate: Use revalidatePath/revalidateTag for cache invalidation
+
+### 5. Performance Optimization
+- Use Next.js Image component for images
+- Implement code splitting with dynamic imports
+- Use React.memo for expensive components
+- Optimize bundle size with tree shaking
+
+## TypeScript Configuration
+
+### Strict Mode Enabled
+- `strict: true` - Enable all strict checks
+- `noImplicitAny: true` - No implicit any
+- `strictNullChecks: true` - Strict null checks
+- `noUnusedLocals: true` - Error on unused locals
+- `noUnusedParameters: true` - Error on unused parameters
+
+## Environment Variables
+
+### Required Variables
+- `NEXT_PUBLIC_API_BASE_URL` - Backend API base URL
+- `NEXT_PUBLIC_APP_ENV` - Environment (development/production)
+
+### Usage Pattern
+```typescript
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+```
+
+## Code Style Guidelines
+
+### Component Structure
+1. Imports (external, then internal)
+2. Type definitions
+3. Component code
+4. Exports
+
+### Naming Conventions
+- Components: PascalCase (`StockCard.tsx`)
+- Hooks: camelCase with `use` prefix (`useStock.ts`)
+- Utilities: camelCase (`formatPrice.ts`)
+- Types: PascalCase (`Stock`, `StockResponse`)
+- Constants: UPPER_SNAKE_CASE (`API_BASE_URL`)
+
+## MANDATORY TESTING REQUIREMENTS
+
+### ⚠️ CRITICAL: Tests Must Be Written for ALL Code
+
+**When implementing ANY feature, you MUST:**
+
+1. **Write Unit Tests** (`__tests__/components/*.test.tsx`, `__tests__/lib/*.test.ts`):
+   - Test all React components
+   - Test all hooks
+   - Test all utility functions
+   - Test all API client functions
+   - Test loading and error states
+   - Test user interactions (clicks, form submissions)
+
+2. **Write Integration Tests** (`__tests__/integration/*.test.tsx`):
+   - Test component interactions
+   - Test API integration with mocked responses
+   - Test form submissions end-to-end
+   - Test data flow between components
+
+3. **Write E2E Tests** (`e2e/*.spec.ts`) for critical flows:
+   - Test complete user workflows
+   - Test navigation
+   - Test API integration with real backend (or mocked)
+   - Test responsive design
+
+### Test Structure Requirements
+
+For every new component (`components/features/stocks/StockCard.tsx`), create:
+- `__tests__/components/StockCard.test.tsx` - Unit tests
+- `e2e/stocks.spec.ts` - E2E tests (if new feature)
+
+For every new API function (`lib/api/stocks.ts`), create:
+- `__tests__/lib/api/stocks.test.ts` - Unit tests
+
+### Test Naming Convention
+- Test files: `<component>.test.tsx` or `<module>.test.ts`
+- Test suites: `describe("<Component>", () => { ... })`
+- Test cases: `it("should <expected behavior>", () => { ... })`
+
+### Test Checklist Before Completing Implementation
+
+- [ ] Unit tests written for all components
+- [ ] Unit tests written for all hooks
+- [ ] Unit tests written for all API functions
+- [ ] Integration tests written for component interactions
+- [ ] E2E tests written for critical user flows
+- [ ] Loading states tested
+- [ ] Error states tested
+- [ ] User interactions tested
+- [ ] Tests pass (`npm test`)
+- [ ] E2E tests pass (`npm run test:e2e`)
+
+### Example Test Pattern
+
+```typescript
+describe("ComponentName", () => {
+  it("should render correctly", () => {
+    // Arrange
+    // Act
+    // Assert
+  })
+
+  it("should handle user interaction", async () => {
+    // Arrange
+    // Act
+    // Assert
+  })
+
+  it("should display error state", () => {
+    // Arrange
+    // Act
+    // Assert
+  })
+})
+```
+
+**DO NOT mark implementation as complete without tests!**
+
+## Testing Strategy
+
+### Unit Tests
+- Test components in isolation
+- Test hooks independently
+- Test utility functions
+
+### Integration Tests
+- Test component interactions
+- Test API integration
+- Test form submissions
+
+### E2E Tests
+- Test critical user flows
+- Test authentication flows
+- Test stock search and display
+
+## Key Rules
+
+1. **Always** use TypeScript with strict mode
+2. **Default** to Server Components
+3. **Use** TanStack Query for server state
+4. **Never** use `any` type
+5. **Always** handle loading and error states
+6. **Keep** components small and focused
+7. **Use** Tailwind CSS for styling
+8. **Ensure** accessibility in all components
+9. **Type** all API responses with interfaces
+10. **Optimize** images with Next.js Image component
