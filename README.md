@@ -1,4 +1,4 @@
-# Stock Insight App
+# Stocky
 
 A financial stock analysis platform providing daily, weekly, and monthly insights using AI.
 

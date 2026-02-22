@@ -33,8 +33,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(
-    title="Stock Insight API",
-    description="Financial stock analysis platform API",
+    title="Stocky API",
+    description="Stocky — financial portfolio & stock analysis platform",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -63,7 +63,7 @@ app.include_router(api_router, prefix="/api/v1")
 async def root() -> dict[str, str]:
     """Root endpoint."""
     return {
-        "message": "Stock Insight API",
+        "message": "Stocky API",
         "version": "1.0.0",
         "docs": "/docs",
     }
