@@ -453,6 +453,27 @@ if __name__ == "__main__":
 - **Links**: Use relative links for internal documentation
 - **Images**: Store images in `docs/images/` directory
 
+## README App Description Rule
+
+### 17. Always Keep README App Description Current
+
+**MANDATORY**: Whenever a new feature, page, agent, or major capability is added or removed, update the "What the App Does" section in the root `README.md` to reflect it.
+
+**When to update:**
+- A new page or route is added (e.g., `/portfolio`, `/agents/[name]`)
+- A new AI agent is registered
+- A new major API endpoint or service is introduced
+- An existing feature is significantly changed or removed
+
+**What to update:**
+- Add or revise the relevant subsection under "What the App Does"
+- Keep descriptions concise — one short paragraph per feature area
+- Reflect the current actual behavior, not aspirational future state
+
+**File**: `/README.md` — "What the App Does" section
+
+---
+
 ## Key Rules Summary
 
 1. **Document** why, not what
