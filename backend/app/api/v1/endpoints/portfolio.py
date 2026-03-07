@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.schemas.agent import SectorBreakdownResponse
 from app.schemas.holding import HoldingCreate, PortfolioPosition, PortfolioSummary
 from app.services import holding_service
 
@@ -55,3 +56,9 @@ async def remove_holding(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No holding found for symbol {symbol.upper()}",
         )
+
+
+@router.get("/sector-breakdown", response_model=SectorBreakdownResponse)
+async def get_sector_breakdown(db: AsyncSession = Depends(get_db)) -> SectorBreakdownResponse:
+    """Return portfolio holdings grouped by sector with value and weight."""
+    return await holding_service.get_sector_breakdown(db)

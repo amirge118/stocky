@@ -1,11 +1,14 @@
 import asyncio
 from typing import Optional
 
+import yfinance as yf
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.executors import get_executor
 from app.models.holding import Holding
+from app.schemas.agent import SectorBreakdownResponse, SectorSlice
 from app.schemas.holding import HoldingResponse, PortfolioPosition, PortfolioSummary
 from app.services.stock_service import fetch_stock_data_from_yfinance
 
@@ -126,3 +129,54 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
         total_gain_loss=total_gain_loss,
         total_gain_loss_pct=total_gain_loss_pct,
     )
+
+
+def _fetch_sector_sync(symbol: str) -> Optional[str]:
+    """Synchronously fetch sector for a symbol via yfinance."""
+    try:
+        return yf.Ticker(symbol).info.get("sector")
+    except Exception:
+        return None
+
+
+async def get_sector_breakdown(db: AsyncSession) -> SectorBreakdownResponse:
+    """Group portfolio holdings by sector with value and weight."""
+    portfolio = await get_portfolio(db)
+    positions = portfolio.positions
+    total_value = portfolio.total_value or 0.0
+
+    if not positions:
+        return SectorBreakdownResponse(sectors=[], total_value=0.0)
+
+    loop = asyncio.get_event_loop()
+    sector_tasks = [
+        loop.run_in_executor(get_executor(), _fetch_sector_sync, pos.symbol)
+        for pos in positions
+    ]
+    sectors = await asyncio.gather(*sector_tasks)
+
+    # Group by sector
+    sector_map: dict[str, dict] = {}
+    for pos, sector in zip(positions, sectors):
+        sector_name = sector or "Unknown"
+        val = pos.current_value or 0.0
+        if sector_name not in sector_map:
+            sector_map[sector_name] = {"total_value": 0.0, "symbols": []}
+        sector_map[sector_name]["total_value"] += val
+        sector_map[sector_name]["symbols"].append(pos.symbol)
+
+    slices: list[SectorSlice] = []
+    for sec_name, data in sector_map.items():
+        weight = round(data["total_value"] / total_value * 100, 2) if total_value > 0 else 0.0
+        slices.append(
+            SectorSlice(
+                sector=sec_name,
+                total_value=round(data["total_value"], 2),
+                weight_pct=weight,
+                symbols=data["symbols"],
+                num_holdings=len(data["symbols"]),
+            )
+        )
+
+    slices.sort(key=lambda s: s.weight_pct, reverse=True)
+    return SectorBreakdownResponse(sectors=slices, total_value=round(total_value, 2))

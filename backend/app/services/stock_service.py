@@ -1,11 +1,12 @@
 import asyncio
 import time
-from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 import anthropic
 import yfinance as yf
 from app.core.config import settings
+from app.core.cache import cache_get, cache_set
+from app.core.executors import get_executor
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,17 +24,12 @@ from app.schemas.stock import (
     StockUpdate,
 )
 
-# Simple in-memory cache: symbol -> (data, timestamp)
-_stock_data_cache: dict[str, tuple[StockDataResponse, float]] = {}
 _CACHE_TTL = 300  # 5 minutes
-
-# Cache for stock info (slow endpoint): symbol -> (data, timestamp)
-_info_cache: dict[str, tuple[StockInfoResponse, float]] = {}
 _INFO_CACHE_TTL = 600  # 10 minutes
-
-# Cache for AI analysis: symbol -> (data, timestamp)
-_analysis_cache: dict[str, tuple[StockAIAnalysisResponse, float]] = {}
 _ANALYSIS_CACHE_TTL = 1800  # 30 minutes
+
+# Fallback in-memory for search results (not serializable to JSON easily)
+_stock_data_cache: dict[str, tuple[StockDataResponse, float]] = {}
 
 
 async def get_stock_by_symbol(db: AsyncSession, symbol: str) -> Optional[Stock]:
@@ -121,8 +117,14 @@ async def delete_stock(db: AsyncSession, symbol: str) -> bool:
 async def fetch_stock_data_from_yfinance(symbol: str) -> StockDataResponse:
     """Fetch live stock data from yfinance API using fast_info to avoid rate limits."""
     sym = symbol.upper()
+    cache_key = f"stock_data:{sym}"
 
-    # Return cached data if still fresh
+    # Check shared cache first
+    cached = await cache_get(cache_key)
+    if cached:
+        return StockDataResponse.model_validate(cached)
+
+    # Fallback in-memory for rate-limit recovery
     if sym in _stock_data_cache:
         cached_data, cached_at = _stock_data_cache[sym]
         if time.time() - cached_at < _CACHE_TTL:
@@ -157,6 +159,7 @@ async def fetch_stock_data_from_yfinance(symbol: str) -> StockDataResponse:
         )
 
         _stock_data_cache[sym] = (result, time.time())
+        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_CACHE_TTL)
         return result
 
     except HTTPException:
@@ -194,9 +197,6 @@ _EXCHANGE_COUNTRY: dict[str, str] = {
     "SHZ": "China",
     "ASX": "Australia",
 }
-
-_executor = ThreadPoolExecutor(max_workers=8)
-
 
 def _fetch_price_sync(symbol: str) -> Optional[float]:
     """Fetch last price synchronously (runs in executor thread)."""
@@ -240,7 +240,7 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
         except Exception:
             return []
 
-    raw_results = await loop.run_in_executor(_executor, _do_search)
+    raw_results = await loop.run_in_executor(get_executor(), _do_search)
 
     # Filter to equities only
     equities = [r for r in raw_results if r.get("quoteType") == "EQUITY"][:limit]
@@ -250,11 +250,11 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
 
     # Fetch prices and sparklines in parallel
     price_tasks = [
-        loop.run_in_executor(_executor, _fetch_price_sync, r["symbol"])
+        loop.run_in_executor(get_executor(), _fetch_price_sync, r["symbol"])
         for r in equities
     ]
     sparkline_tasks = [
-        loop.run_in_executor(_executor, _fetch_sparkline_sync, r["symbol"])
+        loop.run_in_executor(get_executor(), _fetch_sparkline_sync, r["symbol"])
         for r in equities
     ]
     gathered = await asyncio.gather(*price_tasks, *sparkline_tasks)
@@ -330,7 +330,7 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
         return points
 
     try:
-        data = await loop.run_in_executor(_executor, _fetch)
+        data = await loop.run_in_executor(get_executor(), _fetch)
         return StockHistoryResponse(symbol=sym, period=period, data=data)
     except Exception as e:
         raise HTTPException(
@@ -342,11 +342,11 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
 async def fetch_stock_info(symbol: str) -> StockInfoResponse:
     """Fetch detailed company info for a stock (10-min cache)."""
     sym = symbol.upper()
+    cache_key = f"stock_info:{sym}"
 
-    if sym in _info_cache:
-        cached, cached_at = _info_cache[sym]
-        if time.time() - cached_at < _INFO_CACHE_TTL:
-            return cached
+    cached = await cache_get(cache_key)
+    if cached:
+        return StockInfoResponse.model_validate(cached)
 
     loop = asyncio.get_event_loop()
 
@@ -354,7 +354,7 @@ async def fetch_stock_info(symbol: str) -> StockInfoResponse:
         return yf.Ticker(sym).info
 
     try:
-        info = await loop.run_in_executor(_executor, _fetch)
+        info = await loop.run_in_executor(get_executor(), _fetch)
 
         # Extract CEO from companyOfficers
         ceo: Optional[str] = None
@@ -383,7 +383,7 @@ async def fetch_stock_info(symbol: str) -> StockInfoResponse:
             fifty_two_week_low=info.get("fiftyTwoWeekLow"),
             average_volume=info.get("averageVolume"),
         )
-        _info_cache[sym] = (result, time.time())
+        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_INFO_CACHE_TTL)
         return result
     except Exception as e:
         raise HTTPException(
@@ -401,7 +401,7 @@ async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
         return yf.Ticker(sym).news or []
 
     try:
-        raw_news = await loop.run_in_executor(_executor, _fetch)
+        raw_news = await loop.run_in_executor(get_executor(), _fetch)
         items: list[StockNewsItem] = []
         for article in raw_news[:limit]:
             # Support both old flat schema and new nested content schema
@@ -458,11 +458,11 @@ async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
 async def generate_ai_analysis(symbol: str) -> StockAIAnalysisResponse:
     """Generate an AI-powered stock analysis using Anthropic Claude (30-min cache)."""
     sym = symbol.upper()
+    cache_key = f"stock_analysis:{sym}"
 
-    if sym in _analysis_cache:
-        cached, cached_at = _analysis_cache[sym]
-        if time.time() - cached_at < _ANALYSIS_CACHE_TTL:
-            return cached
+    cached = await cache_get(cache_key)
+    if cached:
+        return StockAIAnalysisResponse.model_validate(cached)
 
     # Gather data for the prompt
     try:
@@ -509,7 +509,7 @@ async def generate_ai_analysis(symbol: str) -> StockAIAnalysisResponse:
         )
         analysis_text = message.content[0].text if message.content else "Analysis unavailable."
         result = StockAIAnalysisResponse(symbol=sym, analysis=analysis_text)
-        _analysis_cache[sym] = (result, time.time())
+        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_ANALYSIS_CACHE_TTL)
         return result
     except Exception as e:
         raise HTTPException(

@@ -16,19 +16,24 @@ from app.middleware.error_handler import (
 )
 
 # Import models so Alembic can detect them
+from app.models.agent_report import AgentReport  # noqa: F401
 from app.models.holding import Holding  # noqa: F401
 from app.models.stock import Stock  # noqa: F401
+
+# Register all agents (side-effect: populates AgentRegistry)
+import app.agents  # noqa: F401
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager for startup and shutdown events."""
     # Startup
-    # Create database tables (in production, use migrations)
-    # async with engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.create_all)
+    from app.agents.scheduler import start_scheduler
+    await start_scheduler()
     yield
     # Shutdown
+    from app.agents.scheduler import stop_scheduler
+    await stop_scheduler()
     await engine.dispose()
 
 

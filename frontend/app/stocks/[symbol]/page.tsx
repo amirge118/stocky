@@ -10,6 +10,7 @@ import { StockAbout } from "@/components/features/stocks/StockAbout"
 import { StockNews } from "@/components/features/stocks/StockNews"
 import { StockAIAnalysis } from "@/components/features/stocks/StockAIAnalysis"
 import { StockSectorOverview } from "@/components/features/stocks/StockSectorOverview"
+import { StockDeepDiveCard } from "@/components/features/agents/StockDeepDiveCard"
 
 export default function StockDetailPage() {
   const params = useParams()
@@ -113,6 +114,9 @@ export default function StockDetailPage() {
 
         {/* AI Analysis */}
         <StockAIAnalysis symbol={symbol} />
+
+        {/* Deep Dive Agent */}
+        <StockDeepDiveCard symbol={symbol} />
 
         {/* Sector Overview */}
         {info && (
