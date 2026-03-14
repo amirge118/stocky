@@ -67,8 +67,10 @@ ignore_missing_imports = false
 
 [[tool.mypy.overrides]]
 module = [
+    "yfinance",
     "yfinance.*",
     "passlib.*",
+    "apscheduler.*",
 ]
 ignore_missing_imports = true
 

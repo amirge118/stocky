@@ -30,7 +30,7 @@ function CustomTooltip({
     <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-xs shadow-xl">
       <p className="font-semibold text-white mb-1">{d.name}</p>
       <p className="text-zinc-400">
-        ${d.payload.total_value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+        ${d.payload.total_value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
       </p>
       <p className="text-zinc-400">{d.payload.weight_pct.toFixed(1)}%</p>
     </div>

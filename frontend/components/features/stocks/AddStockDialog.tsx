@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { createStock, searchStocks } from "@/lib/api/stocks"
 import { useToast } from "@/hooks/use-toast"
-import type { StockSearchResult } from "@/types/stock"
+import type { Stock, StockListResponse, StockSearchResult } from "@/types/stock"
 
 // ── Inline SVG sparkline ────────────────────────────────────────────────────
 function Sparkline({ data }: { data: number[] }) {
@@ -118,18 +118,62 @@ export function AddStockDialog({
 
   const mutation = useMutation({
     mutationFn: createStock,
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["stocks"] })
-      toast({ title: `${variables.symbol} added` })
-      setAddingSymbol(null)
-      onSuccess?.()
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ["stocks"] })
+      const previous = queryClient.getQueriesData({ queryKey: ["stocks"] })
+      const optimisticStock: Stock = {
+        id: Date.now(),
+        symbol: variables.symbol,
+        name: variables.name,
+        exchange: variables.exchange,
+        sector: variables.sector ?? null,
+        created_at: new Date().toISOString(),
+        updated_at: null,
+      }
+      queryClient.setQueriesData<StockListResponse>(
+        { predicate: (q) => q.queryKey[0] === "stocks" },
+        (old) => {
+          if (!old) return old
+          const newData = [...old.data, optimisticStock]
+          return {
+            ...old,
+            data: newData,
+            meta: {
+              ...old.meta,
+              total: old.meta.total + 1,
+            },
+          }
+        }
+      )
+      return { previous }
     },
-    onError: (error: Error, variables) => {
+    onError: (error: Error, variables, context) => {
+      if (context?.previous) {
+        for (const [queryKey, data] of context.previous) {
+          queryClient.setQueryData(queryKey, data)
+        }
+      }
       setRowErrors((prev) => ({
         ...prev,
         [variables.symbol]: error.message || "Failed to add stock",
       }))
       setAddingSymbol(null)
+      // If stock already exists, refetch list so user sees it in the table
+      if (error.message?.toLowerCase().includes("already exists")) {
+        queryClient.refetchQueries({ queryKey: ["stocks"] })
+        toast({
+          title: "Stock already in list",
+          description: `${variables.symbol} is already in your stocks. Refreshing the list.`,
+        })
+      }
+    },
+    onSuccess: (_, variables) => {
+      toast({ title: `${variables.symbol} added` })
+      setAddingSymbol(null)
+      onSuccess?.()
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["stocks"] })
     },
   })
 

@@ -15,7 +15,7 @@ def _parse_json_response(raw: str) -> dict:
     match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
     if match:
         raw = match.group(1).strip()
-    return json.loads(raw)
+    return dict(json.loads(raw))
 
 
 def call_claude(

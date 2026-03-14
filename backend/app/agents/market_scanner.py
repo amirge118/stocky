@@ -40,6 +40,15 @@ class MarketScannerAgent(BaseAgent):
         db = context.get("db")
         start = time.time()
 
+        if db is None:
+            return AgentResult(
+                agent_name=self.name,
+                agent_type=self.agent_type,
+                status=AgentStatus.FAILED,
+                error_message="Database session not available",
+                run_duration_ms=int((time.time() - start) * 1000),
+            )
+
         try:
             from sqlalchemy import select
             from app.models.stock import Stock

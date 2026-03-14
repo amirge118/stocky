@@ -10,6 +10,7 @@ from app.core.executors import get_executor
 from app.models.holding import Holding
 from app.schemas.agent import SectorBreakdownResponse, SectorSlice
 from app.schemas.holding import HoldingResponse, PortfolioPosition, PortfolioSummary
+from app.schemas.stock import StockDataResponse
 from app.services.stock_service import fetch_stock_data_from_yfinance
 
 
@@ -90,8 +91,9 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
         gain_loss: Optional[float] = None
         gain_loss_pct: Optional[float] = None
 
-        if not isinstance(price_result, Exception):
-            current_price = price_result.current_price
+        if isinstance(price_result, StockDataResponse):
+            resp: StockDataResponse = price_result
+            current_price = resp.current_price
             current_value = round(holding.shares * current_price, 2)
             gain_loss = round(current_value - holding.total_cost, 2)
             gain_loss_pct = round((gain_loss / holding.total_cost) * 100, 2) if holding.total_cost else 0.0
@@ -134,7 +136,8 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
 def _fetch_sector_sync(symbol: str) -> Optional[str]:
     """Synchronously fetch sector for a symbol via yfinance."""
     try:
-        return yf.Ticker(symbol).info.get("sector")
+        sector = yf.Ticker(symbol).info.get("sector")
+        return str(sector) if sector is not None else None
     except Exception:
         return None
 

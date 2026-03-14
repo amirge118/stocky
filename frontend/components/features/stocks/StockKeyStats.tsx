@@ -2,6 +2,7 @@
 
 import type { StockInfoResponse } from "@/types/stock"
 
+
 function formatMarketCap(v: number | null): string {
   if (v == null) return "—"
   if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`
@@ -27,29 +28,63 @@ function fmtVol(v: number | null): string {
   return v.toLocaleString()
 }
 
-const StatRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex justify-between items-center py-2 border-b border-zinc-800 last:border-0">
-    <span className="text-zinc-400 text-sm">{label}</span>
-    <span className="text-white font-medium text-sm">{value}</span>
-  </div>
-)
+const StatRow = ({
+  label,
+  value,
+  compact,
+}: {
+  label: string
+  value: string
+  compact?: boolean
+}) =>
+  compact ? (
+    <div className="flex items-center gap-2">
+      <span className="text-zinc-500 text-xs">{label}:</span>
+      <span className="text-white font-medium text-xs">{value}</span>
+    </div>
+  ) : (
+    <div className="flex justify-between items-center py-2 border-b border-zinc-800 last:border-0">
+      <span className="text-zinc-400 text-sm">{label}</span>
+      <span className="text-white font-medium text-sm">{value}</span>
+    </div>
+  )
+
+const STATS = [
+  { key: "market_cap", label: "Market Cap", fmt: (i: StockInfoResponse) => formatMarketCap(i.market_cap) },
+  { key: "pe", label: "P/E", fmt: (i: StockInfoResponse) => fmt2(i.pe_ratio) },
+  { key: "fpe", label: "Fwd P/E", fmt: (i: StockInfoResponse) => fmt2(i.forward_pe) },
+  { key: "beta", label: "Beta", fmt: (i: StockInfoResponse) => fmt2(i.beta) },
+  { key: "52h", label: "52W High", fmt: (i: StockInfoResponse) => (i.fifty_two_week_high != null ? `$${i.fifty_two_week_high.toFixed(2)}` : "—") },
+  { key: "52l", label: "52W Low", fmt: (i: StockInfoResponse) => (i.fifty_two_week_low != null ? `$${i.fifty_two_week_low.toFixed(2)}` : "—") },
+  { key: "vol", label: "Avg Vol", fmt: (i: StockInfoResponse) => fmtVol(i.average_volume) },
+  { key: "div", label: "Div Yield", fmt: (i: StockInfoResponse) => fmtPct(i.dividend_yield) },
+] as const
 
 interface StockKeyStatsProps {
   info: StockInfoResponse
+  compact?: boolean
 }
 
-export function StockKeyStats({ info }: StockKeyStatsProps) {
+export function StockKeyStats({ info, compact = false }: StockKeyStatsProps) {
+  if (compact) {
+    return (
+      <div className="rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-3">
+        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">Key Statistics</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-1.5">
+          {STATS.map((s) => (
+            <StatRow key={s.key} label={s.label} value={s.fmt(info)} compact />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
       <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide mb-3">Key Statistics</h2>
-      <StatRow label="Market Cap" value={formatMarketCap(info.market_cap)} />
-      <StatRow label="P/E Ratio (TTM)" value={fmt2(info.pe_ratio)} />
-      <StatRow label="Forward P/E" value={fmt2(info.forward_pe)} />
-      <StatRow label="Beta" value={fmt2(info.beta)} />
-      <StatRow label="52W High" value={info.fifty_two_week_high != null ? `$${info.fifty_two_week_high.toFixed(2)}` : "—"} />
-      <StatRow label="52W Low" value={info.fifty_two_week_low != null ? `$${info.fifty_two_week_low.toFixed(2)}` : "—"} />
-      <StatRow label="Avg Volume" value={fmtVol(info.average_volume)} />
-      <StatRow label="Dividend Yield" value={fmtPct(info.dividend_yield)} />
+      {STATS.map((s) => (
+        <StatRow key={s.key} label={s.label} value={s.fmt(info)} />
+      ))}
     </div>
   )
 }

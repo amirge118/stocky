@@ -1,0 +1,13 @@
+{
+  "name": "stocky",
+  "private": true,
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "dev:all": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && ./venv/bin/uvicorn app.main:app --reload --host 127.0.0.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

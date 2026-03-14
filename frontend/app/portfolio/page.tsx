@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Plus, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,8 +13,13 @@ import { SectorAllocationChart } from "@/components/features/portfolio/SectorAll
 import { SectorBreakdownTable } from "@/components/features/portfolio/SectorBreakdownTable"
 
 export default function PortfolioPage() {
+  const [mounted, setMounted] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const queryClient = useQueryClient()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const { data, isPending, isFetching } = useQuery({
     queryKey: ["portfolio"],
@@ -27,6 +32,54 @@ export default function PortfolioPage() {
     queryFn: getSectorBreakdown,
     staleTime: 5 * 60_000,
   })
+
+  // Render static skeleton on server and initial client to avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white">
+        <div className="max-w-5xl mx-auto px-4 py-8 space-y-5">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-medium tracking-widest uppercase text-zinc-500 mb-1">
+                Equity Portfolio
+              </p>
+              <h1 className="text-3xl font-bold tracking-tight text-white leading-none">
+                Portfolio
+              </h1>
+            </div>
+            <div className="h-8 w-24 rounded bg-zinc-800 animate-pulse" />
+          </div>
+          <div className="p-px rounded-2xl bg-zinc-800">
+            <div className="rounded-2xl bg-zinc-950 p-6 animate-pulse">
+              <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-2.5 w-16 rounded-full bg-zinc-800" />
+                    <div className="h-7 w-28 rounded bg-zinc-800" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-zinc-800 overflow-hidden">
+            <div className="bg-zinc-900/50 px-5 py-3 border-b border-zinc-800">
+              <div className="h-3 w-20 rounded-full bg-zinc-800 animate-pulse" />
+            </div>
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex items-center gap-4 px-5 py-4 border-b border-zinc-800/60 animate-pulse"
+              >
+                <div className="h-4 w-12 rounded bg-zinc-800" />
+                <div className="h-3 w-32 rounded bg-zinc-800" />
+                <div className="ml-auto h-4 w-20 rounded bg-zinc-800" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -46,8 +99,8 @@ export default function PortfolioPage() {
           </div>
 
           <div className="flex items-center gap-2 pb-0.5">
-            {/* Live pulse indicator */}
-            <div className="flex items-center gap-1.5 mr-1">
+            {/* Live pulse indicator - suppressHydrationWarning: isFetching can differ server vs client */}
+            <div className="flex items-center gap-1.5 mr-1" suppressHydrationWarning>
               {isFetching ? (
                 <RefreshCw size={12} className="text-zinc-500 animate-spin" />
               ) : (

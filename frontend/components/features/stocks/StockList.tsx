@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { getStocks } from "@/lib/api/stocks"
 import { StockCard } from "./StockCard"
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
+import { StockListSkeleton } from "@/components/shared/StockListSkeleton"
 import { ErrorMessage } from "@/components/shared/ErrorMessage"
 
 interface StockListProps {
@@ -19,7 +19,7 @@ export function StockList({ page = 1, limit = 20, onStockClick }: StockListProps
   })
 
   if (isLoading) {
-    return <LoadingSpinner />
+    return <StockListSkeleton />
   }
 
   if (error) {

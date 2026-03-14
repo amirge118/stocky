@@ -35,7 +35,13 @@ function formatTooltipDate(ts: number, period: string): string {
 }
 
 // Pure SVG candlestick drawn in real pixel coordinates (no viewBox distortion)
-function CandlestickChart({ points }: { points: StockHistoryPoint[] }) {
+function CandlestickChart({
+  points,
+  period,
+}: {
+  points: StockHistoryPoint[]
+  period: string
+}) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [svgW, setSvgW] = useState(0)
 
@@ -53,7 +59,7 @@ function CandlestickChart({ points }: { points: StockHistoryPoint[] }) {
   const padL = 4
   const padR = 46
   const padT = 8
-  const padB = 6
+  const padB = 18 // room for time axis labels
   const chartW = svgW - padL - padR
   const chartH = svgH - padT - padB
 
@@ -134,6 +140,35 @@ function CandlestickChart({ points }: { points: StockHistoryPoint[] }) {
               ${t.price.toFixed(0)}
             </text>
           ))}
+
+          {/* X-axis time labels */}
+          {points.length > 0 && (() => {
+            const labelCount = Math.min(5, points.length)
+            const indices = Array.from(
+              { length: labelCount },
+              (_, i) =>
+                labelCount <= 1 ? 0 : Math.round((i / (labelCount - 1)) * (points.length - 1))
+            )
+            const uniqueIndices = [...new Set(indices)]
+            return uniqueIndices.map((idx) => {
+              const p = points[idx]
+              const x = px(idx)
+              const label = formatXAxis(p.t, period)
+              return (
+                <text
+                  key={`${idx}-${p.t}`}
+                  x={x}
+                  y={svgH - 4}
+                  fill="#71717a"
+                  fontSize={9}
+                  fontFamily="system-ui, sans-serif"
+                  textAnchor="middle"
+                >
+                  {label}
+                </text>
+              )
+            })
+          })()}
         </>
       )}
     </svg>
@@ -216,7 +251,7 @@ export function StockChart({ symbol }: StockChartProps) {
       ) : chartType === "area" ? (
         <div className="h-28 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={points} margin={{ top: 2, right: 8, left: 0, bottom: 0 }}>
+            <AreaChart data={points} margin={{ top: 2, right: 8, left: 0, bottom: 20 }}>
               <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={color} stopOpacity={0.3} />
@@ -266,7 +301,7 @@ export function StockChart({ symbol }: StockChartProps) {
         </div>
       ) : (
         <div className="h-28 w-full">
-          <CandlestickChart points={points} />
+          <CandlestickChart points={points} period={period} />
         </div>
       )}
     </div>

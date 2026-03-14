@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { searchStocks } from "@/lib/api/stocks"
 import { addHolding } from "@/lib/api/portfolio"
 import { useToast } from "@/hooks/use-toast"
+import type { PortfolioPosition, PortfolioSummary } from "@/types/portfolio"
 import type { StockSearchResult } from "@/types/stock"
 
 // ── Inline SVG sparkline (copied from AddStockDialog) ───────────────────────
@@ -59,6 +60,7 @@ export interface AddPositionDialogProps {
 // ── Main component ───────────────────────────────────────────────────────────
 export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPositionDialogProps) {
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [step, setStep] = useState<1 | 2>(1)
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<StockSearchResult[]>([])
@@ -107,13 +109,49 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
 
   const mutation = useMutation({
     mutationFn: addHolding,
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ["portfolio"] })
+      const previous = queryClient.getQueryData<PortfolioSummary>(["portfolio"])
+      const optimisticPosition: PortfolioPosition = {
+        symbol: variables.symbol,
+        name: variables.name,
+        shares: variables.shares,
+        avg_cost: variables.price_per_share,
+        total_cost: variables.shares * variables.price_per_share,
+        current_price: null,
+        current_value: null,
+        gain_loss: null,
+        gain_loss_pct: null,
+        portfolio_pct: null,
+      }
+      queryClient.setQueryData<PortfolioSummary>(["portfolio"], (old) => {
+        if (!old) return old
+        const newPositions = [...old.positions, optimisticPosition]
+        const newTotalCost = old.total_cost + optimisticPosition.total_cost
+        return {
+          ...old,
+          positions: newPositions,
+          total_cost: newTotalCost,
+          total_value: old.total_value,
+          total_gain_loss: old.total_gain_loss,
+          total_gain_loss_pct: old.total_gain_loss_pct,
+        }
+      })
+      return { previous }
+    },
+    onError: (err: Error, _, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["portfolio"], context.previous)
+      }
+      toast({ title: "Error", description: err.message, variant: "destructive" })
+    },
     onSuccess: () => {
       toast({ title: `${selected?.symbol} added to portfolio` })
       onSuccess?.()
       onOpenChange(false)
     },
-    onError: (err: Error) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" })
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] })
     },
   })
 

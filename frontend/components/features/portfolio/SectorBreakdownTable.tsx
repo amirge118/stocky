@@ -45,7 +45,7 @@ export function SectorBreakdownTable({ sectors }: SectorBreakdownTableProps) {
               </td>
               <td className="py-3 pr-4 text-right text-zinc-400 align-top">{s.num_holdings}</td>
               <td className="py-3 pr-4 text-right text-zinc-300 align-top">
-                ${s.total_value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                ${s.total_value.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </td>
               <td className="py-3 text-right align-top">
                 <div className="flex items-center justify-end gap-2">

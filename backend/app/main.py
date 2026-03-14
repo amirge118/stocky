@@ -1,10 +1,13 @@
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -21,7 +24,7 @@ from app.models.holding import Holding  # noqa: F401
 from app.models.stock import Stock  # noqa: F401
 
 # Register all agents (side-effect: populates AgentRegistry)
-import app.agents  # noqa: F401
+from app import agents  # noqa: F401
 
 
 @asynccontextmanager
@@ -37,15 +40,31 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await engine.dispose()
 
 
-app = FastAPI(
+application = FastAPI(
     title="Stocky API",
     description="Stocky — financial portfolio & stock analysis platform",
     version="1.0.0",
     lifespan=lifespan,
 )
 
+# Security headers middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
+
+application.add_middleware(SecurityHeadersMiddleware)
+
 # CORS middleware
-app.add_middleware(
+application.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
@@ -56,15 +75,15 @@ app.add_middleware(
 )
 
 # Exception handlers
-app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
-app.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
-app.add_exception_handler(Exception, general_exception_handler)
+application.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
+application.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
+application.add_exception_handler(Exception, general_exception_handler)
 
 # Include routers
-app.include_router(api_router, prefix="/api/v1")
+application.include_router(api_router, prefix="/api/v1")
 
 
-@app.get("/")
+@application.get("/")
 async def root() -> dict[str, str]:
     """Root endpoint."""
     return {
@@ -72,3 +91,7 @@ async def root() -> dict[str, str]:
         "version": "1.0.0",
         "docs": "/docs",
     }
+
+
+# Export for uvicorn: app.main:app
+app = application

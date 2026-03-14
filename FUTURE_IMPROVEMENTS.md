@@ -6,11 +6,6 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### From Testing Summary
 
-- [ ] **Pre-commit Hooks** [HIGH]
-  - Set up pre-commit hooks to run tests automatically
-  - Enforce test coverage thresholds before allowing commits
-  - Run linting and type checking automatically
-
 - [ ] **CI/CD Pipeline** [HIGH]
   - Set up CI/CD pipeline to enforce test coverage
   - Run tests on every pull request
@@ -35,12 +30,26 @@ This document tracks all ideas, features, and improvements for the Stock Insight
   - Auto-generate tests for CRUD operations
   - Generate mock data factories
 
+### רעיונות חדשים
+
+- [ ] **E2E Tests with Playwright** [MEDIUM]
+  - Add end-to-end tests for critical user flows (login, add stock, portfolio)
+  - Run E2E in CI on every PR
+  - Visual regression testing for key pages
+
+- [ ] **Snapshot Testing for UI** [LOW]
+  - Add Jest snapshot tests for shared components
+  - Catch unintended UI changes in PRs
+
+- [ ] **Mutation Testing** [LOW]
+  - Use mutmut or similar to verify test quality
+  - Identify tests that don't actually assert behavior
+
 ## Backend Improvements
 
 ### Database & Performance
 
 - [ ] Add database connection pooling optimization
-- [ ] Implement Redis caching for frequently accessed stock data
 - [ ] Add database query optimization and indexing strategy review
 - [ ] Implement database read replicas for scaling
 - [ ] Add database migration rollback strategies
@@ -51,7 +60,6 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 - [ ] Add API rate limiting per user/IP
 - [ ] Implement API versioning strategy (v2, v3)
 - [ ] Add GraphQL endpoint as alternative to REST
-- [ ] Implement WebSocket support for real-time stock updates
 - [ ] Add API request/response logging and monitoring
 - [ ] Implement API analytics and usage tracking
 - [ ] Add API documentation improvements (more examples)
@@ -70,16 +78,28 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### Features
 
-- [ ] Add stock watchlist functionality
-- [ ] Implement stock price alerts (email/push notifications)
-- [ ] Add stock portfolio tracking
-- [ ] Implement stock comparison features
-- [ ] Add historical stock data analysis
-- [ ] Implement stock recommendations based on AI
+- [ ] Add historical stock data analysis (multi-year charts, dividends)
 - [ ] Add social features (share insights, comments)
-- [ ] Implement stock news aggregation
-- [ ] Add technical indicators calculation
+- [ ] Add technical indicators calculation (RSI, MACD, moving averages)
 - [ ] Implement backtesting capabilities
+
+### רעיונות חדשים
+
+- [ ] **Stock Dividends Tracking** [MEDIUM]
+  - Track dividend history and yield per holding
+  - Show dividend calendar in portfolio view
+
+- [ ] **Earnings Calendar Integration** [MEDIUM]
+  - Integrate earnings dates from Yahoo Finance or similar
+  - Alert users before earnings for watched stocks
+
+- [ ] **Batch Stock Import** [LOW]
+  - Endpoint to add multiple stocks at once (CSV/JSON)
+  - Bulk update for portfolio positions
+
+- [ ] **WebSocket Agent Progress** [LOW]
+  - Stream agent progress (e.g. "Analyzing fundamentals...") over WebSocket
+  - Better UX for long-running agent jobs
 
 ### Monitoring & Observability
 
@@ -104,7 +124,7 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### User Experience
 
-- [ ] Add dark mode support
+- [ ] Add dark/light mode toggle (user preference persisted)
 - [ ] Implement responsive design improvements
 - [ ] Add keyboard navigation support
 - [ ] Implement accessibility improvements (WCAG 2.1 AA)
@@ -125,16 +145,28 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### Features
 
-- [ ] Add stock search with autocomplete
+- [ ] Add stock search with autocomplete (dropdown suggestions while typing)
 - [ ] Implement advanced filtering and sorting
-- [ ] Add stock charts and graphs (Chart.js, Recharts)
-- [ ] Implement real-time stock price updates
-- [ ] Add stock comparison view
-- [ ] Implement stock watchlist UI
-- [ ] Add stock alerts management UI
-- [ ] Implement portfolio dashboard
 - [ ] Add export functionality (CSV, PDF)
 - [ ] Implement data visualization improvements
+
+### רעיונות חדשים
+
+- [ ] **Shareable Stock URLs** [MEDIUM]
+  - Encode selected symbols in URL (e.g. /stocks?symbols=AAPL,MSFT)
+  - Allow sharing comparison or watchlist views
+
+- [ ] **Infinite Scroll for Stock List** [LOW]
+  - Replace pagination with infinite scroll for smoother browsing
+  - Virtualize list for performance
+
+- [ ] **Drag-and-Drop Portfolio Reordering** [LOW]
+  - Let users reorder holdings by drag-and-drop
+  - Persist order preference
+
+- [ ] **Agent Report Favorites** [LOW]
+  - Pin favorite agent reports to dashboard
+  - Quick access to frequently referenced analyses
 
 ### State Management
 
@@ -148,12 +180,25 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### Deployment
 
-- [ ] Set up Docker containers for backend and frontend
-- [ ] Implement Docker Compose for local development
 - [ ] Add Kubernetes deployment configurations
 - [ ] Implement blue-green deployment strategy
 - [ ] Add canary releases
 - [ ] Implement automated rollback procedures
+
+### רעיונות חדשים
+
+- [ ] **GitHub Actions CI** [HIGH]
+  - Run tests, lint, type-check on every push/PR
+  - Build Docker images on main branch
+  - Optional: deploy to staging on merge
+
+- [ ] **Staging Environment** [MEDIUM]
+  - Dedicated staging URL for pre-production testing
+  - Seed data for demo/testing
+
+- [ ] **Database Backup Automation** [MEDIUM]
+  - Scheduled pg_dump to object storage (S3, etc.)
+  - Point-in-time recovery capability
 
 ### Environment Management
 
@@ -180,14 +225,33 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 - [ ] Create troubleshooting guides
 - [ ] Add deployment runbooks
 
+### רעיונות חדשים
+
+- [ ] **CONTRIBUTING.md** [MEDIUM]
+  - How to set up dev environment, run tests, submit PRs
+  - Code style and commit message conventions
+
+- [ ] **API Changelog** [LOW]
+  - Document breaking changes and new endpoints per version
+  - Keep in sync with API versioning
+
 ## Code Quality
 
-- [ ] Add more comprehensive type hints (backend)
 - [ ] Implement stricter TypeScript configurations (frontend)
 - [ ] Add code review guidelines
 - [ ] Implement automated code quality checks
 - [ ] Add dependency vulnerability scanning
 - [ ] Implement license compliance checking
+
+### רעיונות חדשים
+
+- [ ] **Dependabot / Renovate** [MEDIUM]
+  - Automated PRs for dependency updates
+  - Keep security patches applied quickly
+
+- [ ] **SonarQube or CodeClimate** [LOW]
+  - Code quality and security analysis
+  - Technical debt visibility
 
 ## Security
 
@@ -197,6 +261,16 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 - [ ] Implement XSS prevention improvements
 - [ ] Add CSRF protection
 - [ ] Implement security audit automation
+
+### רעיונות חדשים
+
+- [ ] **Rate Limiting on Auth Endpoints** [HIGH]
+  - Throttle login/register to prevent brute force
+  - Per-IP and per-user limits
+
+- [ ] **CORS Validation** [LOW]
+  - Strict allowlist of origins in production
+  - Reject unexpected preflight requests
 
 ## How to Add Ideas
 
@@ -217,5 +291,5 @@ When suggesting or implementing features:
 
 ---
 
-**Last Updated**: 2026-02-09
-**Total Ideas**: 100+
+**Last Updated**: 2026-03-14
+**Total Ideas**: ~90

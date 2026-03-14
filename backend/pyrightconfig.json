@@ -1,6 +1,7 @@
 {
   "venvPath": ".",
   "venv": "venv",
+  "reportMissingTypeStubs": false,
   "executionEnvironments": [
     {
       "root": ".",
