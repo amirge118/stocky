@@ -26,10 +26,10 @@ async def db_session():
     """Create a test database session."""
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     async with TestSessionLocal() as session:
         yield session
-    
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
@@ -40,9 +40,9 @@ def client(db_session):
     # Create a sync wrapper for async db_session
     async def override_get_db():
         yield db_session
-    
+
     app.dependency_overrides[get_db_session] = override_get_db
-    
+
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

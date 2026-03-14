@@ -1,6 +1,6 @@
 """Integration tests for stock API endpoints."""
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from app.models.stock import Stock

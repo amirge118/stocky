@@ -4,13 +4,13 @@ from typing import Optional, cast
 
 import anthropic
 import yfinance as yf
-from app.core.config import settings
-from app.core.cache import cache_get, cache_set
-from app.core.executors import get_executor
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import cache_get, cache_set
+from app.core.config import settings
+from app.core.executors import get_executor
 from app.models.stock import Stock
 from app.schemas.stock import (
     StockAIAnalysisResponse,
@@ -336,7 +336,7 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
                     t=t_ms,
                     o=round(float(row["Open"]), 4),
                     h=round(float(row["High"]), 4),
-                    l=round(float(row["Low"]), 4),
+                    low=round(float(row["Low"]), 4),
                     c=round(float(row["Close"]), 4),
                     v=v_int,
                 )
@@ -444,7 +444,7 @@ async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
             published_at: Optional[int] = None
             pub_date = content.get("pubDate") or content.get("displayTime")
             if pub_date:
-                from datetime import datetime, timezone
+                from datetime import datetime
                 try:
                     dt = datetime.fromisoformat(pub_date.replace("Z", "+00:00"))
                     published_at = int(dt.timestamp() * 1000)

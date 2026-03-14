@@ -1,11 +1,11 @@
 """Unit tests for stock service."""
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import MagicMock, patch
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.stock import Stock
-from app.schemas.stock import StockCreate, StockUpdate, StockDataResponse
+from app.schemas.stock import StockCreate, StockDataResponse, StockUpdate
 from app.services import stock_service
 
 

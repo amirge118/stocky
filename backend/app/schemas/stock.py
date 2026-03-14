@@ -78,7 +78,7 @@ class StockHistoryPoint(BaseModel):
     t: int            # Unix ms timestamp
     o: float          # open
     h: float          # high
-    l: float          # low
+    low: float = Field(alias="l")  # low price (OHLC)
     c: float          # close
     v: Optional[int] = None  # volume
 

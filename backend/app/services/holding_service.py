@@ -2,7 +2,6 @@ import asyncio
 from typing import Optional
 
 import yfinance as yf
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
