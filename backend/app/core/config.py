@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     redis_url: Optional[str] = None
     environment: str = "development"
     log_level: str = "INFO"
+    log_request_payload: bool = True
+    log_response_payload: bool = True
+    log_payload_max_length: int = 2000
 
     @property
     def cors_origins_list(self) -> list[str]:

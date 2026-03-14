@@ -6,7 +6,7 @@ The Stock Insight App architecture has been set up with comprehensive rules, dep
 ## Created Structure
 
 ```
-learnCursor/
+stocky/
 ├── frontend/
 │   ├── .cursorrules              # Frontend architecture rules
 │   └── package.json             # Frontend dependencies with versions

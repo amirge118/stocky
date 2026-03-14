@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
@@ -17,6 +18,7 @@ from app.middleware.error_handler import (
     http_exception_handler,
     validation_exception_handler,
 )
+from app.middleware.request_logging import RequestLoggingMiddleware
 
 # Import models so Alembic can detect them
 from app.models.agent_report import AgentReport  # noqa: F401
@@ -25,6 +27,10 @@ from app.models.stock import Stock  # noqa: F401
 
 # Register all agents (side-effect: populates AgentRegistry)
 from app import agents  # noqa: F401
+
+# Ensure request logging middleware logs are visible
+_logger = logging.getLogger("app.middleware.request_logging")
+_logger.setLevel(getattr(logging, settings.log_level.upper(), logging.INFO))
 
 
 @asynccontextmanager
@@ -62,6 +68,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 application.add_middleware(SecurityHeadersMiddleware)
+application.add_middleware(RequestLoggingMiddleware)
 
 # CORS middleware
 application.add_middleware(

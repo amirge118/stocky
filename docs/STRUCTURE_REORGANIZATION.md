@@ -7,7 +7,7 @@ All setup and documentation files have been reorganized into a cleaner, more log
 ## Before
 
 ```
-learnCursor/
+stocky/
 ├── README.md
 ├── ARCHITECTURE_SETUP.md          # Setup doc
 ├── START_DEVELOPMENT.md            # Setup doc
@@ -32,7 +32,7 @@ learnCursor/
 ## After
 
 ```
-learnCursor/
+stocky/
 ├── README.md                       # Main project README
 ├── FUTURE_IMPROVEMENTS.md          # Planning (stays in root)
 ├── PROJECT_STRUCTURE.md            # Structure guide (new)
