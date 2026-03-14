@@ -157,7 +157,7 @@ Frontend will be available at: http://localhost:3000
 ## Project Structure Summary
 
 ```
-learnCursor/
+stocky/
 ├── frontend/              # Next.js 15 App Router
 │   ├── app/              # App Router pages
 │   ├── components/      # React components

@@ -62,7 +62,7 @@ You are building a financial stock analysis platform. The goal is to provide dai
 ### Project Structure Standards
 
 ```
-learnCursor/
+stocky/
 ├── README.md                    # Main project README
 ├── FUTURE_IMPROVEMENTS.md      # All ideas and improvements
 ├── docs/                        # All documentation
