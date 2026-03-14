@@ -61,6 +61,16 @@ scripts/*.bak
 scripts/.server-pids
 scripts/.backend-pid
 scripts/.frontend-pid
+scripts/.*pid*
+
+# Local overrides (generated from .example)
+docker-compose.override.yml
+
+# Claude/Cursor local settings
+.claude/settings.local.json
+
+# Cursor plan files (local)
+.cursor/plans/
 
 # Logs
 backend/logs/

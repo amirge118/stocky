@@ -5,7 +5,18 @@
     "dev": "cd frontend && npm run dev",
     "dev:all": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && ./venv/bin/uvicorn app.main:app --reload --host 127.0.0.1"
+    "dev:backend": "cd backend && ./venv/bin/uvicorn app.main:app --reload --host 127.0.0.1",
+
+    "docker:up": "docker-compose up",
+    "docker:infra": "docker-compose up db redis",
+
+    "setup": "npm run setup:frontend && npm run setup:backend",
+    "setup:frontend": "cd frontend && npm install",
+    "setup:backend": "cd backend && (test -d venv || python3 -m venv venv) && ./venv/bin/pip install -r requirements-dev.txt",
+
+    "test:all": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && ./venv/bin/pytest tests -v --tb=short",
+    "test:frontend": "cd frontend && npm test -- --passWithNoTests"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -9,9 +9,7 @@ learnCursor/
 ├── README.md                    # Main project README
 ├── FUTURE_IMPROVEMENTS.md      # All ideas and planned improvements
 ├── PROJECT_STRUCTURE.md         # This file - structure guide
-├── scripts/                     # Utility scripts
-│   ├── setup.sh                # Install dependencies
-│   └── setup-database-and-run.sh # Complete setup
+├── scripts/                     # Utility scripts (see package.json for dev commands)
 ├── docs/                        # All documentation
 │   ├── setup/                  # Setup and installation guides
 │   ├── guides/                 # Development guides
@@ -22,9 +20,7 @@ learnCursor/
 ├── backend/                     # FastAPI backend application
 ├── .cursor/                     # Cursor AI rules
 │   └── rules/                   # Project rules and guidelines
-└── scripts/                     # Utility scripts
-    ├── setup.sh                 # Install dependencies
-    └── setup-database-and-run.sh # Complete setup
+└── scripts/                     # Utility scripts (use npm run setup, dev:all, etc.)
 ```
 
 ## Documentation Structure
