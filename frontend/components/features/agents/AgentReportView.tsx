@@ -44,27 +44,27 @@ function StockDeepDiveView({ data }: { data: Record<string, unknown> }) {
         )}
       </div>
 
-      {data.summary && (
-        <p className="text-sm text-zinc-300 leading-relaxed">{data.summary as string}</p>
-      )}
+      {data.summary ? (
+        <p className="text-sm text-zinc-300 leading-relaxed">{String(data.summary)}</p>
+      ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {data.bull_case && (
+        {data.bull_case ? (
           <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-lg p-3">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600 mb-1">
               Bull Case
             </p>
-            <p className="text-xs text-zinc-300">{data.bull_case as string}</p>
+            <p className="text-xs text-zinc-300">{String(data.bull_case)}</p>
           </div>
-        )}
-        {data.bear_case && (
+        ) : null}
+        {data.bear_case ? (
           <div className="bg-red-500/5 border border-red-500/15 rounded-lg p-3">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-red-600 mb-1">
               Bear Case
             </p>
-            <p className="text-xs text-zinc-300">{data.bear_case as string}</p>
+            <p className="text-xs text-zinc-300">{String(data.bear_case)}</p>
           </div>
-        )}
+        ) : null}
       </div>
 
       {Array.isArray(data.key_risks) && data.key_risks.length > 0 && (
@@ -119,9 +119,9 @@ function PortfolioHealthView({ data }: { data: Record<string, unknown> }) {
         )}
       </div>
 
-      {data.summary && (
-        <p className="text-sm text-zinc-300 leading-relaxed">{data.summary as string}</p>
-      )}
+      {data.summary ? (
+        <p className="text-sm text-zinc-300 leading-relaxed">{String(data.summary)}</p>
+      ) : null}
 
       {Array.isArray(data.top_concerns) && data.top_concerns.length > 0 && (
         <div>
@@ -178,9 +178,9 @@ function MarketScannerView({ data }: { data: Record<string, unknown> }) {
         )}
       </div>
 
-      {data.summary && (
-        <p className="text-sm text-zinc-300 leading-relaxed">{data.summary as string}</p>
-      )}
+      {data.summary ? (
+        <p className="text-sm text-zinc-300 leading-relaxed">{String(data.summary)}</p>
+      ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {Array.isArray(data.top_opportunities) && data.top_opportunities.length > 0 && (
@@ -236,21 +236,21 @@ function SectorTrendView({ data }: { data: Record<string, unknown> }) {
 
   return (
     <div className="space-y-4">
-      {data.summary && (
-        <p className="text-sm text-zinc-300 leading-relaxed">{data.summary as string}</p>
-      )}
+      {data.summary ? (
+        <p className="text-sm text-zinc-300 leading-relaxed">{String(data.summary)}</p>
+      ) : null}
 
       <div className="flex gap-4 flex-wrap text-xs text-zinc-500">
-        {data.best_sector && (
+        {data.best_sector ? (
           <span>
-            Best: <span className="text-emerald-400">{data.best_sector as string}</span>
+            Best: <span className="text-emerald-400">{String(data.best_sector)}</span>
           </span>
-        )}
-        {data.worst_sector && (
+        ) : null}
+        {data.worst_sector ? (
           <span>
-            Worst: <span className="text-red-400">{data.worst_sector as string}</span>
+            Worst: <span className="text-red-400">{String(data.worst_sector)}</span>
           </span>
-        )}
+        ) : null}
       </div>
 
       {sectors.length > 0 && (

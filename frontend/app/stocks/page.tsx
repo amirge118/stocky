@@ -1,99 +1,165 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Plus, RefreshCw } from "lucide-react"
+import { Plus, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { getPortfolio } from "@/lib/api/portfolio"
-import { getSectorBreakdown } from "@/lib/api/agents"
-import { PortfolioSummaryCard } from "@/components/features/portfolio/PortfolioSummaryCard"
-import { PortfolioTable } from "@/components/features/portfolio/PortfolioTable"
-import { AddPositionDialog } from "@/components/features/portfolio/AddPositionDialog"
-import { SectorAllocationChart } from "@/components/features/portfolio/SectorAllocationChart"
-import { SectorBreakdownTable } from "@/components/features/portfolio/SectorBreakdownTable"
+import { getStocks } from "@/lib/api/stocks"
+import { StockSearchFilter } from "@/components/features/stocks/StockSearchFilter"
+import { StockTable } from "@/components/features/stocks/StockTable"
+import { BulkActionsBar } from "@/components/features/stocks/BulkActionsBar"
+import { BulkDeleteDialog } from "@/components/features/stocks/BulkDeleteDialog"
+import { AddStockDialog } from "@/components/features/stocks/AddStockDialog"
+import { WatchlistPanel } from "@/components/features/stocks/WatchlistPanel"
+import { AlertDialog } from "@/components/features/stocks/AlertDialog"
+import { useWatchlist } from "@/lib/hooks/useWatchlist"
+import type { Stock } from "@/types/stock"
 
-export default function PortfolioPage() {
+export default function StocksPage() {
+  const { addToWatchlist, removeFromWatchlist } = useWatchlist()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [exchangeFilter, setExchangeFilter] = useState<string | undefined>()
+  const [sectorFilter, setSectorFilter] = useState<string | undefined>()
+  const [watchlistOnly, setWatchlistOnly] = useState(false)
+  const [selectedStocks, setSelectedStocks] = useState<Stock[]>([])
+  const [alertDialogOpen, setAlertDialogOpen] = useState(false)
   const queryClient = useQueryClient()
 
-  const { data, isPending, isFetching } = useQuery({
-    queryKey: ["portfolio"],
-    queryFn: getPortfolio,
-    refetchInterval: 60_000,
+  const { data, isPending } = useQuery({
+    queryKey: ["stocks", 1, 500],
+    queryFn: () => getStocks({ page: 1, limit: 500 }),
   })
 
-  const { data: sectorData } = useQuery({
-    queryKey: ["sector-breakdown"],
-    queryFn: getSectorBreakdown,
-    staleTime: 5 * 60_000,
-  })
+  const stocks = data?.data ?? []
+
+  const handleBulkDelete = useCallback((toDelete: Stock[]) => {
+    setSelectedStocks(toDelete)
+    setBulkDeleteOpen(true)
+  }, [])
+
+  const handleBulkAddToWatchlist = useCallback(
+    (stocksToAdd: Stock[]) => {
+      stocksToAdd.forEach((s) => addToWatchlist(s.symbol))
+    },
+    [addToWatchlist]
+  )
+
+  const handleBulkRemoveFromWatchlist = useCallback(
+    (stocksToRemove: Stock[]) => {
+      stocksToRemove.forEach((s) => removeFromWatchlist(s.symbol))
+    },
+    [removeFromWatchlist]
+  )
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-5">
-
-        {/* ── Header ────────────────────────────────────────────────────────── */}
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            {/* Eyebrow */}
-            <p className="text-[11px] font-medium tracking-widest uppercase text-zinc-500 mb-1">
-              Equity Portfolio
-            </p>
-            {/* Headline */}
-            <h1 className="text-3xl font-bold tracking-tight text-white leading-none">
-              Portfolio
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-2 pb-0.5">
-            {/* Live pulse indicator */}
-            <div className="flex items-center gap-1.5 mr-1">
-              {isFetching ? (
-                <RefreshCw size={12} className="text-zinc-500 animate-spin" />
-              ) : (
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-40" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                </span>
-              )}
-              <span className="text-[11px] text-zinc-600 tracking-wide">Live</span>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Main content */}
+          <div className="flex-1 min-w-0 space-y-5">
+            {/* Header */}
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-medium tracking-widest uppercase text-zinc-500 mb-1">
+                  Stock Browser
+                </p>
+                <h1 className="text-3xl font-bold tracking-tight text-white leading-none">
+                  Stocks
+                </h1>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setAlertDialogOpen(true)}
+                  className="h-8 px-3 text-xs border-zinc-600 text-zinc-300 hover:bg-zinc-800"
+                >
+                  <Bell size={13} className="mr-1" />
+                  Alerts
+                </Button>
+                <Button
+                  onClick={() => setDialogOpen(true)}
+                  className="h-8 px-3 text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 rounded-lg gap-1.5"
+                >
+                  <Plus size={13} />
+                  Add Stock
+                </Button>
+              </div>
             </div>
 
-            <Button
-              onClick={() => setDialogOpen(true)}
-              className="h-8 px-3 text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 rounded-lg gap-1.5"
-            >
-              <Plus size={13} />
-              Add Position
-            </Button>
+            {/* Search & Filters */}
+            <StockSearchFilter
+              stocks={stocks}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              exchangeFilter={exchangeFilter}
+              onExchangeFilterChange={setExchangeFilter}
+              sectorFilter={sectorFilter}
+              onSectorFilterChange={setSectorFilter}
+              watchlistOnly={watchlistOnly}
+              onWatchlistOnlyChange={setWatchlistOnly}
+            />
+
+            {/* Bulk Actions */}
+            <BulkActionsBar
+              selectedStocks={selectedStocks}
+              allStocks={stocks}
+              onSelectAll={() => setSelectedStocks([...stocks])}
+              onDeselectAll={() => setSelectedStocks([])}
+              onBulkDelete={handleBulkDelete}
+              onBulkAddToWatchlist={handleBulkAddToWatchlist}
+              onBulkRemoveFromWatchlist={handleBulkRemoveFromWatchlist}
+            />
+
+            {/* Stock Table */}
+            {isPending ? (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-12 animate-pulse">
+                <div className="h-5 w-32 rounded bg-zinc-700 mb-4" />
+                <div className="h-64 rounded bg-zinc-800" />
+              </div>
+            ) : (
+              <StockTable
+                stocks={stocks}
+                searchQuery={searchQuery}
+                filters={{
+                  exchange: exchangeFilter,
+                  sector: sectorFilter,
+                  watchlistOnly,
+                }}
+                selectedStocks={selectedStocks}
+                onSelectionChange={setSelectedStocks}
+                onBulkDelete={handleBulkDelete}
+                onEdit={() => queryClient.invalidateQueries({ queryKey: ["stocks"] })}
+                onDelete={() => queryClient.invalidateQueries({ queryKey: ["stocks"] })}
+              />
+            )}
           </div>
+
+          {/* Watchlist Sidebar */}
+          <aside className="lg:w-72 shrink-0">
+            <div className="lg:sticky lg:top-20">
+              <WatchlistPanel />
+            </div>
+          </aside>
         </div>
 
-        {/* ── Summary card ─────────────────────────────────────────────────── */}
-        <PortfolioSummaryCard summary={data} isPending={isPending} />
-
-        {/* ── Holdings table ───────────────────────────────────────────────── */}
-        <PortfolioTable positions={data?.positions ?? []} isPending={isPending} />
-
-        {/* ── Sector Breakdown ─────────────────────────────────────────────── */}
-        {sectorData && sectorData.sectors.length > 0 && (
-          <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">
-              Sector Allocation
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <SectorAllocationChart sectors={sectorData.sectors} />
-              <SectorBreakdownTable sectors={sectorData.sectors} />
-            </div>
-          </div>
-        )}
-
-        {/* ── Dialog ───────────────────────────────────────────────────────── */}
-        <AddPositionDialog
+        {/* Dialogs */}
+        <AddStockDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          onSuccess={() => queryClient.invalidateQueries({ queryKey: ["portfolio"] })}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ["stocks"] })}
         />
+        <BulkDeleteDialog
+          open={bulkDeleteOpen}
+          onOpenChange={setBulkDeleteOpen}
+          stocks={selectedStocks}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["stocks"] })
+            setSelectedStocks([])
+          }}
+        />
+        <AlertDialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen} />
       </div>
     </div>
   )

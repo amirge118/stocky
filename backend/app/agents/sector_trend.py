@@ -68,7 +68,7 @@ class SectorTrendAgent(BaseAgent):
         perf_results = await asyncio.gather(*tasks)
         sector_perfs = dict(zip(sectors_to_analyze.keys(), perf_results))
 
-        def fmt_perf(val, key):
+        def fmt_perf(val: Optional[float], key: str) -> str:
             return 'N/A' if val is None else f'{val:+.1f}%'
 
         sector_lines = [

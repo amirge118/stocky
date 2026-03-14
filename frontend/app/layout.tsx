@@ -31,6 +31,12 @@ export default function RootLayout({
                 Stocky
               </Link>
               <div className="flex items-center gap-4 text-sm text-zinc-400">
+                <Link href="/stocks" className="hover:text-zinc-200 transition-colors">
+                  Stocks
+                </Link>
+                <Link href="/stocks/compare" className="hover:text-zinc-200 transition-colors">
+                  Compare
+                </Link>
                 <Link href="/portfolio" className="hover:text-zinc-200 transition-colors">
                   Portfolio
                 </Link>

@@ -26,7 +26,7 @@ export function BulkActionsBar({
   onBulkAddToWatchlist,
   onBulkRemoveFromWatchlist,
 }: BulkActionsBarProps) {
-  const { isInWatchlist, toggleWatchlist } = useWatchlist()
+  const { isInWatchlist } = useWatchlist()
   const selectedCount = selectedStocks.length
   const allSelected = selectedCount === allStocks.length && allStocks.length > 0
 

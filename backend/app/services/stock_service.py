@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import Optional
+from typing import Optional, cast
 
 import anthropic
 import yfinance as yf
@@ -24,9 +24,11 @@ from app.schemas.stock import (
     StockUpdate,
 )
 
-_CACHE_TTL = 300  # 5 minutes
+_CACHE_TTL = 60  # 1 minute - stock price data refreshes frequently
 _INFO_CACHE_TTL = 600  # 10 minutes
 _ANALYSIS_CACHE_TTL = 1800  # 30 minutes
+_SEARCH_CACHE_TTL = 120  # 2 minutes - search results
+_HISTORY_CACHE_TTL = 300  # 5 minutes - historical charts
 
 # Fallback in-memory for search results (not serializable to JSON easily)
 _stock_data_cache: dict[str, tuple[StockDataResponse, float]] = {}
@@ -212,7 +214,7 @@ def _fetch_currency_sync(symbol: str) -> Optional[str]:
     """Fetch currency synchronously (runs in executor thread)."""
     try:
         fast_info = yf.Ticker(symbol).fast_info
-        return fast_info.currency
+        return str(fast_info.currency) if fast_info.currency is not None else None
     except Exception:
         return None
 
@@ -231,6 +233,11 @@ def _fetch_sparkline_sync(symbol: str) -> Optional[list[float]]:
 
 async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockSearchResult]:
     """Search for stocks by ticker or company name using yfinance."""
+    cache_key = f"stock_search:{query.lower()}:{limit}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return [StockSearchResult.model_validate(r) for r in cached]
+
     loop = asyncio.get_event_loop()
 
     def _do_search() -> list[dict]:
@@ -280,13 +287,15 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
                 exchange=exch_display,
                 sector=item.get("sector"),
                 industry=item.get("industry"),
-                current_price=price,
+                current_price=cast(Optional[float], price),
                 currency=currency,
                 country=country,
-                sparkline=sparkline,
+                sparkline=cast(Optional[list[float]], sparkline),
             )
         )
 
+    serializable = [r.model_dump(mode="json") for r in results]
+    await cache_set(cache_key, serializable, ttl=_SEARCH_CACHE_TTL)
     return results
 
 
@@ -303,6 +312,11 @@ _PERIOD_MAP: dict[str, tuple[str, str]] = {
 async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryResponse:
     """Fetch OHLCV price history for a stock symbol."""
     sym = symbol.upper()
+    cache_key = f"stock_history:{sym}:{period}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return StockHistoryResponse.model_validate(cached)
+
     yf_period, yf_interval = _PERIOD_MAP.get(period, ("1mo", "1d"))
     loop = asyncio.get_event_loop()
 
@@ -331,7 +345,9 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
 
     try:
         data = await loop.run_in_executor(get_executor(), _fetch)
-        return StockHistoryResponse(symbol=sym, period=period, data=data)
+        result = StockHistoryResponse(symbol=sym, period=period, data=data)
+        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_HISTORY_CACHE_TTL)
+        return result
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -351,7 +367,7 @@ async def fetch_stock_info(symbol: str) -> StockInfoResponse:
     loop = asyncio.get_event_loop()
 
     def _fetch() -> dict:
-        return yf.Ticker(sym).info
+        return dict(yf.Ticker(sym).info)
 
     try:
         info = await loop.run_in_executor(get_executor(), _fetch)

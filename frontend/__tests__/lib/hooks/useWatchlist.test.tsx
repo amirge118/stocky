@@ -1,5 +1,7 @@
+import React from "react"
 import { renderHook, act } from "@testing-library/react"
 import { useWatchlist } from "@/lib/hooks/useWatchlist"
+import { WatchlistProvider } from "@/lib/providers/WatchlistProvider"
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -23,13 +25,17 @@ Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
 })
 
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  return <WatchlistProvider>{children}</WatchlistProvider>
+}
+
 describe("useWatchlist", () => {
   beforeEach(() => {
     localStorageMock.clear()
   })
 
   it("initializes with empty watchlist", () => {
-    const { result } = renderHook(() => useWatchlist())
+    const { result } = renderHook(() => useWatchlist(), { wrapper: TestWrapper })
 
     expect(result.current.watchlist).toEqual([])
     expect(result.current.getWatchlist()).toEqual([])
@@ -39,13 +45,13 @@ describe("useWatchlist", () => {
     const storedWatchlist = ["AAPL", "MSFT", "GOOGL"]
     localStorageMock.setItem("stock-watchlist", JSON.stringify(storedWatchlist))
 
-    const { result } = renderHook(() => useWatchlist())
+    const { result } = renderHook(() => useWatchlist(), { wrapper: TestWrapper })
 
     expect(result.current.watchlist).toEqual(storedWatchlist)
   })
 
   it("adds stock to watchlist", () => {
-    const { result } = renderHook(() => useWatchlist())
+    const { result } = renderHook(() => useWatchlist(), { wrapper: TestWrapper })
 
     act(() => {
       result.current.addToWatchlist("AAPL")
@@ -56,7 +62,7 @@ describe("useWatchlist", () => {
   })
 
   it("converts symbol to uppercase when adding", () => {
-    const { result } = renderHook(() => useWatchlist())
+    const { result } = renderHook(() => useWatchlist(), { wrapper: TestWrapper })
 
     act(() => {
       result.current.addToWatchlist("aapl")
@@ -67,7 +73,7 @@ describe("useWatchlist", () => {
   })
 
   it("does not add duplicate stocks", () => {
-    const { result } = renderHook(() => useWatchlist())
+    const { result } = renderHook(() => useWatchlist(), { wrapper: TestWrapper })
 
     act(() => {
       result.current.addToWatchlist("AAPL")
@@ -78,7 +84,7 @@ describe("useWatchlist", () => {
   })
 
   it("removes stock from watchlist", () => {
-    const { result } = renderHook(() => useWatchlist())
+    const { result } = renderHook(() => useWatchlist(), { wrapper: TestWrapper })
 
     act(() => {
       result.current.addToWatchlist("AAPL")
@@ -92,7 +98,7 @@ describe("useWatchlist", () => {
   })
 
   it("toggles stock in watchlist", () => {
-    const { result } = renderHook(() => useWatchlist())
+    const { result } = renderHook(() => useWatchlist(), { wrapper: TestWrapper })
 
     act(() => {
       result.current.toggleWatchlist("AAPL")
@@ -108,7 +114,7 @@ describe("useWatchlist", () => {
   })
 
   it("saves watchlist to localStorage", () => {
-    const { result } = renderHook(() => useWatchlist())
+    const { result } = renderHook(() => useWatchlist(), { wrapper: TestWrapper })
 
     act(() => {
       result.current.addToWatchlist("AAPL")
@@ -121,7 +127,7 @@ describe("useWatchlist", () => {
   })
 
   it("clears watchlist", () => {
-    const { result } = renderHook(() => useWatchlist())
+    const { result } = renderHook(() => useWatchlist(), { wrapper: TestWrapper })
 
     act(() => {
       result.current.addToWatchlist("AAPL")
@@ -135,10 +141,12 @@ describe("useWatchlist", () => {
 
   it("handles invalid localStorage data gracefully", () => {
     localStorageMock.setItem("stock-watchlist", "invalid json")
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {})
 
-    const { result } = renderHook(() => useWatchlist())
+    const { result } = renderHook(() => useWatchlist(), { wrapper: TestWrapper })
 
     // Should initialize with empty array on error
     expect(result.current.watchlist).toEqual([])
+    consoleSpy.mockRestore()
   })
 })

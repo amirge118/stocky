@@ -13,43 +13,37 @@ export function StockAbout({ info, compact = false }: StockAboutProps) {
   const [expanded, setExpanded] = useState(false)
   const desc = info.description ?? ""
 
-  // Compact mode: short one-line strip above the chart
+  // Compact mode: description only (2 lines + read more). Tags+website are in page header.
   if (compact) {
-    const truncated = desc.length > 120 ? desc.slice(0, 120) + "…" : desc
+    const CHARS_PER_LINE = 85
+    const TWO_LINES_CHARS = CHARS_PER_LINE * 2
+    const isTruncatable = desc.length > TWO_LINES_CHARS
+    const displayDesc =
+      isTruncatable && !expanded ? desc.slice(0, TWO_LINES_CHARS) + "…" : desc
+
     return (
-      <div className="rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-3 flex flex-wrap items-start gap-x-6 gap-y-1">
-        {/* Pills: sector / industry / country */}
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
-          {info.sector && (
-            <span className="text-xs text-zinc-300 bg-zinc-800 px-2 py-0.5 rounded-full">
-              {info.sector}
-            </span>
-          )}
-          {info.industry && (
-            <span className="text-xs text-zinc-400 bg-zinc-800/60 px-2 py-0.5 rounded-full">
-              {info.industry}
-            </span>
-          )}
-          {info.country && (
-            <span className="text-xs text-zinc-500 bg-zinc-800/40 px-2 py-0.5 rounded-full">
-              {info.country}
-            </span>
-          )}
-          {info.website && (
-            <a
-              href={info.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-0.5 transition-colors"
+      <div className="rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-3">
+        {/* Description — 2 lines + read more */}
+        {desc ? (
+          <div>
+            <p
+              className={`text-sm text-zinc-400 leading-relaxed ${
+                !expanded && isTruncatable ? "line-clamp-2" : ""
+              }`}
             >
-              {info.website.replace(/^https?:\/\//, "").replace(/\/$/, "").split("/")[0]}
-              <ExternalLink size={10} />
-            </a>
-          )}
-        </div>
-        {/* Short description */}
-        {truncated && (
-          <p className="text-xs text-zinc-500 leading-relaxed flex-1 min-w-0">{truncated}</p>
+              {displayDesc}
+            </p>
+            {isTruncatable && (
+              <button
+                onClick={() => setExpanded((e) => !e)}
+                className="text-blue-400 hover:text-blue-300 text-xs mt-1 transition-colors"
+              >
+                {expanded ? "Show less" : "Read more"}
+              </button>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-500">No description available.</p>
         )}
       </div>
     )

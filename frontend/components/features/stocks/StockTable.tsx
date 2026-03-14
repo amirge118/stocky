@@ -13,10 +13,9 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Edit, Trash2, TrendingUp, TrendingDown } from "lucide-react"
+import { Edit, Trash2, TrendingUp, TrendingDown, Star, StarOff } from "lucide-react"
 import { fetchStockData } from "@/lib/api/stocks"
 import { useWatchlist } from "@/lib/hooks/useWatchlist"
-import { useToast } from "@/hooks/use-toast"
 import type { Stock, StockData } from "@/types/stock"
 import { EditStockDialog } from "./EditStockDialog"
 import { DeleteStockDialog } from "./DeleteStockDialog"
@@ -47,13 +46,12 @@ export function StockTable({
   filters = {},
   onEdit,
   onDelete,
-  onBulkDelete,
+  onBulkDelete: _onBulkDelete,
   selectedStocks = [],
   onSelectionChange,
 }: StockTableProps) {
   const router = useRouter()
-  const { toast } = useToast()
-  const { isInWatchlist } = useWatchlist()
+  const { isInWatchlist, toggleWatchlist } = useWatchlist()
   const [editingStock, setEditingStock] = useState<Stock | null>(null)
   const [deletingStock, setDeletingStock] = useState<Stock | null>(null)
 
@@ -148,7 +146,6 @@ export function StockTable({
   }
 
   const allSelected = stocksWithData.length > 0 && selectedStocks.length === stocksWithData.length
-  const someSelected = selectedStocks.length > 0 && selectedStocks.length < stocksWithData.length
 
   const formatCurrency = (value: number | null | undefined) => {
     if (value === null || value === undefined) return "N/A"
@@ -306,6 +303,23 @@ export function StockTable({
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-amber-400 hover:text-amber-300"
+                        onClick={() => toggleWatchlist(stock.symbol)}
+                        aria-label={
+                          isInWatchlist(stock.symbol)
+                            ? `Remove ${stock.symbol} from watchlist`
+                            : `Add ${stock.symbol} to watchlist`
+                        }
+                      >
+                        {isInWatchlist(stock.symbol) ? (
+                          <Star size={16} className="fill-current" />
+                        ) : (
+                          <StarOff size={16} />
+                        )}
+                      </Button>
                       {onEdit && (
                         <Button
                           variant="ghost"

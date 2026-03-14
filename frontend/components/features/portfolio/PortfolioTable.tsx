@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { X, TrendingUp, TrendingDown } from "lucide-react"
+import { X, TrendingUp, TrendingDown, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { removeHolding } from "@/lib/api/portfolio"
 import type { PortfolioPosition } from "@/types/portfolio"
@@ -59,9 +59,48 @@ function PortfolioBar({ pct }: { pct: number | null }) {
   )
 }
 
+function positionsToCSV(positions: PortfolioPosition[]): string {
+  const headers = [
+    "Symbol",
+    "Name",
+    "Shares",
+    "Avg Cost",
+    "Current Price",
+    "Market Value",
+    "Total Cost",
+    "Gain/Loss",
+    "Gain/Loss %",
+    "Portfolio %",
+  ]
+  const rows = positions.map((pos) => [
+    pos.symbol,
+    `"${(pos.name || "").replace(/"/g, '""')}"`,
+    pos.shares.toFixed(2),
+    pos.avg_cost.toFixed(2),
+    pos.current_price != null ? pos.current_price.toFixed(2) : "",
+    pos.current_value != null ? pos.current_value.toFixed(2) : "",
+    pos.total_cost.toFixed(2),
+    pos.gain_loss != null ? pos.gain_loss.toFixed(2) : "",
+    pos.gain_loss_pct != null ? pos.gain_loss_pct.toFixed(2) : "",
+    pos.portfolio_pct != null ? pos.portfolio_pct.toFixed(2) : "",
+  ])
+  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
+}
+
 export function PortfolioTable({ positions, isPending }: Props) {
   const router = useRouter()
   const queryClient = useQueryClient()
+
+  const handleExportCSV = () => {
+    const csv = positionsToCSV(positions)
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `portfolio-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const removeMutation = useMutation({
     mutationFn: removeHolding,
@@ -107,9 +146,20 @@ export function PortfolioTable({ positions, isPending }: Props) {
         <span className="text-[11px] font-medium tracking-widest uppercase text-zinc-500">
           Holdings
         </span>
-        <span className="text-[11px] text-zinc-600">
-          {positions.length} position{positions.length !== 1 ? "s" : ""}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-zinc-600">
+            {positions.length} position{positions.length !== 1 ? "s" : ""}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleExportCSV}
+            className="h-7 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+          >
+            <Download size={12} className="mr-1" />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       <table className="w-full text-sm">
@@ -177,7 +227,7 @@ export function PortfolioTable({ positions, isPending }: Props) {
                 {/* Shares */}
                 <td className="px-5 py-3.5 text-right">
                   <span className="tabular-nums text-zinc-300 font-medium">
-                    {pos.shares.toLocaleString()}
+                    {pos.shares.toLocaleString("en-US")}
                   </span>
                 </td>
 

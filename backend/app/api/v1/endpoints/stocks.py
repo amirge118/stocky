@@ -29,7 +29,7 @@ async def options_stocks() -> Response:
 @router.get("", response_model=StockListResponse, summary="List all stocks")
 async def list_stocks(
     page: int = Query(1, ge=1, description="Page number"),
-    limit: int = Query(20, ge=1, le=100, description="Items per page"),
+    limit: int = Query(20, ge=1, le=500, description="Items per page"),
     db: AsyncSession = Depends(get_db_session),
 ) -> StockListResponse:
     """Get a paginated list of all stocks."""

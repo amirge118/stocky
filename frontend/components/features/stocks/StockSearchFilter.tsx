@@ -38,7 +38,7 @@ export function StockSearchFilter({
   onWatchlistOnlyChange,
 }: StockSearchFilterProps) {
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
-  const timeoutRef = useRef<NodeJS.Timeout>()
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   // Get unique exchanges and sectors from stocks
   const { exchanges, sectors } = useMemo(() => {

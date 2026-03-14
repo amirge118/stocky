@@ -1,0 +1,45 @@
+# Pre-commit hooks for Stock Insight App
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Backend: Ruff, Mypy, Pytest (uses project venv)
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff (backend)
+        entry: bash -c 'cd backend && ruff check app tests --fix'
+        language: system
+        pass_filenames: false
+        files: ^backend/.*\.py$
+
+      - id: mypy
+        name: mypy (backend)
+        entry: bash -c 'cd backend && mypy app'
+        language: system
+        pass_filenames: false
+        files: ^backend/.*\.py$
+
+      - id: pytest
+        name: pytest (backend)
+        entry: bash -c 'cd backend && python -m pytest tests -v --tb=short'
+        language: system
+        pass_filenames: false
+        files: ^backend/
+
+  # Frontend: TypeScript check + ESLint
+  - repo: local
+    hooks:
+      - id: tsc
+        name: tsc (frontend)
+        entry: bash -c 'cd frontend && npm run type-check'
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(ts|tsx)$
+
+      - id: eslint
+        name: eslint (frontend)
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(ts|tsx|js|jsx)$
