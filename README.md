@@ -32,44 +32,53 @@ Full REST API documented at `/docs` (Swagger UI). All data is accessible program
 
 ## Quick Start
 
-### Option A: Docker (recommended)
+### Option A: Docker infra + local code (recommended for development)
+
+Hot reload, fast iteration, logs in terminal.
+
+**Terminal 1 – start PostgreSQL + Redis:**
 ```bash
-docker-compose up
+npm run docker:infra
+# or: docker-compose up db redis
 ```
+
+**Terminal 2 – start backend + frontend:**
+```bash
+npm run setup          # first time only
+npm run dev:all
+```
+
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
 
-### Option B: Local development
+Backend expects `DATABASE_URL` and `REDIS_URL` pointing to localhost (see `backend/.env.example`). Use `stocky:stocky_dev@localhost:5432/stock_insight` and `redis://localhost:6379/0` when infra runs via Docker.
 
-**1. Backend** (requires PostgreSQL + Redis, or use Docker for db+redis only):
+### Option B: Full Docker
+
 ```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate   # or: venv\Scripts\activate on Windows
-pip install -r requirements.txt
-# Set DATABASE_URL in .env (e.g. postgresql+asyncpg://user:pass@localhost:5432/stock_insight)
-uvicorn app.main:app --reload --host 127.0.0.1
+docker-compose up
 ```
 
-**2. Frontend** (in a new terminal):
+All services in containers. No local venv/node needed. For backend hot reload, copy `docker-compose.override.yml.example` to `docker-compose.override.yml`.
+
+### Option C: Run by service
+
 ```bash
-cd frontend
-npm install
-npm run dev
+npm run dev:backend   # backend only (requires db + redis)
+npm run dev:frontend  # frontend only (requires backend on :8000)
+npm run dev          # frontend only (alias)
 ```
 
-**Or from project root:**
-```bash
-npm install
-npm run dev          # frontend only
-# or
-npm run dev:all      # both backend + frontend (requires venv in backend/)
-```
+### Commands reference
 
-- Frontend: http://localhost:3000 (or 3001 if 3000 is in use)
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
+| Command | Description |
+|--------|-------------|
+| `npm run setup` | Install frontend + backend deps |
+| `npm run dev:all` | Backend + frontend (concurrently) |
+| `npm run docker:infra` | Start db + redis only |
+| `npm run docker:up` | Full stack in Docker |
+| `npm run test:all` | Run backend + frontend tests |
 
 ### Troubleshooting
 
