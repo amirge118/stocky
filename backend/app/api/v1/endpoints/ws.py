@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.services.stock_service import fetch_stock_data_from_yfinance
+from app.services.stock_data import fetch_stock_data_from_yfinance
 
 logger = logging.getLogger(__name__)
 

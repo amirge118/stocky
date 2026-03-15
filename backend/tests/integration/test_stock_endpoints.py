@@ -98,8 +98,9 @@ async def test_get_stock_by_symbol_not_found(client: TestClient):
     response = client.get("/api/v1/stocks/INVALID")
 
     assert response.status_code == 404
-    error = response.json()
-    assert "not found" in error["detail"].lower()
+    body = response.json()
+    msg = body.get("error", {}).get("message", body.get("detail", ""))
+    assert "not found" in str(msg).lower()
 
 
 @pytest.mark.asyncio
@@ -227,28 +228,62 @@ async def test_delete_stock_not_found(client: TestClient):
 
 
 @pytest.mark.asyncio
-@patch("app.services.stock_service.yf")
-async def test_get_stock_data_success(client: TestClient, mock_yf):
-    """Test fetching live stock data."""
-    # Mock yfinance response
-    mock_ticker = MagicMock()
-    mock_ticker.info = {
-        "longName": "Apple Inc.",
-        "previousClose": 150.0,
-        "marketCap": 2500000000000,
-        "currency": "USD",
-    }
-    mock_ticker.history.return_value = MagicMock(
-        empty=False,
-        __getitem__=lambda self, key: MagicMock(
-            iloc=MagicMock(__getitem__=lambda self, idx: 155.0 if idx == -1 else 1000000)
-        ) if key == "Close" else MagicMock(
-            iloc=MagicMock(__getitem__=lambda self, idx: 1000000)
-        ),
-    )
-    mock_yf.Ticker.return_value = mock_ticker
+async def test_search_stocks_success(client: TestClient):
+    """Test stock search returns results from yfinance."""
+    from app.schemas.stock import StockSearchResult
 
-    response = client.get("/api/v1/stocks/AAPL/data")
+    with patch("app.api.v1.endpoints.stocks.stock_service.search_stocks_from_yfinance") as mock_search:
+        mock_search.return_value = [
+            StockSearchResult(
+                symbol="HIMS",
+                name="Hims & Hers Health Inc.",
+                exchange="NYSE",
+                sector="Healthcare",
+                industry="Drug Manufacturers",
+                current_price=12.50,
+                currency="USD",
+                country="United States",
+                sparkline=[12.0, 12.2, 12.5],
+            ),
+        ]
+
+        response = client.get("/api/v1/stocks/search?q=HIMS")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["symbol"] == "HIMS"
+        assert "Hims" in data[0]["name"]
+        mock_search.assert_called_once_with("HIMS", limit=8)
+
+
+@pytest.mark.asyncio
+async def test_search_stocks_empty(client: TestClient):
+    """Test stock search returns empty when no results."""
+    with patch("app.api.v1.endpoints.stocks.stock_service.search_stocks_from_yfinance") as mock_search:
+        mock_search.return_value = []
+
+        response = client.get("/api/v1/stocks/search?q=INVALID123")
+
+        assert response.status_code == 200
+        assert response.json() == []
+
+
+@pytest.mark.asyncio
+async def test_get_stock_data_success(client: TestClient):
+    """Test fetching live stock data."""
+    mock_ticker = MagicMock()
+    mock_fast_info = MagicMock()
+    mock_fast_info.last_price = 155.0
+    mock_fast_info.previous_close = 150.0
+    mock_fast_info.three_month_average_volume = 1000000
+    mock_fast_info.market_cap = 2500000000000
+    mock_fast_info.currency = "USD"
+    mock_ticker.fast_info = mock_fast_info
+
+    with patch("app.services.stock_data.yf") as mock_yf:
+        mock_yf.Ticker.return_value = mock_ticker
+        response = client.get("/api/v1/stocks/AAPL/data")
 
     assert response.status_code == 200
     data = response.json()

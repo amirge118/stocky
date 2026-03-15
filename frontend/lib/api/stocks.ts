@@ -51,6 +51,15 @@ export async function fetchStockData(symbol: string): Promise<StockData> {
   return get<StockData>(`/api/v1/stocks/${symbol}/data`)
 }
 
+export async function fetchStockDataBatch(
+  symbols: string[]
+): Promise<Record<string, StockData>> {
+  if (symbols.length === 0) return {}
+  return post<Record<string, StockData>>("/api/v1/stocks/batch-data", {
+    symbols: symbols.slice(0, 50),
+  })
+}
+
 export async function searchStocks(query: string): Promise<StockSearchResult[]> {
   return get<StockSearchResult[]>(`/api/v1/stocks/search?q=${encodeURIComponent(query)}`)
 }
@@ -69,4 +78,38 @@ export async function getStockNews(symbol: string): Promise<StockNewsItem[]> {
 
 export async function getStockAnalysis(symbol: string): Promise<StockAIAnalysis> {
   return get<StockAIAnalysis>(`/api/v1/stocks/${symbol}/analysis`)
+}
+
+export interface SectorPeer {
+  symbol: string
+  name: string
+  sector: string | null
+  industry: string | null
+  current_price: number | null
+  day_change_percent: number | null
+  pe_ratio: number | null
+  market_cap: number | null
+  is_current: boolean
+}
+
+export async function getSectorPeers(
+  sector: string,
+  symbol?: string,
+  limit = 10
+): Promise<SectorPeer[]> {
+  const params = new URLSearchParams({ sector })
+  if (symbol) params.append("symbol", symbol)
+  params.append("limit", limit.toString())
+  return get<SectorPeer[]>(`/api/v1/stocks/sector-peers?${params}`)
+}
+
+export interface CompareSummary {
+  symbols: string[]
+  summary: string
+}
+
+export async function getCompareSummary(symbols: string[]): Promise<CompareSummary> {
+  return get<CompareSummary>(
+    `/api/v1/stocks/compare-summary?symbols=${symbols.join(",")}`
+  )
 }

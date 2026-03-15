@@ -1,16 +1,25 @@
 import asyncio
 from typing import Optional
 
-import yfinance as yf
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.executors import get_executor
 from app.models.holding import Holding
 from app.schemas.agent import SectorBreakdownResponse, SectorSlice
-from app.schemas.holding import HoldingResponse, PortfolioPosition, PortfolioSummary
-from app.schemas.stock import StockDataResponse
-from app.services.stock_service import fetch_stock_data_from_yfinance
+from app.schemas.holding import (
+    HoldingResponse,
+    PortfolioHistoryPoint,
+    PortfolioHistoryResponse,
+    PortfolioPosition,
+    PortfolioSummary,
+)
+from app.schemas.stock import PortfolioNewsItem, StockDataResponse
+from app.services.stock_data import (
+    fetch_stock_data_from_yfinance,
+    fetch_stock_history,
+    fetch_stock_info,
+    fetch_stock_news,
+)
 
 
 async def upsert_holding(
@@ -72,6 +81,8 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
             total_cost=0.0,
             total_gain_loss=0.0,
             total_gain_loss_pct=0.0,
+            total_day_change=None,
+            total_day_change_pct=None,
         )
 
     # Fetch live prices concurrently; swallow per-symbol errors
@@ -83,12 +94,15 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
     positions: list[PortfolioPosition] = []
     total_value = 0.0
     total_cost = 0.0
+    total_day_change = 0.0
 
     for holding, price_result in zip(holdings, price_results):
         current_price: Optional[float] = None
         current_value: Optional[float] = None
         gain_loss: Optional[float] = None
         gain_loss_pct: Optional[float] = None
+        day_change: Optional[float] = None
+        day_change_percent: Optional[float] = None
 
         if isinstance(price_result, StockDataResponse):
             resp: StockDataResponse = price_result
@@ -96,7 +110,10 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
             current_value = round(holding.shares * current_price, 2)
             gain_loss = round(current_value - holding.total_cost, 2)
             gain_loss_pct = round((gain_loss / holding.total_cost) * 100, 2) if holding.total_cost else 0.0
+            day_change = round(holding.shares * resp.change, 2)
+            day_change_percent = resp.change_percent
             total_value += current_value
+            total_day_change += day_change
 
         total_cost += holding.total_cost
 
@@ -112,6 +129,8 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
                 gain_loss=gain_loss,
                 gain_loss_pct=gain_loss_pct,
                 portfolio_pct=None,  # filled in second pass
+                day_change=day_change,
+                day_change_percent=day_change_percent,
             )
         )
 
@@ -122,6 +141,9 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
 
     total_gain_loss = round(total_value - total_cost, 2)
     total_gain_loss_pct = round((total_gain_loss / total_cost) * 100, 2) if total_cost else 0.0
+    total_day_change_pct = (
+        round((total_day_change / total_value) * 100, 2) if total_value > 0 else None
+    )
 
     return PortfolioSummary(
         positions=positions,
@@ -129,33 +151,34 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
         total_cost=round(total_cost, 2),
         total_gain_loss=total_gain_loss,
         total_gain_loss_pct=total_gain_loss_pct,
+        total_day_change=round(total_day_change, 2),
+        total_day_change_pct=total_day_change_pct,
     )
 
 
-def _fetch_sector_sync(symbol: str) -> Optional[str]:
-    """Synchronously fetch sector for a symbol via yfinance."""
-    try:
-        sector = yf.Ticker(symbol).info.get("sector")
-        return str(sector) if sector is not None else None
-    except Exception:
-        return None
-
-
-async def get_sector_breakdown(db: AsyncSession) -> SectorBreakdownResponse:
-    """Group portfolio holdings by sector with value and weight."""
-    portfolio = await get_portfolio(db)
+async def get_sector_breakdown(
+    db: AsyncSession,
+    portfolio: Optional[PortfolioSummary] = None,
+) -> SectorBreakdownResponse:
+    """Group portfolio holdings by sector with value and weight.
+    Uses fetch_stock_info (cached 10min) for sector instead of raw yfinance."""
+    if portfolio is None:
+        portfolio = await get_portfolio(db)
     positions = portfolio.positions
     total_value = portfolio.total_value or 0.0
 
     if not positions:
         return SectorBreakdownResponse(sectors=[], total_value=0.0)
 
-    loop = asyncio.get_event_loop()
-    sector_tasks = [
-        loop.run_in_executor(get_executor(), _fetch_sector_sync, pos.symbol)
-        for pos in positions
+    # Use fetch_stock_info (cached 10min) instead of raw yfinance - includes sector
+    info_results = await asyncio.gather(
+        *[fetch_stock_info(pos.symbol) for pos in positions],
+        return_exceptions=True,
+    )
+    sectors = [
+        info.sector if not isinstance(info, Exception) and info is not None else None
+        for info in info_results
     ]
-    sectors = await asyncio.gather(*sector_tasks)
 
     # Group by sector
     sector_map: dict[str, dict] = {}
@@ -182,3 +205,75 @@ async def get_sector_breakdown(db: AsyncSession) -> SectorBreakdownResponse:
 
     slices.sort(key=lambda s: s.weight_pct, reverse=True)
     return SectorBreakdownResponse(sectors=slices, total_value=round(total_value, 2))
+
+
+async def get_portfolio_summary(db: AsyncSession) -> tuple[PortfolioSummary, SectorBreakdownResponse]:
+    """Fetch portfolio and sector breakdown in one pass (avoids duplicate get_portfolio)."""
+    portfolio = await get_portfolio(db)
+    sector_breakdown = await get_sector_breakdown(db, portfolio=portfolio)
+    return portfolio, sector_breakdown
+
+
+async def get_portfolio_news(db: AsyncSession, limit: int = 20) -> list[PortfolioNewsItem]:
+    """Fetch and merge news for all portfolio holdings, sorted by date (newest first)."""
+    result = await db.execute(select(Holding).order_by(Holding.symbol))
+    holdings = list(result.scalars().all())
+    if not holdings:
+        return []
+
+    news_tasks = [fetch_stock_news(h.symbol, limit=5) for h in holdings]
+    news_results = await asyncio.gather(*news_tasks, return_exceptions=True)
+
+    seen_titles: set[str] = set()
+    merged: list[PortfolioNewsItem] = []
+    for holding, news_list in zip(holdings, news_results):
+        if isinstance(news_list, Exception):
+            continue
+        for item in news_list:
+            key = (item.title or "").strip().lower()
+            if key and key not in seen_titles:
+                seen_titles.add(key)
+                merged.append(
+                    PortfolioNewsItem(
+                        symbol=holding.symbol,
+                        title=item.title,
+                        publisher=item.publisher,
+                        link=item.link,
+                        published_at=item.published_at,
+                    )
+                )
+
+    merged.sort(
+        key=lambda x: x.published_at or 0,
+        reverse=True,
+    )
+    return merged[:limit]
+
+
+async def get_portfolio_history(db: AsyncSession, period: str = "1m") -> PortfolioHistoryResponse:
+    """Compute portfolio value over time using historical prices for each holding."""
+    result = await db.execute(select(Holding).order_by(Holding.symbol))
+    holdings = list(result.scalars().all())
+    if not holdings:
+        return PortfolioHistoryResponse(period=period, data=[])
+
+    hist_tasks = [fetch_stock_history(h.symbol, period) for h in holdings]
+    hist_results = await asyncio.gather(*hist_tasks, return_exceptions=True)
+
+    # Build date -> total_value map
+    from collections import defaultdict
+    date_values: dict[int, float] = defaultdict(float)
+    for holding, hist_result in zip(holdings, hist_results):
+        if isinstance(hist_result, Exception) or not hist_result or not hist_result.data:
+            continue
+        for point in hist_result.data:
+            date_values[point.t] += holding.shares * point.c
+
+    if not date_values:
+        return PortfolioHistoryResponse(period=period, data=[])
+
+    points = [
+        PortfolioHistoryPoint(t=t, value=round(v, 2))
+        for t, v in sorted(date_values.items())
+    ]
+    return PortfolioHistoryResponse(period=period, data=points)

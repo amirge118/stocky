@@ -9,11 +9,13 @@ frontend/.env.local
 frontend/.next/
 frontend/out/
 frontend/node_modules/
+node_modules/
 frontend/.vercel
 
 # Backend
 backend/.env
 backend/venv/
+backend/.venv/
 backend/env/
 backend/__pycache__/
 backend/*.pyc

@@ -19,6 +19,14 @@ const customJestConfig = {
     '!**/node_modules/**',
     '!**/.next/**',
   ],
+  coverageThreshold: {
+    global: {
+      branches: process.env.STRICT_COVERAGE ? 65 : 60,
+      functions: process.env.STRICT_COVERAGE ? 65 : 60,
+      lines: process.env.STRICT_COVERAGE ? 65 : 60,
+      statements: process.env.STRICT_COVERAGE ? 65 : 60,
+    },
+  },
 }
 
 module.exports = createJestConfig(customJestConfig)

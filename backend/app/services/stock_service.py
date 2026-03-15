@@ -1,37 +1,27 @@
-import asyncio
-import time
-from typing import Optional, cast
+"""Stock CRUD, sector peers, and re-exports for backward compatibility."""
 
-import anthropic
-import yfinance as yf
+import asyncio
+from typing import Optional
+
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.cache import cache_get, cache_set
-from app.core.config import settings
-from app.core.executors import get_executor
 from app.models.stock import Stock
 from app.schemas.stock import (
-    StockAIAnalysisResponse,
     StockCreate,
-    StockDataResponse,
-    StockHistoryPoint,
-    StockHistoryResponse,
-    StockInfoResponse,
-    StockNewsItem,
-    StockSearchResult,
     StockUpdate,
+    SectorPeerResponse,
 )
-
-_CACHE_TTL = 60  # 1 minute - stock price data refreshes frequently
-_INFO_CACHE_TTL = 600  # 10 minutes
-_ANALYSIS_CACHE_TTL = 1800  # 30 minutes
-_SEARCH_CACHE_TTL = 120  # 2 minutes - search results
-_HISTORY_CACHE_TTL = 300  # 5 minutes - historical charts
-
-# Fallback in-memory for search results (not serializable to JSON easily)
-_stock_data_cache: dict[str, tuple[StockDataResponse, float]] = {}
+from app.services.stock_data import (
+    fetch_stock_data_batch,
+    fetch_stock_data_from_yfinance,
+    fetch_stock_history,
+    fetch_stock_info,
+    fetch_stock_news,
+    search_stocks_from_yfinance,
+)
+from app.services.stock_ai import generate_ai_analysis, generate_compare_summary
 
 
 async def get_stock_by_symbol(db: AsyncSession, symbol: str) -> Optional[Stock]:
@@ -45,33 +35,32 @@ async def get_stock_by_symbol(db: AsyncSession, symbol: str) -> Optional[Stock]:
 async def get_stocks(
     db: AsyncSession,
     skip: int = 0,
-    limit: int = 20
+    limit: int = 20,
+    sector: Optional[str] = None,
 ) -> tuple[list[Stock], int]:
-    """Get list of stocks with pagination."""
-    # Count total
-    count_result = await db.execute(select(func.count(Stock.id)))
-    total = count_result.scalar() or 0
-
-    # Get paginated results
-    result = await db.execute(
-        select(Stock)
-        .offset(skip)
-        .limit(limit)
-        .order_by(Stock.symbol)
-    )
+    """Get list of stocks with pagination. Optional sector filter."""
+    filt = select(Stock)
+    if sector and sector.strip():
+        filt = filt.where(func.lower(Stock.sector) == sector.strip().lower())
+    if sector and sector.strip():
+        count_stmt = select(func.count(Stock.id)).where(
+            func.lower(Stock.sector) == sector.strip().lower()
+        )
+    else:
+        count_stmt = select(func.count(Stock.id))
+    total = (await db.execute(count_stmt)).scalar() or 0
+    result = await db.execute(filt.offset(skip).limit(limit).order_by(Stock.symbol))
     stocks = result.scalars().all()
-
     return list(stocks), total
 
 
 async def create_stock(db: AsyncSession, stock_data: StockCreate) -> Stock:
     """Create a new stock."""
-    # Check if stock already exists
     existing = await get_stock_by_symbol(db, stock_data.symbol)
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Stock with symbol {stock_data.symbol} already exists"
+            detail=f"Stock with symbol {stock_data.symbol} already exists",
         )
 
     stock = Stock(
@@ -89,7 +78,7 @@ async def create_stock(db: AsyncSession, stock_data: StockCreate) -> Stock:
 async def update_stock(
     db: AsyncSession,
     symbol: str,
-    stock_data: StockUpdate
+    stock_data: StockUpdate,
 ) -> Optional[Stock]:
     """Update a stock."""
     stock = await get_stock_by_symbol(db, symbol)
@@ -116,419 +105,40 @@ async def delete_stock(db: AsyncSession, symbol: str) -> bool:
     return True
 
 
-async def fetch_stock_data_from_yfinance(symbol: str) -> StockDataResponse:
-    """Fetch live stock data from yfinance API using fast_info to avoid rate limits."""
-    sym = symbol.upper()
-    cache_key = f"stock_data:{sym}"
-
-    # Check shared cache first
-    cached = await cache_get(cache_key)
-    if cached:
-        return StockDataResponse.model_validate(cached)
-
-    # Fallback in-memory for rate-limit recovery
-    if sym in _stock_data_cache:
-        cached_data, cached_at = _stock_data_cache[sym]
-        if time.time() - cached_at < _CACHE_TTL:
-            return cached_data
-
-    try:
-        ticker = yf.Ticker(sym)
-        fast_info = ticker.fast_info  # uses /v8/finance/chart/, not the rate-limited quoteSummary
-
-        current_price = float(fast_info.last_price or 0)
-        previous_close = float(fast_info.previous_close or current_price)
-
-        if current_price == 0:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Stock data not found for symbol {symbol}"
-            )
-
-        change = current_price - previous_close
-        change_percent = (change / previous_close * 100) if previous_close > 0 else 0.0
-
-        result = StockDataResponse(
-            symbol=sym,
-            name=sym,
-            current_price=round(current_price, 2),
-            previous_close=round(previous_close, 2),
-            change=round(change, 2),
-            change_percent=round(change_percent, 2),
-            volume=int(fast_info.three_month_average_volume) if fast_info.three_month_average_volume else None,
-            market_cap=int(fast_info.market_cap) if fast_info.market_cap else None,
-            currency=fast_info.currency or "USD",
-        )
-
-        _stock_data_cache[sym] = (result, time.time())
-        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_CACHE_TTL)
-        return result
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        error_str = str(e)
-        if "429" in error_str or "Too Many Requests" in error_str:
-            # Serve stale cache rather than failing hard
-            if sym in _stock_data_cache:
-                return _stock_data_cache[sym][0]
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Yahoo Finance rate limit reached. Please try again in a few minutes.",
-            ) from e
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching stock data: {error_str}",
-        ) from e
-
-
-# Exchange code → country mapping
-_EXCHANGE_COUNTRY: dict[str, str] = {
-    "NMS": "United States",
-    "NGS": "United States",
-    "NYQ": "United States",
-    "ASE": "United States",
-    "PCX": "United States",
-    "OTC": "United States",
-    "FRA": "Germany",
-    "LSE": "United Kingdom",
-    "TSX": "Canada",
-    "TYO": "Japan",
-    "HKG": "Hong Kong",
-    "SHH": "China",
-    "SHZ": "China",
-    "ASX": "Australia",
-}
-
-def _fetch_price_sync(symbol: str) -> Optional[float]:
-    """Fetch last price synchronously (runs in executor thread)."""
-    try:
-        fast_info = yf.Ticker(symbol).fast_info
-        price = fast_info.last_price
-        return round(float(price), 2) if price else None
-    except Exception:
-        return None
-
-
-def _fetch_currency_sync(symbol: str) -> Optional[str]:
-    """Fetch currency synchronously (runs in executor thread)."""
-    try:
-        fast_info = yf.Ticker(symbol).fast_info
-        return str(fast_info.currency) if fast_info.currency is not None else None
-    except Exception:
-        return None
-
-
-def _fetch_sparkline_sync(symbol: str) -> Optional[list[float]]:
-    """Fetch last 5 daily closing prices for a sparkline (runs in executor thread)."""
-    try:
-        hist = yf.Ticker(symbol).history(period="5d", interval="1d")
-        if hist.empty:
-            return None
-        closes = hist["Close"].dropna().tolist()
-        return [round(float(p), 2) for p in closes] if closes else None
-    except Exception:
-        return None
-
-
-async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockSearchResult]:
-    """Search for stocks by ticker or company name using yfinance."""
-    cache_key = f"stock_search:{query.lower()}:{limit}"
-    cached = await cache_get(cache_key)
-    if cached:
-        return [StockSearchResult.model_validate(r) for r in cached]
-
-    loop = asyncio.get_event_loop()
-
-    def _do_search() -> list[dict]:
-        try:
-            results = yf.Search(query.upper(), max_results=20).quotes
-            return results if isinstance(results, list) else []
-        except Exception:
-            return []
-
-    raw_results = await loop.run_in_executor(get_executor(), _do_search)
-
-    # Filter to equities only
-    equities = [r for r in raw_results if r.get("quoteType") == "EQUITY"][:limit]
-
-    if not equities:
+async def get_sector_peers(
+    db: AsyncSession,
+    sector: str,
+    current_symbol: Optional[str] = None,
+    limit: int = 10,
+) -> list[SectorPeerResponse]:
+    """Get stocks in the same sector with enriched price and fundamentals."""
+    if not sector or not sector.strip():
         return []
+    stocks, _ = await get_stocks(db, skip=0, limit=limit + 20, sector=sector.strip())
+    current = (current_symbol or "").upper()
+    peers = [s for s in stocks if s.symbol == current]
+    others = [s for s in stocks if s.symbol != current][: limit - (1 if peers else 0)]
+    peers = peers + others
 
-    # Fetch prices and sparklines in parallel
-    price_tasks = [
-        loop.run_in_executor(get_executor(), _fetch_price_sync, r["symbol"])
-        for r in equities
-    ]
-    sparkline_tasks = [
-        loop.run_in_executor(get_executor(), _fetch_sparkline_sync, r["symbol"])
-        for r in equities
-    ]
-    gathered = await asyncio.gather(*price_tasks, *sparkline_tasks)
-    prices = gathered[:len(equities)]
-    sparklines = gathered[len(equities):]
-
-    results: list[StockSearchResult] = []
-    for item, price, sparkline in zip(equities, prices, sparklines):
-        symbol = item.get("symbol", "")
-        exch_code = item.get("exchange", "")
-        exch_display = item.get("exchDisp", exch_code)
-        country = _EXCHANGE_COUNTRY.get(exch_code)
-
-        # Try to get currency from cache first
-        currency: Optional[str] = None
-        if symbol in _stock_data_cache:
-            currency = _stock_data_cache[symbol][0].currency
-
-        results.append(
-            StockSearchResult(
-                symbol=symbol,
-                name=item.get("longname") or item.get("shortname") or symbol,
-                exchange=exch_display,
-                sector=item.get("sector"),
-                industry=item.get("industry"),
-                current_price=cast(Optional[float], price),
-                currency=currency,
-                country=country,
-                sparkline=cast(Optional[list[float]], sparkline),
-            )
+    async def _enrich(stock: Stock) -> SectorPeerResponse:
+        data_res, info_res = await asyncio.gather(
+            fetch_stock_data_from_yfinance(stock.symbol),
+            fetch_stock_info(stock.symbol),
+            return_exceptions=True,
+        )
+        data = data_res if not isinstance(data_res, Exception) else None
+        info = info_res if not isinstance(info_res, Exception) else None
+        return SectorPeerResponse(
+            symbol=stock.symbol,
+            name=stock.name,
+            sector=info.sector if info else stock.sector,
+            industry=info.industry if info else None,
+            current_price=data.current_price if data else None,
+            day_change_percent=data.change_percent if data else None,
+            pe_ratio=info.pe_ratio if info else None,
+            market_cap=info.market_cap if info else None,
+            is_current=stock.symbol == current,
         )
 
-    serializable = [r.model_dump(mode="json") for r in results]
-    await cache_set(cache_key, serializable, ttl=_SEARCH_CACHE_TTL)
-    return results
-
-
-# Period → yfinance (period, interval) mapping
-_PERIOD_MAP: dict[str, tuple[str, str]] = {
-    "1d": ("1d", "5m"),
-    "1w": ("5d", "30m"),
-    "1m": ("1mo", "1d"),
-    "6m": ("6mo", "1d"),
-    "1y": ("1y", "1d"),
-}
-
-
-async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryResponse:
-    """Fetch OHLCV price history for a stock symbol."""
-    sym = symbol.upper()
-    cache_key = f"stock_history:{sym}:{period}"
-    cached = await cache_get(cache_key)
-    if cached:
-        return StockHistoryResponse.model_validate(cached)
-
-    yf_period, yf_interval = _PERIOD_MAP.get(period, ("1mo", "1d"))
-    loop = asyncio.get_event_loop()
-
-    def _fetch() -> list[StockHistoryPoint]:
-        hist = yf.Ticker(sym).history(period=yf_period, interval=yf_interval)
-        if hist.empty:
-            return []
-        points: list[StockHistoryPoint] = []
-        for ts, row in hist.iterrows():
-            t_ms = int(ts.timestamp() * 1000)
-            vol = row.get("Volume")
-            v_int: Optional[int] = None
-            if vol is not None and vol == vol:  # not NaN
-                v_int = int(vol)
-            points.append(
-                StockHistoryPoint(
-                    t=t_ms,
-                    o=round(float(row["Open"]), 4),
-                    h=round(float(row["High"]), 4),
-                    low=round(float(row["Low"]), 4),
-                    c=round(float(row["Close"]), 4),
-                    v=v_int,
-                )
-            )
-        return points
-
-    try:
-        data = await loop.run_in_executor(get_executor(), _fetch)
-        result = StockHistoryResponse(symbol=sym, period=period, data=data)
-        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_HISTORY_CACHE_TTL)
-        return result
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching history for {symbol}: {e}",
-        ) from e
-
-
-async def fetch_stock_info(symbol: str) -> StockInfoResponse:
-    """Fetch detailed company info for a stock (10-min cache)."""
-    sym = symbol.upper()
-    cache_key = f"stock_info:{sym}"
-
-    cached = await cache_get(cache_key)
-    if cached:
-        return StockInfoResponse.model_validate(cached)
-
-    loop = asyncio.get_event_loop()
-
-    def _fetch() -> dict:
-        return dict(yf.Ticker(sym).info)
-
-    try:
-        info = await loop.run_in_executor(get_executor(), _fetch)
-
-        # Extract CEO from companyOfficers
-        ceo: Optional[str] = None
-        officers = info.get("companyOfficers") or []
-        for officer in officers:
-            title = (officer.get("title") or "").lower()
-            if "ceo" in title or "chief executive" in title:
-                ceo = officer.get("name")
-                break
-
-        result = StockInfoResponse(
-            symbol=sym,
-            description=info.get("longBusinessSummary"),
-            website=info.get("website"),
-            employees=info.get("fullTimeEmployees"),
-            ceo=ceo,
-            country=info.get("country"),
-            sector=info.get("sector"),
-            industry=info.get("industry"),
-            market_cap=info.get("marketCap"),
-            pe_ratio=info.get("trailingPE"),
-            forward_pe=info.get("forwardPE"),
-            beta=info.get("beta"),
-            dividend_yield=info.get("dividendYield"),
-            fifty_two_week_high=info.get("fiftyTwoWeekHigh"),
-            fifty_two_week_low=info.get("fiftyTwoWeekLow"),
-            average_volume=info.get("averageVolume"),
-        )
-        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_INFO_CACHE_TTL)
-        return result
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching info for {symbol}: {e}",
-        ) from e
-
-
-async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
-    """Fetch recent news articles for a stock."""
-    sym = symbol.upper()
-    loop = asyncio.get_event_loop()
-
-    def _fetch() -> list[dict]:
-        return yf.Ticker(sym).news or []
-
-    try:
-        raw_news = await loop.run_in_executor(get_executor(), _fetch)
-        items: list[StockNewsItem] = []
-        for article in raw_news[:limit]:
-            # Support both old flat schema and new nested content schema
-            content = article.get("content") or article
-
-            title = content.get("title", "") or article.get("title", "")
-
-            publisher: Optional[str] = None
-            provider = content.get("provider")
-            if isinstance(provider, dict):
-                publisher = provider.get("displayName")
-            elif isinstance(provider, str):
-                publisher = provider
-            else:
-                publisher = article.get("publisher")
-
-            link: Optional[str] = None
-            canonical = content.get("canonicalUrl") or content.get("clickThroughUrl")
-            if isinstance(canonical, dict):
-                link = canonical.get("url")
-            if not link:
-                link = article.get("link")
-
-            published_at: Optional[int] = None
-            pub_date = content.get("pubDate") or content.get("displayTime")
-            if pub_date:
-                from datetime import datetime
-                try:
-                    dt = datetime.fromisoformat(pub_date.replace("Z", "+00:00"))
-                    published_at = int(dt.timestamp() * 1000)
-                except Exception:
-                    pass
-            if not published_at:
-                pt = article.get("providerPublishTime")
-                if pt:
-                    published_at = int(pt) * 1000
-
-            items.append(
-                StockNewsItem(
-                    title=title,
-                    publisher=publisher,
-                    link=link,
-                    published_at=published_at,
-                )
-            )
-        return items
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching news for {symbol}: {e}",
-        ) from e
-
-
-async def generate_ai_analysis(symbol: str) -> StockAIAnalysisResponse:
-    """Generate an AI-powered stock analysis using Anthropic Claude (30-min cache)."""
-    sym = symbol.upper()
-    cache_key = f"stock_analysis:{sym}"
-
-    cached = await cache_get(cache_key)
-    if cached:
-        return StockAIAnalysisResponse.model_validate(cached)
-
-    # Gather data for the prompt
-    try:
-        live_data = await fetch_stock_data_from_yfinance(sym)
-    except Exception:
-        live_data = None
-
-    try:
-        info = await fetch_stock_info(sym)
-    except Exception:
-        info = None
-
-    # Build a compact prompt
-    price = f"${live_data.current_price:.2f}" if live_data else "N/A"
-    change_pct = f"{live_data.change_percent:+.2f}%" if live_data else "N/A"
-    sector = (info and info.sector) or "Unknown"
-    industry = (info and info.industry) or "Unknown"
-    market_cap_raw = info and info.market_cap
-    if market_cap_raw and market_cap_raw >= 1e12:
-        market_cap_str = f"${market_cap_raw / 1e12:.2f}T"
-    elif market_cap_raw and market_cap_raw >= 1e9:
-        market_cap_str = f"${market_cap_raw / 1e9:.2f}B"
-    else:
-        market_cap_str = "N/A"
-    pe = f"{info.pe_ratio:.1f}" if (info and info.pe_ratio) else "N/A"
-    hi52 = f"${info.fifty_two_week_high:.2f}" if (info and info.fifty_two_week_high) else "N/A"
-    lo52 = f"${info.fifty_two_week_low:.2f}" if (info and info.fifty_two_week_low) else "N/A"
-
-    prompt = (
-        f"Provide a concise 3-4 sentence investment analysis for {sym}. "
-        f"Current price: {price} ({change_pct} today). "
-        f"Sector: {sector}, Industry: {industry}. "
-        f"Market cap: {market_cap_str}, P/E ratio: {pe}, "
-        f"52-week range: {lo52} – {hi52}. "
-        "Focus on key risks, strengths, and short-term outlook. Be objective and concise."
-    )
-
-    try:
-        client = anthropic.Anthropic(api_key=settings.anthropic_api_key or None)
-        message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=300,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        analysis_text = message.content[0].text if message.content else "Analysis unavailable."
-        result = StockAIAnalysisResponse(symbol=sym, analysis=analysis_text)
-        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_ANALYSIS_CACHE_TTL)
-        return result
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error generating AI analysis for {symbol}: {e}",
-        ) from e
+    results = await asyncio.gather(*[_enrich(p) for p in peers])
+    return list(results)

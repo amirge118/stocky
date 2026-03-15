@@ -106,4 +106,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             parts.append(f"  response: {_safe_payload(response_body)}")
         logger.log(log_level, "\n".join(parts))
 
+        # Server-Timing header for DevTools performance visibility
+        response.headers["Server-Timing"] = f"total;dur={duration_ms:.0f}"
+
         return response

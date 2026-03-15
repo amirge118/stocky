@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from sqlalchemy.pool import StaticPool
 
 from app.main import app
-from app.core.database import Base
+from app.core.database import Base, get_db
 from app.core.dependencies import get_db_session
 
 # Test database
@@ -42,6 +42,7 @@ def client(db_session):
         yield db_session
 
     app.dependency_overrides[get_db_session] = override_get_db
+    app.dependency_overrides[get_db] = override_get_db
 
     with TestClient(app) as test_client:
         yield test_client

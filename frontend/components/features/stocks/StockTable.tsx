@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Edit, Trash2, TrendingUp, TrendingDown, Star, StarOff } from "lucide-react"
-import { fetchStockData } from "@/lib/api/stocks"
+import { fetchStockDataBatch } from "@/lib/api/stocks"
 import { useWatchlist } from "@/lib/hooks/useWatchlist"
 import type { Stock, StockData } from "@/types/stock"
 import { EditStockDialog } from "./EditStockDialog"
@@ -89,27 +89,16 @@ export function StockTable({
     return filtered
   }, [stocks, searchQuery, filters, isInWatchlist])
 
-  // Fetch live data for all stocks (limit to prevent too many parallel requests)
+  // Fetch live data for all stocks via batch API (1 request instead of N)
   const stockDataQueries = useQuery({
     queryKey: [
       "stockData",
       filteredStocks.slice(0, 50).map((s) => s.symbol).sort().join(","),
     ],
     queryFn: async () => {
-      const dataMap = new Map<string, StockData>()
-      // Limit concurrent requests to prevent overwhelming the API
-      const stocksToFetch = filteredStocks.slice(0, 50)
-      const promises = stocksToFetch.map(async (stock) => {
-        try {
-          const data = await fetchStockData(stock.symbol)
-          dataMap.set(stock.symbol, data)
-        } catch (error) {
-          console.error(`Failed to fetch data for ${stock.symbol}:`, error)
-          // Don't throw - allow other stocks to load even if one fails
-        }
-      })
-      await Promise.all(promises)
-      return dataMap
+      const symbols = filteredStocks.slice(0, 50).map((s) => s.symbol)
+      const data = await fetchStockDataBatch(symbols)
+      return new Map<string, StockData>(Object.entries(data))
     },
     enabled: filteredStocks.length > 0 && filteredStocks.length <= 50,
     staleTime: 30 * 1000, // 30 seconds

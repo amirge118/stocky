@@ -1,13 +1,9 @@
-# Development override - copy to docker-compose.override.yml
-# Backend: code changes apply without rebuild (--reload)
+# Development override - copy to docker-compose.override.yml for local overrides
+# The main docker-compose.yml already includes volumes + --reload for hot reload.
+# Use this file only for additional local overrides (e.g. env vars, ports).
 #
 # Usage: cp docker-compose.override.yml.example docker-compose.override.yml
 #        docker-compose up
 
 services:
-  backend:
-    volumes:
-      - ./backend:/app
-    command: >
-      sh -c "alembic upgrade head 2>/dev/null || true &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+  backend: {}

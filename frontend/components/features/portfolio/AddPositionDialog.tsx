@@ -15,7 +15,11 @@ import { Label } from "@/components/ui/label"
 import { searchStocks } from "@/lib/api/stocks"
 import { addHolding } from "@/lib/api/portfolio"
 import { useToast } from "@/hooks/use-toast"
-import type { PortfolioPosition, PortfolioSummary } from "@/types/portfolio"
+import type {
+  PortfolioPosition,
+  PortfolioSummary,
+  PortfolioSummaryWithSector,
+} from "@/types/portfolio"
 import type { StockSearchResult } from "@/types/stock"
 
 // ── Inline SVG sparkline (copied from AddStockDialog) ───────────────────────
@@ -110,8 +114,8 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
   const mutation = useMutation({
     mutationFn: addHolding,
     onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: ["portfolio"] })
-      const previous = queryClient.getQueryData<PortfolioSummary>(["portfolio"])
+      await queryClient.cancelQueries({ queryKey: ["portfolio-summary"] })
+      const previous = queryClient.getQueryData<PortfolioSummaryWithSector>(["portfolio-summary"])
       const optimisticPosition: PortfolioPosition = {
         symbol: variables.symbol,
         name: variables.name,
@@ -123,25 +127,28 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
         gain_loss: null,
         gain_loss_pct: null,
         portfolio_pct: null,
+        day_change: null,
+        day_change_percent: null,
       }
-      queryClient.setQueryData<PortfolioSummary>(["portfolio"], (old) => {
+      queryClient.setQueryData<PortfolioSummaryWithSector>(["portfolio-summary"], (old) => {
         if (!old) return old
-        const newPositions = [...old.positions, optimisticPosition]
-        const newTotalCost = old.total_cost + optimisticPosition.total_cost
+        const p = old.portfolio
+        const newPositions = [...p.positions, optimisticPosition]
+        const newTotalCost = p.total_cost + optimisticPosition.total_cost
         return {
           ...old,
-          positions: newPositions,
-          total_cost: newTotalCost,
-          total_value: old.total_value,
-          total_gain_loss: old.total_gain_loss,
-          total_gain_loss_pct: old.total_gain_loss_pct,
+          portfolio: {
+            ...p,
+            positions: newPositions,
+            total_cost: newTotalCost,
+          },
         }
       })
       return { previous }
     },
     onError: (err: Error, _, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(["portfolio"], context.previous)
+        queryClient.setQueryData(["portfolio-summary"], context.previous)
       }
       toast({ title: "Error", description: err.message, variant: "destructive" })
     },
@@ -151,7 +158,9 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
       onOpenChange(false)
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["portfolio"] })
+      queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
+      queryClient.invalidateQueries({ queryKey: ["portfolio-history"] })
+      queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
     },
   })
 
