@@ -18,7 +18,7 @@ from app.schemas.stock import (
     StockSearchResult,
 )
 
-_CACHE_TTL = 60  # 1 minute - stock price data refreshes frequently
+_CACHE_TTL = 300  # 5 minutes - reduce Yahoo rate limit hits
 _INFO_CACHE_TTL = 600  # 10 minutes
 _SEARCH_CACHE_TTL = 120  # 2 minutes - search results
 _HISTORY_CACHE_TTL = 300  # 5 minutes - historical charts
@@ -116,20 +116,62 @@ def _lookup_ticker_direct_sync(symbol: str) -> Optional[dict]:
 
 def _fetch_stock_data_sync(symbol: str) -> Optional[StockDataResponse]:
     """Fetch stock data synchronously (runs in executor). Returns None on failure."""
+    def _safe_int(x: Any) -> Optional[int]:
+        if x is None or (isinstance(x, float) and x != x):
+            return None
+        try:
+            return int(x)
+        except (ValueError, TypeError, OverflowError):
+            return None
+
+    def _from_history(ticker) -> Optional[StockDataResponse]:
+        """Fallback when fast_info fails (KeyError, etc.)."""
+        try:
+            hist = ticker.history(period="5d", interval="1d")
+            if hist.empty or "Close" not in hist.columns:
+                return None
+            closes = hist["Close"].dropna()
+            if len(closes) < 1:
+                return None
+            current_price = float(closes.iloc[-1])
+            previous_close = float(closes.iloc[-2]) if len(closes) >= 2 else current_price
+            if current_price <= 0:
+                return None
+            change = current_price - previous_close
+            change_percent = (change / previous_close * 100) if previous_close > 0 else 0.0
+            return StockDataResponse(
+                symbol=symbol,
+                name=symbol,
+                current_price=round(current_price, 2),
+                previous_close=round(previous_close, 2),
+                change=round(change, 2),
+                change_percent=round(change_percent, 2),
+                volume=None,
+                market_cap=None,
+                currency="USD",
+            )
+        except Exception as e:
+            if "429" in str(e) or "Too Many Requests" in str(e):
+                raise
+            return None
+
     try:
         ticker = yf.Ticker(symbol)
         fast_info = ticker.fast_info
         if fast_info is None:
-            return None
+            return _from_history(ticker)
 
-        last_price = getattr(fast_info, "last_price", None)
-        previous_close = getattr(fast_info, "previous_close", None) or last_price
+        try:
+            last_price = getattr(fast_info, "last_price", None)
+            previous_close = getattr(fast_info, "previous_close", None) or last_price
+        except (KeyError, Exception):
+            return _from_history(ticker)
 
         current_price = float(last_price or 0)
         previous_close = float(previous_close or current_price)
 
         if current_price == 0:
-            return None
+            return _from_history(ticker)
 
         change = current_price - previous_close
         change_percent = (change / previous_close * 100) if previous_close > 0 else 0.0
@@ -137,14 +179,6 @@ def _fetch_stock_data_sync(symbol: str) -> Optional[StockDataResponse]:
         vol = getattr(fast_info, "three_month_average_volume", None)
         mcap = getattr(fast_info, "market_cap", None)
         currency_val = getattr(fast_info, "currency", None)
-
-        def _safe_int(x: Any) -> Optional[int]:
-            if x is None or x != x:
-                return None
-            try:
-                return int(x)
-            except (ValueError, TypeError, OverflowError):
-                return None
 
         volume = _safe_int(vol)
         market_cap = _safe_int(mcap)
@@ -161,7 +195,9 @@ def _fetch_stock_data_sync(symbol: str) -> Optional[StockDataResponse]:
             market_cap=market_cap,
             currency=currency,
         )
-    except Exception:
+    except Exception as e:
+        if "429" in str(e) or "Too Many Requests" in str(e):
+            raise
         return None
 
 
@@ -201,8 +237,8 @@ async def fetch_stock_data_from_yfinance(symbol: str) -> StockDataResponse:
             if sym in _stock_data_cache:
                 return _stock_data_cache[sym][0]
             raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Yahoo Finance rate limit reached. Please try again in a few minutes.",
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Yahoo Finance rate limit. Please try again in 5-10 minutes.",
             ) from e
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -383,7 +419,9 @@ def _fetch_stock_info_sync(symbol: str) -> StockInfoResponse:
             # yfinance bug: unsupported operand type(s) for -: 'datetime.datetime' and 'str'
             return StockInfoResponse(symbol=sym)
         raise
-    except Exception:
+    except Exception as e:
+        if "429" in str(e) or "Too Many Requests" in str(e):
+            return StockInfoResponse(symbol=sym)
         raise
 
     # Extract only needed keys; sanitize values to avoid type errors
@@ -461,9 +499,17 @@ async def fetch_stock_info(symbol: str) -> StockInfoResponse:
         ) from e
 
 
+_NEWS_CACHE_TTL = 300  # 5 minutes
+
+
 async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
     """Fetch recent news articles for a stock. Returns empty list on Yahoo API failure."""
     sym = symbol.upper()
+    cache_key = f"stock_news:{sym}:{limit}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return [StockNewsItem.model_validate(r) for r in cached]
+
     loop = asyncio.get_running_loop()
 
     def _fetch() -> list[dict]:
@@ -520,6 +566,8 @@ async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
                     published_at=published_at,
                 )
             )
+        if items:
+            await cache_set(cache_key, [i.model_dump(mode="json") for i in items], ttl=_NEWS_CACHE_TTL)
         return items
     except Exception:
         # Yahoo news API can fail (rate limit, invalid JSON, etc.) - return empty
