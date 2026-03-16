@@ -75,10 +75,11 @@ class StockListResponse(BaseModel):
 
 class StockHistoryPoint(BaseModel):
     """A single OHLCV data point for stock history."""
+
     t: int            # Unix ms timestamp
     o: float          # open
     h: float          # high
-    l: float          # low
+    l: float  # noqa: E741  # low price (OHLC)
     c: float          # close
     v: Optional[int] = None  # volume
 
@@ -118,7 +119,31 @@ class StockNewsItem(BaseModel):
     published_at: Optional[int] = None  # Unix ms
 
 
+class PortfolioNewsItem(StockNewsItem):
+    """News item with source symbol for portfolio feed."""
+    symbol: str
+
+
 class StockAIAnalysisResponse(BaseModel):
     """Schema for AI-generated stock analysis."""
     symbol: str
     analysis: str
+
+
+class CompareSummaryResponse(BaseModel):
+    """AI-generated comparison summary for multiple stocks."""
+    symbols: list[str]
+    summary: str
+
+
+class SectorPeerResponse(BaseModel):
+    """Sector peer with enriched price and fundamentals."""
+    symbol: str
+    name: str
+    sector: Optional[str] = None
+    industry: Optional[str] = None
+    current_price: Optional[float] = None
+    day_change_percent: Optional[float] = None
+    pe_ratio: Optional[float] = None
+    market_cap: Optional[float] = None
+    is_current: bool = False  # True if this is the stock being viewed

@@ -5,7 +5,7 @@ This document explains the organization and structure of the Stock Insight App p
 ## Root Directory Structure
 
 ```
-learnCursor/
+stocky/
 ├── README.md                    # Main project README
 ├── FUTURE_IMPROVEMENTS.md      # All ideas and planned improvements
 ├── PROJECT_STRUCTURE.md         # This file - structure guide

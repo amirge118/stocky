@@ -115,7 +115,7 @@ export function StockComparisonChart({ symbols, colors }: StockComparisonChartPr
                 fontSize: "11px",
               }}
               labelFormatter={(v) => formatXAxis(v as number)}
-              formatter={(value: number | undefined) => [value != null ? `${value}%` : "", ""]}
+              formatter={(value) => [value != null ? `${value}%` : "", ""]}
             />
             <Legend
               wrapperStyle={{ fontSize: "11px" }}

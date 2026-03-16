@@ -248,20 +248,34 @@ async def create_stock(request: StockCreateRequest):
 - **Consistent**: Use consistent response structure
 - **Nested Models**: Use nested models for complex responses
 
+## API Request/Response Logging
+
+### 17. Mandatory Logging Middleware
+
+**When creating ANY new API/backend service, you MUST include request/response logging from the start.**
+
+- **Request**: method, path, client IP, status code, duration
+- **Payload**: request body and response body (configurable via `LOG_REQUEST_PAYLOAD`, `LOG_RESPONSE_PAYLOAD`)
+- **Redaction**: Sensitive fields (`password`, `token`, `secret`, `api_key`, `authorization`) are redacted as `***`
+- **Truncation**: Payloads truncated to `LOG_PAYLOAD_MAX_LENGTH` (default 2000 chars)
+- **Log levels**: INFO for 2xx/3xx, WARNING for 4xx, ERROR for 5xx
+
+**Reference**: [backend/app/middleware/request_logging.py](../../backend/app/middleware/request_logging.py)
+
 ## Security
 
-### 17. Authentication
+### 18. Authentication
 - **JWT Tokens**: Use JWT for authentication
 - **Bearer Token**: Use `Authorization: Bearer <token>` header
 - **Token Validation**: Validate tokens on protected endpoints
 - **Refresh Tokens**: Implement refresh token mechanism
 
-### 18. Authorization
+### 19. Authorization
 - **Role-Based**: Implement role-based access control (RBAC)
 - **Resource-Level**: Check permissions at resource level
 - **Error Messages**: Don't reveal existence of resources in 403 errors
 
-### 19. Input Validation
+### 20. Input Validation
 - **Pydantic**: Use Pydantic for all input validation
 - **Sanitization**: Sanitize all user inputs
 - **Type Validation**: Validate types strictly
@@ -269,18 +283,18 @@ async def create_stock(request: StockCreateRequest):
 
 ## Performance
 
-### 20. Caching Headers
+### 21. Caching Headers
 ```
 Cache-Control: public, max-age=3600
 ETag: "abc123"
 Last-Modified: Wed, 01 Jan 2024 00:00:00 GMT
 ```
 
-### 21. Response Compression
+### 22. Response Compression
 - **Gzip**: Enable gzip compression for responses
 - **Content-Encoding**: Set appropriate Content-Encoding header
 
-### 22. Database Optimization
+### 23. Database Optimization
 - **Eager Loading**: Load related data efficiently
 - **Pagination**: Always paginate list endpoints
 - **Indexes**: Use database indexes for query optimization
@@ -288,13 +302,13 @@ Last-Modified: Wed, 01 Jan 2024 00:00:00 GMT
 
 ## Testing
 
-### 23. API Testing
+### 24. API Testing
 - **Test All Endpoints**: Test all endpoints
 - **Test Status Codes**: Verify correct status codes
 - **Test Validation**: Test input validation
 - **Test Errors**: Test error responses
 
-### 24. API Contract Testing
+### 25. API Contract Testing
 - **Schema Validation**: Validate request/response schemas
 - **Version Testing**: Test API versioning
 - **Backward Compatibility**: Test backward compatibility
@@ -311,3 +325,4 @@ Last-Modified: Wed, 01 Jan 2024 00:00:00 GMT
 8. **Handle** errors consistently
 9. **Secure** all endpoints (auth, validation)
 10. **Optimize** for performance (caching, compression)
+11. **Log** all requests/responses with payload (see Request/Response Logging)

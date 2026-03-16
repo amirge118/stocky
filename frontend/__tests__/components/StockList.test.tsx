@@ -60,7 +60,7 @@ describe("StockList", () => {
       </QueryClientProvider>
     )
 
-    expect(screen.getByRole("status")).toBeInTheDocument()
+    expect(document.querySelector(".animate-pulse")).toBeInTheDocument()
   })
 
   it("renders stocks when data is loaded", async () => {

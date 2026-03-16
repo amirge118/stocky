@@ -48,6 +48,7 @@ This rule ensures that when you add or modify services (frontend, backend, AI ag
 3. Add `npm run dev:<service>` to `package.json` if it runs locally
 4. Update `backend/.env.example` (or relevant `.env.example`) with connection details for localhost when using `docker:infra`
 5. Update README Quick Start if the default flow changes
+6. **Backend/API services**: Include request/response logging middleware from the start (see [api-design-rules.md](./api-design-rules.md) – API Request/Response Logging)
 
 ## Example: Adding a New AI Worker
 

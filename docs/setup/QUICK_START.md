@@ -26,29 +26,27 @@ Wait a few seconds, then verify it's running:
 pg_isready
 ```
 
-## Step 4: Run the Setup Script
+## Step 4: Run the App
+
+**Option A – Docker infra + local code (recommended):**
 
 ```bash
-cd /Users/amirgefen/Documents/CursorP/learnCursor
-./scripts/setup-database-and-run.sh
+cd /path/to/stocky
+npm run setup
+# Terminal 1: start db + redis
+npm run docker:infra
+# Terminal 2: start backend + frontend
+npm run dev:all
 ```
 
-The script will:
-- Check PostgreSQL is running
-- Prompt you for database credentials (username, password, host, port)
-- Create the `stock_insight` database
-- Configure backend `.env` file
-- Set up Python virtual environment
-- Install dependencies
-- Apply database migrations
-- Start both backend and frontend servers
+**Option B – Full Docker:**
 
-### What to Enter When Prompted:
+```bash
+cd /path/to/stocky
+docker-compose up
+```
 
-- **PostgreSQL username**: Usually `postgres` (or your PostgreSQL username)
-- **PostgreSQL password**: Your PostgreSQL password (if you set one)
-- **PostgreSQL host**: Usually `localhost` (press Enter for default)
-- **PostgreSQL port**: Usually `5432` (press Enter for default)
+Before first run: copy `backend/.env.example` to `backend/.env` and set `DATABASE_URL`, `REDIS_URL`, and API keys.
 
 ## Alternative: Manual Setup
 

@@ -4,18 +4,18 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Optional, Set
+from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.services.stock_service import fetch_stock_data_from_yfinance
+from app.services.stock_data import fetch_stock_data_from_yfinance
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 # symbol -> set of WebSocket connections
-_subscribers: dict[str, Set[WebSocket]] = {}
+_subscribers: dict[str, set[WebSocket]] = {}
 _poll_task: Optional[asyncio.Task] = None
 _POLL_INTERVAL = 30  # seconds
 

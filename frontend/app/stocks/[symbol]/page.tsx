@@ -12,6 +12,7 @@ import { StockChart } from "@/components/features/stocks/StockChart"
 import { StockKeyStats } from "@/components/features/stocks/StockKeyStats"
 import { StockAbout } from "@/components/features/stocks/StockAbout"
 import { StockNews } from "@/components/features/stocks/StockNews"
+import { SectorNews } from "@/components/features/stocks/SectorNews"
 import { StockAIAnalysis } from "@/components/features/stocks/StockAIAnalysis"
 import { StockSectorOverview } from "@/components/features/stocks/StockSectorOverview"
 import { StockDeepDiveCard } from "@/components/features/agents/StockDeepDiveCard"
@@ -150,8 +151,9 @@ export default function StockDetailPage() {
             ) : null}
           </div>
 
-          <div className="lg:min-h-0">
+          <div className="lg:min-h-0 space-y-4">
             <StockNews symbol={symbol} />
+            {info?.sector && <SectorNews sector={info.sector} />}
           </div>
         </div>
 

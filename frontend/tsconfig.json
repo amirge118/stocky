@@ -21,6 +21,7 @@
     "paths": {
       "@/*": ["./*"]
     },
+    "types": ["@testing-library/jest-dom"],
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noUnusedLocals": true,
