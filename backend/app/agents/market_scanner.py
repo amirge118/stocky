@@ -51,6 +51,7 @@ class MarketScannerAgent(BaseAgent):
 
         try:
             from sqlalchemy import select
+
             from app.models.stock import Stock
             result = await db.execute(select(Stock.symbol))
             symbols = [row[0] for row in result.fetchall()]

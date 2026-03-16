@@ -1,10 +1,16 @@
 """Unit tests for holding service."""
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import AsyncMock, patch
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.holding import Holding
-from app.schemas.stock import StockDataResponse, StockHistoryResponse, StockHistoryPoint, StockNewsItem
+from app.schemas.stock import (
+    StockDataResponse,
+    StockHistoryPoint,
+    StockHistoryResponse,
+    StockNewsItem,
+)
 from app.services import holding_service
 
 

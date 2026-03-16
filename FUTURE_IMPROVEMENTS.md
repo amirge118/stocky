@@ -11,7 +11,6 @@ This document tracks all ideas, features, and improvements for the Stock Insight
   - Block merges if tests fail or coverage is below threshold
   - Automated deployment on successful test runs
 
-
 - [ ] **Automated Test Generation** [LOW]
   - Generate test templates for common patterns
   - Create test scaffolding tools
@@ -48,7 +47,6 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 - [ ] Add API rate limiting per user/IP
 - [ ] Implement API versioning strategy (v2, v3)
 - [ ] Add GraphQL endpoint as alternative to REST
-- [x] Add API request/response logging and monitoring (middleware with payload, redaction, configurable)
 - [ ] Implement API analytics and usage tracking
 - [ ] Add API documentation improvements (more examples)
 - [ ] Implement API deprecation warnings

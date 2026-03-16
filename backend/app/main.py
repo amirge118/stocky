@@ -10,6 +10,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+# Register all agents (side-effect: populates AgentRegistry)
+from app import agents  # noqa: F401
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.database import engine
@@ -24,9 +26,6 @@ from app.middleware.request_logging import RequestLoggingMiddleware
 from app.models.agent_report import AgentReport  # noqa: F401
 from app.models.holding import Holding  # noqa: F401
 from app.models.stock import Stock  # noqa: F401
-
-# Register all agents (side-effect: populates AgentRegistry)
-from app import agents  # noqa: F401
 
 # Ensure request logging middleware logs are visible
 _logger = logging.getLogger("app.middleware.request_logging")

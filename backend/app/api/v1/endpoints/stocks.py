@@ -1,12 +1,14 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
 from fastapi.responses import Response
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db_session
 from app.schemas.stock import (
+    CompareSummaryResponse,
+    SectorPeerResponse,
     StockAIAnalysisResponse,
     StockCreate,
     StockDataResponse,
@@ -17,8 +19,6 @@ from app.schemas.stock import (
     StockResponse,
     StockSearchResult,
     StockUpdate,
-    SectorPeerResponse,
-    CompareSummaryResponse,
 )
 from app.services import stock_service
 

@@ -8,8 +8,8 @@ from fastapi import HTTPException, status
 from app.core.cache import cache_get, cache_set
 from app.core.config import settings
 from app.schemas.stock import (
-    StockAIAnalysisResponse,
     CompareSummaryResponse,
+    StockAIAnalysisResponse,
 )
 from app.services.stock_data import fetch_stock_data_from_yfinance, fetch_stock_info
 

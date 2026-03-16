@@ -9,19 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.stock import Stock
 from app.schemas.stock import (
+    SectorPeerResponse,
     StockCreate,
     StockUpdate,
-    SectorPeerResponse,
 )
 from app.services.stock_data import (
-    fetch_stock_data_batch,
     fetch_stock_data_from_yfinance,
-    fetch_stock_history,
     fetch_stock_info,
-    fetch_stock_news,
-    search_stocks_from_yfinance,
 )
-from app.services.stock_ai import generate_ai_analysis, generate_compare_summary
 
 
 async def get_stock_by_symbol(db: AsyncSession, symbol: str) -> Optional[Stock]:

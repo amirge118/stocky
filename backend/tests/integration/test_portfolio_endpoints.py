@@ -1,6 +1,7 @@
 """Integration tests for portfolio API endpoints."""
-import pytest
 from unittest.mock import patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from app.models.holding import Holding
