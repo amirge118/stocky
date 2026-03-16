@@ -11,12 +11,30 @@ from app.models.stock import Stock
 from app.schemas.stock import (
     SectorPeerResponse,
     StockCreate,
+    StockDataResponse,
+    StockInfoResponse,
     StockUpdate,
 )
+from app.services.stock_ai import generate_ai_analysis, generate_compare_summary
 from app.services.stock_data import (
+    fetch_stock_data_batch,
     fetch_stock_data_from_yfinance,
+    fetch_stock_history,
     fetch_stock_info,
+    fetch_stock_news,
+    search_stocks_from_yfinance,
 )
+
+__all__ = [
+    "generate_ai_analysis",
+    "generate_compare_summary",
+    "fetch_stock_data_batch",
+    "fetch_stock_data_from_yfinance",
+    "fetch_stock_history",
+    "fetch_stock_info",
+    "fetch_stock_news",
+    "search_stocks_from_yfinance",
+]
 
 
 async def get_stock_by_symbol(db: AsyncSession, symbol: str) -> Optional[Stock]:
@@ -121,17 +139,17 @@ async def get_sector_peers(
             fetch_stock_info(stock.symbol),
             return_exceptions=True,
         )
-        data = data_res if not isinstance(data_res, Exception) else None
-        info = info_res if not isinstance(info_res, Exception) else None
+        data: Optional[StockDataResponse] = data_res if isinstance(data_res, StockDataResponse) else None
+        info: Optional[StockInfoResponse] = info_res if isinstance(info_res, StockInfoResponse) else None
         return SectorPeerResponse(
             symbol=stock.symbol,
             name=stock.name,
-            sector=info.sector if info else stock.sector,
-            industry=info.industry if info else None,
-            current_price=data.current_price if data else None,
-            day_change_percent=data.change_percent if data else None,
-            pe_ratio=info.pe_ratio if info else None,
-            market_cap=info.market_cap if info else None,
+            sector=info.sector if info is not None else stock.sector,
+            industry=info.industry if info is not None else None,
+            current_price=data.current_price if data is not None else None,
+            day_change_percent=data.change_percent if data is not None else None,
+            pe_ratio=info.pe_ratio if info is not None else None,
+            market_cap=info.market_cap if info is not None else None,
             is_current=stock.symbol == current,
         )
 

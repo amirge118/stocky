@@ -1,6 +1,7 @@
 """AI-powered stock analysis and comparison using Anthropic Claude."""
 
 import asyncio
+from typing import Optional
 
 import anthropic
 from fastapi import HTTPException, status
@@ -10,6 +11,8 @@ from app.core.config import settings
 from app.schemas.stock import (
     CompareSummaryResponse,
     StockAIAnalysisResponse,
+    StockDataResponse,
+    StockInfoResponse,
 )
 from app.services.stock_data import fetch_stock_data_from_yfinance, fetch_stock_info
 
@@ -98,8 +101,8 @@ async def generate_compare_summary(symbols: list[str]) -> CompareSummaryResponse
 
     parts: list[str] = []
     for sym, data, info in zip(syms, data_list, info_list):
-        d = data if not isinstance(data, Exception) else None
-        i = info if not isinstance(info, Exception) else None
+        d: Optional[StockDataResponse] = data if isinstance(data, StockDataResponse) else None
+        i: Optional[StockInfoResponse] = info if isinstance(info, StockInfoResponse) else None
         price = f"${d.current_price:.2f}" if d else "N/A"
         chg = f"{d.change_percent:+.2f}%" if d else "N/A"
         pe = f"{i.pe_ratio:.1f}" if i and i.pe_ratio else "N/A"

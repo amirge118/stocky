@@ -124,7 +124,7 @@ def _fetch_stock_data_sync(symbol: str) -> Optional[StockDataResponse]:
         except (ValueError, TypeError, OverflowError):
             return None
 
-    def _from_history(ticker) -> Optional[StockDataResponse]:
+    def _from_history(ticker: Any) -> Optional[StockDataResponse]:
         """Fallback when fast_info fails (KeyError, etc.)."""
         try:
             hist = ticker.history(period="5d", interval="1d")
@@ -376,7 +376,7 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
                     t=t_ms,
                     o=round(float(row["Open"]), 4),
                     h=round(float(row["High"]), 4),
-                    low=round(float(row["Low"]), 4),
+                    l=round(float(row["Low"]), 4),
                     c=round(float(row["Close"]), 4),
                     v=v_int,
                 )

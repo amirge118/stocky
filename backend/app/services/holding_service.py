@@ -13,7 +13,7 @@ from app.schemas.holding import (
     PortfolioPosition,
     PortfolioSummary,
 )
-from app.schemas.stock import PortfolioNewsItem, StockDataResponse
+from app.schemas.stock import PortfolioNewsItem, StockDataResponse, StockHistoryResponse, StockInfoResponse
 from app.services.stock_data import (
     fetch_stock_data_from_yfinance,
     fetch_stock_history,
@@ -176,7 +176,7 @@ async def get_sector_breakdown(
         return_exceptions=True,
     )
     sectors = [
-        info.sector if not isinstance(info, Exception) and info is not None else None
+        info.sector if isinstance(info, StockInfoResponse) else None
         for info in info_results
     ]
 
@@ -227,7 +227,7 @@ async def get_portfolio_news(db: AsyncSession, limit: int = 20) -> list[Portfoli
     seen_titles: set[str] = set()
     merged: list[PortfolioNewsItem] = []
     for holding, news_list in zip(holdings, news_results):
-        if isinstance(news_list, Exception):
+        if not isinstance(news_list, list):
             continue
         for item in news_list:
             key = (item.title or "").strip().lower()
@@ -264,7 +264,7 @@ async def get_portfolio_history(db: AsyncSession, period: str = "1m") -> Portfol
     from collections import defaultdict
     date_values: dict[int, float] = defaultdict(float)
     for holding, hist_result in zip(holdings, hist_results):
-        if isinstance(hist_result, Exception) or not hist_result or not hist_result.data:
+        if not isinstance(hist_result, StockHistoryResponse) or not hist_result.data:
             continue
         for point in hist_result.data:
             date_values[point.t] += holding.shares * point.c
