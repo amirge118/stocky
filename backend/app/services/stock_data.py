@@ -372,14 +372,14 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
             if vol is not None and vol == vol:
                 v_int = int(vol)
             points.append(
-                StockHistoryPoint(
-                    t=t_ms,
-                    o=round(float(row["Open"]), 4),
-                    h=round(float(row["High"]), 4),
-                    low=round(float(row["Low"]), 4),
-                    c=round(float(row["Close"]), 4),
-                    v=v_int,
-                )
+                StockHistoryPoint.model_validate({
+                    "t": t_ms,
+                    "o": round(float(row["Open"]), 4),
+                    "h": round(float(row["High"]), 4),
+                    "l": round(float(row["Low"]), 4),
+                    "c": round(float(row["Close"]), 4),
+                    "v": v_int,
+                })
             )
         return points
 

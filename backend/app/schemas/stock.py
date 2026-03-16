@@ -75,12 +75,11 @@ class StockListResponse(BaseModel):
 
 class StockHistoryPoint(BaseModel):
     """A single OHLCV data point for stock history."""
-    model_config = {"populate_by_name": True}
 
     t: int            # Unix ms timestamp
     o: float          # open
     h: float          # high
-    low: float = Field(alias="l")  # low price (OHLC)
+    l: float  # noqa: E741  # low price (OHLC)
     c: float          # close
     v: Optional[int] = None  # volume
 
