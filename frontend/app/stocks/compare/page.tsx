@@ -24,8 +24,13 @@ function CompareContent() {
   const [activeSymbols, setActiveSymbols] = useState(symbols)
 
   useEffect(() => {
-    setInputValue(symbols.join(", "))
-    setActiveSymbols(symbols)
+    const parsed = symbolsParam
+      .split(",")
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean)
+      .slice(0, 5)
+    setInputValue(parsed.join(", "))
+    setActiveSymbols(parsed)
   }, [symbolsParam])
 
   const handleApply = () => {

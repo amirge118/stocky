@@ -27,13 +27,14 @@ function fmtPct(n: number | null): string {
 export function StockSectorOverview({ symbol, sector, industry }: StockSectorOverviewProps) {
   const router = useRouter()
 
-  if (!sector) return null
-
   const { data: peers, isPending } = useQuery({
     queryKey: ["sector-peers", sector, symbol],
-    queryFn: () => getSectorPeers(sector, symbol, 10),
+    queryFn: () => getSectorPeers(sector!, symbol, 10),
     staleTime: 5 * 60_000,
+    enabled: !!sector,
   })
+
+  if (!sector) return null
 
   const handleCompareAll = () => {
     const symbols = peers?.map((p) => p.symbol) ?? []

@@ -376,7 +376,7 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
                     t=t_ms,
                     o=round(float(row["Open"]), 4),
                     h=round(float(row["High"]), 4),
-                    l=round(float(row["Low"]), 4),
+                    low=round(float(row["Low"]), 4),
                     c=round(float(row["Close"]), 4),
                     v=v_int,
                 )

@@ -13,7 +13,12 @@ from app.schemas.holding import (
     PortfolioPosition,
     PortfolioSummary,
 )
-from app.schemas.stock import PortfolioNewsItem, StockDataResponse, StockHistoryResponse, StockInfoResponse
+from app.schemas.stock import (
+    PortfolioNewsItem,
+    StockDataResponse,
+    StockHistoryResponse,
+    StockInfoResponse,
+)
 from app.services.stock_data import (
     fetch_stock_data_from_yfinance,
     fetch_stock_history,
