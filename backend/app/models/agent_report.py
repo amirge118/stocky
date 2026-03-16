@@ -1,7 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import Index, String, Text, Integer
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
@@ -16,7 +15,7 @@ class AgentReport(BaseModel):
     agent_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="completed")
     target_symbol: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, index=True)
-    data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     tokens_used: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     run_duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

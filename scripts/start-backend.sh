@@ -70,14 +70,18 @@ fi
 
 cd "$PROJECT_ROOT/backend"
 
-# Check if virtual environment exists
-if [ ! -d "venv" ]; then
+# Check if virtual environment exists (venv or .venv)
+if [ -d "venv" ]; then
+    VENV_ACTIVATE="venv/bin/activate"
+elif [ -d ".venv" ]; then
+    VENV_ACTIVATE=".venv/bin/activate"
+else
     echo -e "${RED}❌ Virtual environment not found. Run ./scripts/setup.sh first${NC}"
     exit 1
 fi
 
 # Activate virtual environment
-source venv/bin/activate
+source "$VENV_ACTIVATE"
 
 # Verify database connection before starting backend
 echo -e "${BLUE}🔍 Verifying database connection...${NC}"
@@ -128,9 +132,11 @@ if ! python -c "import uvicorn" 2>/dev/null; then
     pip install -r requirements-dev.txt --quiet
 fi
 
-# Start backend in background with logging
+# Start backend in background with logging (reload on any .py, .env, .toml, .ini change)
 echo -e "${BLUE}🚀 Starting uvicorn server...${NC}"
-nohup uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 > "$LOG_FILE" 2>&1 &
+nohup uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 \
+  --reload-include '*.env' --reload-include '*.toml' --reload-include '*.ini' \
+  > "$LOG_FILE" 2>&1 &
 BACKEND_PID=$!
 
 # Save PID to file

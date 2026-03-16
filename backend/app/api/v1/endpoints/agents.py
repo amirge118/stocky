@@ -33,9 +33,10 @@ async def list_agents() -> AgentListResponse:
 
 async def _run_agent_task(agent_name: str, context: dict) -> None:
     """Background task: run agent and persist result in a fresh DB session."""
+    import time
+
     from app.agents.base import AgentResult, AgentStatus
     from app.core.database import AsyncSessionLocal
-    import time
 
     agent = AgentRegistry.get(agent_name)
     start = time.time()
@@ -70,7 +71,7 @@ async def trigger_agent(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Agent '{agent_name}' not found",
-        )
+        ) from None
 
     context: dict = {}
     if symbol:
@@ -101,7 +102,7 @@ async def get_latest_report(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Agent '{agent_name}' not found",
-        )
+        ) from None
     return await agent_service.get_latest_report(db, agent_name, symbol)
 
 
@@ -119,5 +120,5 @@ async def get_agent_history(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Agent '{agent_name}' not found",
-        )
+        ) from None
     return await agent_service.list_reports(db, agent_name=agent_name, target_symbol=symbol, limit=limit)

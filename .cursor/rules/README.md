@@ -30,6 +30,7 @@ This directory contains comprehensive rules and guidelines for the Stock Insight
 - **[documentation-rules.md](./documentation-rules.md)** - Code documentation standards
 
 ### Workflow
+- **[docker-dev-workflow.md](./docker-dev-workflow.md)** - Docker + npm scripts for dev; add new services to Docker
 - **[git-workflow-rules.md](./git-workflow-rules.md)** - Git workflow and commit conventions
 - **[pr-review.md](./pr-review.md)** - Pull request review guidelines
 

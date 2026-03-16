@@ -1,9 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.schemas.agent import SectorBreakdownResponse
-from app.schemas.holding import HoldingCreate, PortfolioPosition, PortfolioSummary
+from app.schemas.holding import (
+    HoldingCreate,
+    PortfolioHistoryResponse,
+    PortfolioPosition,
+    PortfolioSummary,
+    PortfolioSummaryWithSector,
+)
+from app.schemas.stock import PortfolioNewsItem
 from app.services import holding_service
 
 router = APIRouter()
@@ -13,6 +20,13 @@ router = APIRouter()
 async def get_portfolio(db: AsyncSession = Depends(get_db)) -> PortfolioSummary:
     """Return all holdings with live prices and P&L."""
     return await holding_service.get_portfolio(db)
+
+
+@router.get("/summary", response_model=PortfolioSummaryWithSector)
+async def get_portfolio_summary(db: AsyncSession = Depends(get_db)) -> PortfolioSummaryWithSector:
+    """Return portfolio and sector breakdown in one request (avoids duplicate fetches)."""
+    portfolio, sector_breakdown = await holding_service.get_portfolio_summary(db)
+    return PortfolioSummaryWithSector(portfolio=portfolio, sector_breakdown=sector_breakdown)
 
 
 @router.post("", response_model=PortfolioPosition, status_code=status.HTTP_201_CREATED)
@@ -42,6 +56,24 @@ async def add_holding(
         gain_loss_pct=None,
         portfolio_pct=None,
     )
+
+
+@router.get("/history", response_model=PortfolioHistoryResponse)
+async def get_portfolio_history(
+    period: str = Query("1m", description="1m | 6m | 1y"),
+    db: AsyncSession = Depends(get_db),
+) -> PortfolioHistoryResponse:
+    """Get portfolio value over time (computed from historical prices)."""
+    return await holding_service.get_portfolio_history(db, period=period)
+
+
+@router.get("/news", response_model=list[PortfolioNewsItem])
+async def get_portfolio_news(
+    limit: int = Query(20, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+) -> list[PortfolioNewsItem]:
+    """Fetch unified news feed for all portfolio holdings."""
+    return await holding_service.get_portfolio_news(db, limit=limit)
 
 
 @router.delete("/{symbol}", status_code=status.HTTP_204_NO_CONTENT)

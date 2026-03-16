@@ -16,15 +16,17 @@ export function useStockPrices(symbols: string[]) {
   const [prices, setPrices] = useState<Record<string, PriceUpdate>>({})
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const symbolsKey = symbols.join(",")
 
   const connect = useCallback(() => {
-    if (symbols.length === 0) return
+    const syms = symbolsKey.split(",").filter(Boolean)
+    if (syms.length === 0) return
 
     const url = `${WS_BASE}/api/v1/ws/prices`
     const ws = new WebSocket(url)
 
     ws.onopen = () => {
-      ws.send(JSON.stringify({ subscribe: symbols }))
+      ws.send(JSON.stringify({ subscribe: syms }))
     }
 
     ws.onmessage = (event) => {
@@ -56,7 +58,7 @@ export function useStockPrices(symbols: string[]) {
     }
 
     wsRef.current = ws
-  }, [symbols.join(",")])
+  }, [symbolsKey])
 
   useEffect(() => {
     connect()

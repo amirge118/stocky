@@ -206,6 +206,7 @@ export function AddStockDialog({
         <div className="relative">
           <Input
             autoFocus
+            aria-label="Symbol"
             placeholder="Search by ticker or company name..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}

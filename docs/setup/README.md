@@ -9,6 +9,7 @@ This directory contains all setup and installation guides for the Stock Insight 
 - **[Run Servers](./RUN_SERVERS.md)** - Comprehensive guide for running development servers
 - **[Architecture Setup](./ARCHITECTURE_SETUP.md)** - Architecture overview and structure
 - **[Start Development](./START_DEVELOPMENT.md)** - Complete development environment setup
+- **[CI/CD Setup](./CI_CD_SETUP.md)** - CI pipeline, coverage thresholds, branch protection
 
 ## Setup Order
 

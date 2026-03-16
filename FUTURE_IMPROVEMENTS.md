@@ -6,23 +6,10 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### From Testing Summary
 
-- [ ] **CI/CD Pipeline** [HIGH]
+- [x] **CI/CD Pipeline** [HIGH] ✓
   - Set up CI/CD pipeline to enforce test coverage
-  - Run tests on every pull request
   - Block merges if tests fail or coverage is below threshold
   - Automated deployment on successful test runs
-
-- [ ] **Coverage Thresholds Enforcement** [MEDIUM]
-  - Enforce minimum 80% code coverage
-  - Generate coverage reports automatically
-  - Track coverage trends over time
-  - Set up alerts for coverage drops
-
-- [ ] **Test Performance Monitoring** [MEDIUM]
-  - Monitor test execution time
-  - Identify slow tests
-  - Optimize test performance
-  - Set up test performance budgets
 
 - [ ] **Automated Test Generation** [LOW]
   - Generate test templates for common patterns
@@ -60,7 +47,6 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 - [ ] Add API rate limiting per user/IP
 - [ ] Implement API versioning strategy (v2, v3)
 - [ ] Add GraphQL endpoint as alternative to REST
-- [ ] Add API request/response logging and monitoring
 - [ ] Implement API analytics and usage tracking
 - [ ] Add API documentation improvements (more examples)
 - [ ] Implement API deprecation warnings
@@ -78,28 +64,34 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### Features
 
+- [x] **Portfolio Day P&L + Today's Movers** [DONE]
+  - Day change ($ and %) in portfolio summary
+  - Today's leaders/losers strip with links to stock detail
+- [x] **Portfolio News Feed** [DONE]
+  - Unified news for all holdings at /portfolio
+  - Breaking badge for news < 3h old
+- [x] **Sector Overview Upgrade** [DONE]
+  - Sector peers with price, day %, P/E, market cap
+  - Compare All button to /stocks/compare
+- [x] **Portfolio Performance Chart** [DONE]
+  - Historical portfolio value (1M, 6M, 1Y) computed from holdings
+- [x] **Compare Fundamentals + AI Summary** [DONE]
+  - Metrics table (P/E, market cap, dividend, beta, 52W range)
+  - AI comparison summary for 2–5 stocks
+- [x] **Sector News Tab** [DONE]
+  - Sector-level news via sector ETF (XLK, XLV, etc.) on stock detail
+- [x] **Sector Trend Card** [DONE]
+  - Sector performance % (day change) on portfolio page
+- [x] **Portfolio & Stock Tests** [DONE]
+  - Unit: holding_service (day P&L, news, history), stock_service (sector filter)
+  - Integration: portfolio endpoints (GET, news, history, add)
+  - Frontend: PortfolioSummaryCard, PortfolioNewsFeed (requires @testing-library/dom)
 - [ ] Add historical stock data analysis (multi-year charts, dividends)
 - [ ] Add social features (share insights, comments)
 - [ ] Add technical indicators calculation (RSI, MACD, moving averages)
 - [ ] Implement backtesting capabilities
 
 ### רעיונות חדשים
-
-- [ ] **Stock Dividends Tracking** [MEDIUM]
-  - Track dividend history and yield per holding
-  - Show dividend calendar in portfolio view
-
-- [ ] **Earnings Calendar Integration** [MEDIUM]
-  - Integrate earnings dates from Yahoo Finance or similar
-  - Alert users before earnings for watched stocks
-
-- [ ] **Batch Stock Import** [LOW]
-  - Endpoint to add multiple stocks at once (CSV/JSON)
-  - Bulk update for portfolio positions
-
-- [ ] **WebSocket Agent Progress** [LOW]
-  - Stream agent progress (e.g. "Analyzing fundamentals...") over WebSocket
-  - Better UX for long-running agent jobs
 
 ### Monitoring & Observability
 

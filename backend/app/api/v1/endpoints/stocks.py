@@ -1,9 +1,14 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db_session
 from app.schemas.stock import (
+    CompareSummaryResponse,
+    SectorPeerResponse,
     StockAIAnalysisResponse,
     StockCreate,
     StockDataResponse,
@@ -26,15 +31,35 @@ async def options_stocks() -> Response:
     return Response(status_code=200)
 
 
+class BatchStockDataRequest(BaseModel):
+    """Request body for batch stock data fetch."""
+
+    symbols: list[str] = Field(..., min_length=1, max_length=50)
+
+
+@router.post("/batch-data", summary="Fetch live data for multiple stocks")
+async def get_batch_stock_data(body: BatchStockDataRequest) -> dict[str, StockDataResponse]:
+    """Fetch live stock data for up to 50 symbols in one request."""
+    result = await stock_service.fetch_stock_data_batch(body.symbols)
+    return result
+
+
+@router.options("/batch-data")
+async def options_batch_data() -> Response:
+    """Handle OPTIONS preflight for batch-data."""
+    return Response(status_code=200)
+
+
 @router.get("", response_model=StockListResponse, summary="List all stocks")
 async def list_stocks(
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(20, ge=1, le=500, description="Items per page"),
+    sector: Optional[str] = Query(None, description="Filter by sector"),
     db: AsyncSession = Depends(get_db_session),
 ) -> StockListResponse:
     """Get a paginated list of all stocks."""
     skip = (page - 1) * limit
-    stocks, total = await stock_service.get_stocks(db, skip=skip, limit=limit)
+    stocks, total = await stock_service.get_stocks(db, skip=skip, limit=limit, sector=sector)
 
     total_pages = (total + limit - 1) // limit if total > 0 else 0
 
@@ -47,6 +72,26 @@ async def list_stocks(
             "total_pages": total_pages,
         },
     )
+
+
+@router.get("/compare-summary", response_model=CompareSummaryResponse, summary="AI compare summary")
+async def get_compare_summary(
+    symbols: str = Query(..., description="Comma-separated symbols, max 5"),
+) -> CompareSummaryResponse:
+    """Generate AI comparison summary for given stocks."""
+    sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()][:5]
+    return await stock_service.generate_compare_summary(sym_list)
+
+
+@router.get("/sector-peers", response_model=list[SectorPeerResponse], summary="Get sector peers")
+async def get_sector_peers(
+    sector: str = Query(..., description="Sector name"),
+    symbol: Optional[str] = Query(None, description="Current stock symbol (highlighted in results)"),
+    limit: int = Query(10, ge=1, le=20),
+    db: AsyncSession = Depends(get_db_session),
+) -> list[SectorPeerResponse]:
+    """Get stocks in the same sector with price and fundamentals."""
+    return await stock_service.get_sector_peers(db, sector=sector, current_symbol=symbol, limit=limit)
 
 
 @router.get("/search", response_model=list[StockSearchResult], summary="Search stocks")

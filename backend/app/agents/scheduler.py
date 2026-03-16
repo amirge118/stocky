@@ -13,10 +13,11 @@ _scheduler: Optional[AsyncIOScheduler] = None
 
 async def _run_scheduled_agent(agent_name: str) -> None:
     """Run a scheduled agent and persist its result."""
+    import time
+
+    from app.agents.base import AgentResult, AgentStatus
     from app.core.database import AsyncSessionLocal
     from app.services import agent_service
-    from app.agents.base import AgentResult, AgentStatus
-    import time
 
     agent = AgentRegistry.get(agent_name)
     logger.info("Scheduler: running agent '%s'", agent_name)

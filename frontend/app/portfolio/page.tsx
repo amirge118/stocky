@@ -4,13 +4,15 @@ import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Plus, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { getPortfolio } from "@/lib/api/portfolio"
-import { getSectorBreakdown } from "@/lib/api/agents"
+import { getPortfolioSummary } from "@/lib/api/portfolio"
 import { PortfolioSummaryCard } from "@/components/features/portfolio/PortfolioSummaryCard"
 import { PortfolioTable } from "@/components/features/portfolio/PortfolioTable"
 import { AddPositionDialog } from "@/components/features/portfolio/AddPositionDialog"
 import { SectorAllocationChart } from "@/components/features/portfolio/SectorAllocationChart"
 import { SectorBreakdownTable } from "@/components/features/portfolio/SectorBreakdownTable"
+import { SectorTrendCard } from "@/components/features/portfolio/SectorTrendCard"
+import { PortfolioNewsFeed } from "@/components/features/portfolio/PortfolioNewsFeed"
+import { PortfolioPerformanceChart } from "@/components/features/portfolio/PortfolioPerformanceChart"
 
 export default function PortfolioPage() {
   const [mounted, setMounted] = useState(false)
@@ -21,17 +23,15 @@ export default function PortfolioPage() {
     setMounted(true)
   }, [])
 
-  const { data, isPending, isFetching } = useQuery({
-    queryKey: ["portfolio"],
-    queryFn: getPortfolio,
+  const { data: summaryData, isPending, isFetching } = useQuery({
+    queryKey: ["portfolio-summary"],
+    queryFn: getPortfolioSummary,
     refetchInterval: 60_000,
-  })
-
-  const { data: sectorData } = useQuery({
-    queryKey: ["sector-breakdown"],
-    queryFn: getSectorBreakdown,
     staleTime: 5 * 60_000,
   })
+
+  const data = summaryData?.portfolio
+  const sectorData = summaryData?.sector_breakdown
 
   // Render static skeleton on server and initial client to avoid hydration mismatch
   if (!mounted) {
@@ -125,27 +125,44 @@ export default function PortfolioPage() {
         {/* ── Summary card ─────────────────────────────────────────────────── */}
         <PortfolioSummaryCard summary={data} isPending={isPending} />
 
+        {/* ── Portfolio Performance Chart ───────────────────────────────────── */}
+        {data && data.positions.length > 0 && (
+          <PortfolioPerformanceChart enabled={data.positions.length > 0} />
+        )}
+
         {/* ── Holdings table ───────────────────────────────────────────────── */}
         <PortfolioTable positions={data?.positions ?? []} isPending={isPending} />
 
         {/* ── Sector Breakdown ─────────────────────────────────────────────── */}
         {sectorData && sectorData.sectors.length > 0 && (
-          <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">
-              Sector Allocation
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <SectorAllocationChart sectors={sectorData.sectors} />
-              <SectorBreakdownTable sectors={sectorData.sectors} />
+          <div className="space-y-4">
+            <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5 space-y-4">
+              <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">
+                Sector Allocation
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <SectorAllocationChart sectors={sectorData.sectors} />
+                <SectorBreakdownTable sectors={sectorData.sectors} />
+              </div>
             </div>
+            <SectorTrendCard sectors={sectorData.sectors} />
           </div>
+        )}
+
+        {/* ── Portfolio News Feed ──────────────────────────────────────────── */}
+        {data && data.positions.length > 0 && (
+          <PortfolioNewsFeed />
         )}
 
         {/* ── Dialog ───────────────────────────────────────────────────────── */}
         <AddPositionDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          onSuccess={() => queryClient.invalidateQueries({ queryKey: ["portfolio"] })}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
+            queryClient.invalidateQueries({ queryKey: ["portfolio-history"] })
+            queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
+          }}
         />
       </div>
     </div>

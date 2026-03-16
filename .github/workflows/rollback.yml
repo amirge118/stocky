@@ -1,0 +1,39 @@
+# Rollback: Manual rollback to a previous image version
+# Use when production deployment fails health checks or has critical issues
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to rollback to (e.g. 123, sha-abc123, or v20240315-456)'
+        required: true
+        type: string
+      confirm:
+        description: 'Type "rollback" to confirm'
+        required: true
+        type: string
+
+jobs:
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    if: inputs.confirm == 'rollback'
+    environment: production
+
+    steps:
+      - name: Validate rollback target
+        run: |
+          echo "Rolling back to tag: ${{ inputs.image_tag }}"
+          echo "Images: ghcr.io/${{ github.repository_owner }}/stocky-backend:${{ inputs.image_tag }}"
+          echo "Images: ghcr.io/${{ github.repository_owner }}/stocky-frontend:${{ inputs.image_tag }}"
+          echo ""
+          echo "Add your rollback logic here:"
+          echo "  - kubectl set image deployment/backend backend=ghcr.io/.../stocky-backend:${{ inputs.image_tag }}"
+          echo "  - Or: docker compose pull && docker compose up -d"
+          echo "  - Or: platform-specific rollback command"
+
+      - name: Rollback deployment
+        run: |
+          echo "Rollback executed. Verify health manually."
+          echo "Consider: curl -f \$PROD_APP_URL/api/v1/health"

@@ -92,14 +92,15 @@ fi
 echo -e "${BLUE}🐍 Starting Backend Server...${NC}"
 cd "$PROJECT_ROOT/backend"
 
-# Check if virtual environment exists
-if [ ! -d "venv" ]; then
+# Check if virtual environment exists (venv or .venv)
+if [ -d "venv" ]; then
+    source venv/bin/activate
+elif [ -d ".venv" ]; then
+    source .venv/bin/activate
+else
     echo -e "${RED}❌ Virtual environment not found. Run ./scripts/setup.sh first${NC}"
     exit 1
 fi
-
-# Activate virtual environment
-source venv/bin/activate
 
 # Verify database connection before starting backend
 echo -e "${BLUE}🔍 Verifying database connection...${NC}"
@@ -154,8 +155,10 @@ fi
 mkdir -p "$PROJECT_ROOT/backend/logs"
 LOG_FILE="$PROJECT_ROOT/backend/logs/backend.log"
 
-# Start backend in background with logging
-nohup uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 > "$LOG_FILE" 2>&1 &
+# Start backend in background with logging (reload on any .py, .env, .toml, .ini change)
+nohup uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 \
+  --reload-include '*.env' --reload-include '*.toml' --reload-include '*.ini' \
+  > "$LOG_FILE" 2>&1 &
 BACKEND_PID=$!
 
 # Save PID to file

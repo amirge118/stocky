@@ -66,6 +66,7 @@ function positionsToCSV(positions: PortfolioPosition[]): string {
     "Shares",
     "Avg Cost",
     "Current Price",
+    "Day Change %",
     "Market Value",
     "Total Cost",
     "Gain/Loss",
@@ -78,6 +79,7 @@ function positionsToCSV(positions: PortfolioPosition[]): string {
     pos.shares.toFixed(2),
     pos.avg_cost.toFixed(2),
     pos.current_price != null ? pos.current_price.toFixed(2) : "",
+    pos.day_change_percent != null ? pos.day_change_percent.toFixed(2) : "",
     pos.current_value != null ? pos.current_value.toFixed(2) : "",
     pos.total_cost.toFixed(2),
     pos.gain_loss != null ? pos.gain_loss.toFixed(2) : "",
@@ -104,7 +106,11 @@ export function PortfolioTable({ positions, isPending }: Props) {
 
   const removeMutation = useMutation({
     mutationFn: removeHolding,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["portfolio"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
+      queryClient.invalidateQueries({ queryKey: ["portfolio-history"] })
+      queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
+    },
   })
 
   if (isPending) {
@@ -165,12 +171,12 @@ export function PortfolioTable({ positions, isPending }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-zinc-800/60">
-            {["Symbol", "Shares", "Avg Cost", "Price", "Market Value", "Return", "Weight", ""].map(
+            {["Symbol", "Shares", "Avg Cost", "Price", "Day %", "Market Value", "Return", "Weight", ""].map(
               (col, i) => (
                 <th
                   key={i}
                   className={`px-5 py-2.5 text-[11px] font-medium tracking-widest uppercase text-zinc-600 bg-zinc-900/30 ${
-                    i === 0 ? "text-left" : i === 7 ? "w-10" : "text-right"
+                    i === 0 ? "text-left" : i === 8 ? "w-10" : "text-right"
                   }`}
                 >
                   {col}
@@ -243,6 +249,24 @@ export function PortfolioTable({ positions, isPending }: Props) {
                   <span className={`tabular-nums font-mono font-semibold ${priceColor}`}>
                     {fmtUSD(pos.current_price)}
                   </span>
+                </td>
+
+                {/* Day Change */}
+                <td className="px-5 py-3.5 text-right">
+                  {pos.day_change_percent != null ? (
+                    <span
+                      className={`tabular-nums text-xs font-medium ${
+                        pos.day_change_percent >= 0
+                          ? "text-emerald-400"
+                          : "text-red-400"
+                      }`}
+                    >
+                      {pos.day_change_percent >= 0 ? "+" : ""}
+                      {pos.day_change_percent.toFixed(2)}%
+                    </span>
+                  ) : (
+                    <span className="text-zinc-600 text-xs">—</span>
+                  )}
                 </td>
 
                 {/* Market Value */}

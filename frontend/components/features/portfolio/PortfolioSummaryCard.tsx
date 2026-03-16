@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import type { PortfolioSummary } from "@/types/portfolio"
 
 interface Props {
@@ -100,11 +101,35 @@ export function PortfolioSummaryCard({ summary, isPending }: Props) {
     ? "bg-gradient-to-br from-emerald-500/30 via-zinc-800 to-zinc-900"
     : "bg-gradient-to-br from-red-500/20 via-zinc-800 to-zinc-900"
 
+  const hasDayData = summary.total_day_change != null || summary.total_day_change_pct != null
+  const dayAccent: "gain" | "loss" | "neutral" =
+    summary.total_day_change != null
+      ? summary.total_day_change >= 0
+        ? "gain"
+        : "loss"
+      : "neutral"
+
+  const withDayChange = positionsWithDayChange(summary.positions)
+  const leaders = withDayChange
+    .filter((p) => (p.day_change_percent ?? 0) > 0)
+    .sort((a, b) => (b.day_change_percent ?? 0) - (a.day_change_percent ?? 0))
+    .slice(0, 3)
+  const losers = withDayChange
+    .filter((p) => (p.day_change_percent ?? 0) < 0)
+    .sort((a, b) => (a.day_change_percent ?? 0) - (b.day_change_percent ?? 0))
+    .slice(0, 3)
+
   return (
     <div className={`p-px rounded-2xl ${gradientClass}`}>
       <div className="rounded-2xl bg-zinc-950 px-6 py-5">
-        {/* Top row: total value (hero) + divider + 3 stats */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-4 sm:divide-x sm:divide-zinc-800/60">
+        {/* Top row: total value + stats + optional Day P&L */}
+        <div
+          className={`grid gap-x-8 gap-y-5 sm:divide-x sm:divide-zinc-800/60 ${
+            hasDayData
+              ? "grid-cols-2 sm:grid-cols-5"
+              : "grid-cols-2 sm:grid-cols-4"
+          }`}
+        >
           <Stat
             label="Total Value"
             primary={fmtCompact(summary.total_value)}
@@ -131,7 +156,70 @@ export function PortfolioSummaryCard({ summary, isPending }: Props) {
               secondary={summary.positions.length === 1 ? "holding" : "holdings"}
             />
           </div>
+          {hasDayData && (
+            <div className="sm:pl-8">
+              <Stat
+                label="Today"
+                primary={
+                  summary.total_day_change != null
+                    ? `${summary.total_day_change >= 0 ? "+" : ""}${fmtCompact(summary.total_day_change)}`
+                    : "—"
+                }
+                secondary={
+                  summary.total_day_change_pct != null
+                    ? fmtPct(summary.total_day_change_pct)
+                    : undefined
+                }
+                accent={dayAccent}
+              />
+            </div>
+          )}
         </div>
+
+        {/* Today's Movers */}
+        {(leaders.length > 0 || losers.length > 0) && (
+          <div className="mt-4 pt-4 border-t border-zinc-800/60">
+            <p className="text-[11px] font-medium tracking-widest uppercase text-zinc-600 mb-2">
+              Today&apos;s movers
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+              {leaders.length > 0 && (
+                <span className="flex items-center gap-2">
+                  <span className="text-zinc-500">Leaders:</span>
+                  {leaders.map((p) => (
+                    <Link
+                      key={p.symbol}
+                      href={`/stocks/${p.symbol}`}
+                      className="text-emerald-400 hover:text-emerald-300 font-medium tabular-nums transition-colors"
+                    >
+                      {p.symbol} {fmtPct(p.day_change_percent ?? 0)} (
+                      {p.day_change != null && p.day_change >= 0 ? "+" : ""}
+                      {fmtCompact(p.day_change ?? 0)})
+                    </Link>
+                  ))}
+                </span>
+              )}
+              {leaders.length > 0 && losers.length > 0 && (
+                <span className="text-zinc-700">|</span>
+              )}
+              {losers.length > 0 && (
+                <span className="flex items-center gap-2">
+                  <span className="text-zinc-500">Losers:</span>
+                  {losers.map((p) => (
+                    <Link
+                      key={p.symbol}
+                      href={`/stocks/${p.symbol}`}
+                      className="text-red-400 hover:text-red-300 font-medium tabular-nums transition-colors"
+                    >
+                      {p.symbol} {fmtPct(p.day_change_percent ?? 0)} (
+                      {fmtCompact(p.day_change ?? 0)})
+                    </Link>
+                  ))}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Bottom: thin progress bar showing unrealized gain as % of cost */}
         {summary.total_cost > 0 && (
@@ -161,5 +249,13 @@ export function PortfolioSummaryCard({ summary, isPending }: Props) {
         )}
       </div>
     </div>
+  )
+}
+
+function positionsWithDayChange(
+  positions: PortfolioSummary["positions"]
+): PortfolioSummary["positions"] {
+  return positions.filter(
+    (p) => p.day_change != null || p.day_change_percent != null
   )
 }

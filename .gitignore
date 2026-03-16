@@ -9,11 +9,13 @@ frontend/.env.local
 frontend/.next/
 frontend/out/
 frontend/node_modules/
+node_modules/
 frontend/.vercel
 
 # Backend
 backend/.env
 backend/venv/
+backend/.venv/
 backend/env/
 backend/__pycache__/
 backend/*.pyc
@@ -61,6 +63,16 @@ scripts/*.bak
 scripts/.server-pids
 scripts/.backend-pid
 scripts/.frontend-pid
+scripts/.*pid*
+
+# Local overrides (generated from .example)
+docker-compose.override.yml
+
+# Claude/Cursor local settings
+.claude/settings.local.json
+
+# Cursor plan files (local)
+.cursor/plans/
 
 # Logs
 backend/logs/
