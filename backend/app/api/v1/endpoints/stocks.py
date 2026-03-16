@@ -100,7 +100,15 @@ async def search_stocks(
     limit: int = Query(8, ge=1, le=15, description="Max results to return"),
 ) -> list[StockSearchResult]:
     """Search for stocks by ticker symbol or company name via yfinance."""
-    return await stock_service.search_stocks_from_yfinance(q, limit=limit)
+    try:
+        return await stock_service.search_stocks_from_yfinance(q, limit=limit)
+    except Exception as exc:
+        if "rate" in str(exc).lower() or "429" in str(exc):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Yahoo Finance rate limit reached. Please wait a moment and try again.",
+            )
+        raise
 
 
 @router.get("/{symbol}/history", response_model=StockHistoryResponse, summary="Get stock price history")

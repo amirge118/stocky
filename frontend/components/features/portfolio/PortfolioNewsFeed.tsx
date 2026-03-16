@@ -59,44 +59,12 @@ export function PortfolioNewsFeed() {
             const hot = isBreaking(item.published_at)
             return (
               <li key={i} className="py-3 first:pt-0">
-                {item.link ? (
-                  <a
-                    href={item.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-start justify-between gap-2"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Link
-                          href={`/stocks/${item.symbol}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-xs font-mono font-medium text-blue-400 hover:text-blue-300 shrink-0"
-                        >
-                          {item.symbol}
-                        </Link>
-                        {hot && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
-                            <Flame size={10} />
-                            Breaking
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-zinc-300 text-sm leading-snug group-hover:text-white transition-colors line-clamp-2 block mt-0.5">
-                        {item.title}
-                      </span>
-                    </div>
-                    <ExternalLink
-                      size={12}
-                      className="text-zinc-600 group-hover:text-zinc-400 shrink-0 mt-0.5 transition-colors"
-                    />
-                  </a>
-                ) : (
-                  <div>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Link
                         href={`/stocks/${item.symbol}`}
-                        className="text-xs font-mono font-medium text-blue-400 hover:text-blue-300"
+                        className="text-xs font-mono font-medium text-blue-400 hover:text-blue-300 shrink-0"
                       >
                         {item.symbol}
                       </Link>
@@ -107,11 +75,36 @@ export function PortfolioNewsFeed() {
                         </span>
                       )}
                     </div>
-                    <p className="text-zinc-300 text-sm leading-snug line-clamp-2 mt-0.5">
-                      {item.title}
-                    </p>
+                    {item.link ? (
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group/title text-zinc-300 text-sm leading-snug hover:text-white transition-colors line-clamp-2 block mt-0.5"
+                      >
+                        {item.title}
+                      </a>
+                    ) : (
+                      <p className="text-zinc-300 text-sm leading-snug line-clamp-2 mt-0.5">
+                        {item.title}
+                      </p>
+                    )}
                   </div>
-                )}
+                  {item.link && (
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      tabIndex={-1}
+                      aria-hidden
+                    >
+                      <ExternalLink
+                        size={12}
+                        className="text-zinc-600 hover:text-zinc-400 shrink-0 mt-0.5 transition-colors"
+                      />
+                    </a>
+                  )}
+                </div>
                 <div className="flex items-center gap-1.5 mt-1 text-[10px] text-zinc-600">
                   {item.publisher && (
                     <span className="truncate max-w-[120px]">{item.publisher}</span>

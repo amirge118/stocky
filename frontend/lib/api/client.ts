@@ -39,7 +39,7 @@ export async function apiRequest<T>(
       throw new ApiError(
         response.status,
         errorData.error?.code || "UNKNOWN_ERROR",
-        errorData.error?.message || "An error occurred",
+        errorData.error?.message || (errorData as unknown as { detail?: string }).detail || "An error occurred",
         errorData.error?.details
       )
     }

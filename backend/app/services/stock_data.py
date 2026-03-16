@@ -276,7 +276,10 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
         try:
             results = yf.Search(q_upper, max_results=20).quotes
             return results if isinstance(results, list) else []
-        except Exception:
+        except Exception as exc:
+            # Propagate rate-limit errors so callers can surface them
+            if "rate" in str(exc).lower() or "429" in str(exc):
+                raise
             return []
 
     raw_results = await loop.run_in_executor(get_executor(), _do_search)

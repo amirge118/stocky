@@ -21,7 +21,7 @@ bcrypt==4.1.2
 
 # HTTP & External APIs
 httpx==0.26.0
-yfinance==0.2.33
+yfinance==0.2.54
 
 # AI/ML Services
 openai==1.10.0
