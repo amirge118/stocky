@@ -17,7 +17,6 @@ import { addHolding } from "@/lib/api/portfolio"
 import { useToast } from "@/hooks/use-toast"
 import type {
   PortfolioPosition,
-  PortfolioSummary,
   PortfolioSummaryWithSector,
 } from "@/types/portfolio"
 import type { StockSearchResult } from "@/types/stock"

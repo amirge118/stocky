@@ -114,7 +114,7 @@ export function PortfolioPerformanceChart({ enabled = true }: PortfolioPerforman
                   fontSize: "11px",
                 }}
                 labelFormatter={(v) => formatXAxis(v as number)}
-                formatter={(v: number) => [formatValue(v), "Value"]}
+                formatter={(v) => [formatValue(v as number), "Value"]}
               />
               <Area
                 type="monotone"
