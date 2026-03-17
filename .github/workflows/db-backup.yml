@@ -1,0 +1,40 @@
+# Daily database backup — runs at 2am UTC on main branch
+# Uploads the .sql.gz as a GitHub Actions artifact (7-day retention).
+# Optional: add an `aws s3 cp` or `rclone` step to push to object storage.
+name: Database Backup
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    name: Backup Postgres
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install postgresql-client
+        run: sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Run backup script
+        env:
+          DB_HOST: ${{ secrets.STAGING_DB_HOST }}
+          DB_PORT: ${{ secrets.STAGING_DB_PORT || '5432' }}
+          DB_NAME: ${{ secrets.STAGING_DB_NAME || 'stock_insight' }}
+          DB_USER: ${{ secrets.STAGING_DB_USER || 'stocky' }}
+          DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+        run: |
+          chmod +x scripts/backup.sh
+          ./scripts/backup.sh ./backups
+          # Optional: aws s3 cp ./backups/ s3://your-bucket/stocky-backups/ --recursive
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: backups/*.sql.gz
+          retention-days: 7

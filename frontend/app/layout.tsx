@@ -1,19 +1,26 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, JetBrains_Mono } from "next/font/google"
 import { Navbar } from "@/components/Navbar"
 import { Providers } from "@/lib/providers"
 import "@/styles/globals.css"
 
-// Configure Inter font with fallback to system fonts if Google Fonts fails
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
+  variable: "--font-sans",
   fallback: ["system-ui", "arial"],
 })
 
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
+  weight: ["400", "500", "600"],
+})
+
 export const metadata: Metadata = {
-  title: "Stock Insight App",
-  description: "Financial stock analysis platform with AI-powered insights",
+  title: "Stocky — Financial Intelligence Platform",
+  description: "Portfolio tracking, AI-powered analysis, and real-time price alerts.",
 }
 
 export default function RootLayout({
@@ -23,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}>
         <Providers>
           <Navbar />
           {children}

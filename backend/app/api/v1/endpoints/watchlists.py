@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.schemas.watchlist import (
     WatchlistItemAdd,
     WatchlistItemResponse,
@@ -25,7 +26,9 @@ async def get_watchlists(
 
 
 @router.post("", response_model=WatchlistListResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute")
 async def create_watchlist(
+    request: Request,
     data: WatchlistListCreate,
     db: AsyncSession = Depends(get_db),
 ) -> WatchlistListResponse:
@@ -90,7 +93,9 @@ async def delete_watchlist(
     response_model=WatchlistItemResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("30/minute")
 async def add_item(
+    request: Request,
     list_id: int,
     data: WatchlistItemAdd,
     db: AsyncSession = Depends(get_db),

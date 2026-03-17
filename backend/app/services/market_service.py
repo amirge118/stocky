@@ -8,6 +8,7 @@ import yfinance as yf
 
 from app.core.cache import cache_get, cache_set
 from app.core.executors import get_executor
+from app.core.yf_utils import yf_retry
 from app.schemas.market import (
     IndexData,
     MarketOverviewResponse,
@@ -17,6 +18,7 @@ from app.schemas.market import (
 )
 
 _CACHE_TTL = 300  # 5 minutes
+_YF_TIMEOUT = 10  # seconds per individual yfinance call
 
 INDICES: dict[str, str] = {
     "S&P 500": "^GSPC",
@@ -49,6 +51,7 @@ TOP_MOVERS_UNIVERSE = [
 ]
 
 
+@yf_retry
 def _fetch_index_sync(symbol: str, name: str) -> Optional[IndexData]:
     try:
         ticker = yf.Ticker(symbol)
@@ -64,7 +67,7 @@ def _fetch_index_sync(symbol: str, name: str) -> Optional[IndexData]:
         change = price - prev
         change_pct = (change / prev * 100) if prev > 0 else 0.0
 
-        hist = ticker.history(period="5d", interval="1d")
+        hist = ticker.history(period="5d", interval="1d", timeout=_YF_TIMEOUT)
         sparkline: list[float] = []
         if not hist.empty and "Close" in hist.columns:
             closes = hist["Close"].dropna().tolist()
@@ -82,6 +85,7 @@ def _fetch_index_sync(symbol: str, name: str) -> Optional[IndexData]:
         return None
 
 
+@yf_retry
 def _fetch_sector_sync(name: str, etf: str) -> Optional[SectorData]:
     try:
         ticker = yf.Ticker(etf)
@@ -96,7 +100,6 @@ def _fetch_sector_sync(name: str, etf: str) -> Optional[SectorData]:
         prev = float(previous_close or price)
         change_pct = ((price - prev) / prev * 100) if prev > 0 else 0.0
 
-        # Fetch top 2 news items
         news_items: list[SectorNewsItem] = []
         try:
             raw_news = ticker.news or []
@@ -125,7 +128,9 @@ def _fetch_sector_sync(name: str, etf: str) -> Optional[SectorData]:
         return None
 
 
+@yf_retry
 def _fetch_mover_sync(symbol: str) -> Optional[MoverData]:
+    """Fetch mover data using fast_info only — avoids the slow .info call."""
     try:
         ticker = yf.Ticker(symbol)
         fast_info = ticker.fast_info
@@ -139,12 +144,9 @@ def _fetch_mover_sync(symbol: str) -> Optional[MoverData]:
         prev = float(previous_close or price)
         change_pct = ((price - prev) / prev * 100) if prev > 0 else 0.0
 
-        info = ticker.info
-        name = info.get("shortName") or info.get("longName") or symbol
-
         return MoverData(
             symbol=symbol,
-            name=name,
+            name=symbol,  # fast_info has no display name; symbol is used as fallback
             price=round(price, 2),
             change_percent=round(change_pct, 2),
         )
@@ -162,7 +164,6 @@ async def get_market_overview() -> MarketOverviewResponse:
     loop = asyncio.get_running_loop()
     executor = get_executor()
 
-    # Fetch all data in parallel
     index_tasks = [
         loop.run_in_executor(executor, _fetch_index_sync, symbol, name)
         for name, symbol in INDICES.items()

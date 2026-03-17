@@ -9,6 +9,7 @@ import { AlertDialog } from "@/components/features/stocks/AlertDialog"
 import { LivePriceBadge } from "@/components/features/stocks/LivePriceBadge"
 import { getStock, fetchStockData, getStockInfo } from "@/lib/api/stocks"
 import { StockChart } from "@/components/features/stocks/StockChart"
+import { StockIndicators } from "@/components/features/stocks/StockIndicators"
 import { StockKeyStats } from "@/components/features/stocks/StockKeyStats"
 import { StockAbout } from "@/components/features/stocks/StockAbout"
 import { StockNews } from "@/components/features/stocks/StockNews"
@@ -16,6 +17,7 @@ import { SectorNews } from "@/components/features/stocks/SectorNews"
 import { StockAIAnalysis } from "@/components/features/stocks/StockAIAnalysis"
 import { StockSectorOverview } from "@/components/features/stocks/StockSectorOverview"
 import { StockDeepDiveCard } from "@/components/features/agents/StockDeepDiveCard"
+import { StockDividends } from "@/components/features/stocks/StockDividends"
 
 export default function StockDetailPage() {
   const params = useParams()
@@ -143,12 +145,28 @@ export default function StockDetailPage() {
             {/* Chart */}
             <StockChart symbol={symbol} />
 
+            {/* Technical Indicators */}
+            <StockIndicators symbol={symbol} />
+
             {/* Key Stats — 2–3 rows below chart */}
             {infoLoading ? (
-              <div className="animate-pulse rounded-xl bg-zinc-900 border border-zinc-800 h-24" />
+              <div className="rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-3 animate-pulse">
+                <div className="h-3 w-24 rounded bg-zinc-800 mb-3" />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2.5">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="h-3 w-12 rounded bg-zinc-800" />
+                      <div className="h-3 w-10 rounded bg-zinc-700" />
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : info ? (
               <StockKeyStats info={info} compact />
             ) : null}
+
+            {/* Dividends */}
+            <StockDividends symbol={symbol} />
           </div>
 
           <div className="lg:min-h-0 space-y-4">

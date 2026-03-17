@@ -1,10 +1,11 @@
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.registry import AgentRegistry
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.schemas.agent import (
     AgentListResponse,
     AgentMeta,
@@ -58,7 +59,9 @@ async def _run_agent_task(agent_name: str, context: dict) -> None:
 
 
 @router.post("/{agent_name}/trigger", response_model=TriggerResponse)
+@limiter.limit("10/minute")
 async def trigger_agent(
+    request: Request,
     agent_name: str,
     background_tasks: BackgroundTasks,
     symbol: Optional[str] = None,

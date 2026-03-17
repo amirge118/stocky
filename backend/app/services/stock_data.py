@@ -9,6 +9,7 @@ from fastapi import HTTPException, status
 
 from app.core.cache import cache_get, cache_set
 from app.core.executors import get_executor
+from app.core.yf_utils import _is_rate_limited, yf_retry
 from app.schemas.stock import (
     StockDataResponse,
     StockHistoryPoint,
@@ -54,7 +55,10 @@ _EXCHANGE_COUNTRY: dict[str, str] = {
     "ASX": "Australia",
 }
 
+_YF_TIMEOUT = 10  # seconds for individual yfinance calls
 
+
+@yf_retry
 def _fetch_price_sync(symbol: str) -> Optional[float]:
     """Fetch last price synchronously (runs in executor thread)."""
     try:
@@ -65,10 +69,11 @@ def _fetch_price_sync(symbol: str) -> Optional[float]:
         return None
 
 
+@yf_retry
 def _fetch_sparkline_sync(symbol: str) -> Optional[list[float]]:
     """Fetch last 5 daily closing prices for a sparkline (runs in executor thread)."""
     try:
-        hist = yf.Ticker(symbol).history(period="5d", interval="1d")
+        hist = yf.Ticker(symbol).history(period="5d", interval="1d", timeout=_YF_TIMEOUT)
         if hist.empty:
             return None
         closes = hist["Close"].dropna().tolist()
@@ -77,8 +82,9 @@ def _fetch_sparkline_sync(symbol: str) -> Optional[list[float]]:
         return None
 
 
+@yf_retry
 def _lookup_ticker_direct_sync(symbol: str) -> Optional[dict]:
-    """Fallback: direct Ticker lookup when Search returns empty. Returns dict compatible with equities item."""
+    """Fallback: direct Ticker lookup when Search returns empty."""
     try:
         ticker = yf.Ticker(symbol.upper())
         info = ticker.info
@@ -89,7 +95,7 @@ def _lookup_ticker_direct_sync(symbol: str) -> Optional[dict]:
             return None
         fast_info = ticker.fast_info
         price = fast_info.last_price if fast_info else None
-        hist = ticker.history(period="5d", interval="1d")
+        hist = ticker.history(period="5d", interval="1d", timeout=_YF_TIMEOUT)
         sparkline = None
         if not hist.empty and "Close" in hist.columns:
             closes = hist["Close"].dropna().tolist()
@@ -114,6 +120,7 @@ def _lookup_ticker_direct_sync(symbol: str) -> Optional[dict]:
         return None
 
 
+@yf_retry
 def _fetch_stock_data_sync(symbol: str) -> Optional[StockDataResponse]:
     """Fetch stock data synchronously (runs in executor). Returns None on failure."""
     def _safe_int(x: Any) -> Optional[int]:
@@ -127,7 +134,7 @@ def _fetch_stock_data_sync(symbol: str) -> Optional[StockDataResponse]:
     def _from_history(ticker: Any) -> Optional[StockDataResponse]:
         """Fallback when fast_info fails (KeyError, etc.)."""
         try:
-            hist = ticker.history(period="5d", interval="1d")
+            hist = ticker.history(period="5d", interval="1d", timeout=_YF_TIMEOUT)
             if hist.empty or "Close" not in hist.columns:
                 return None
             closes = hist["Close"].dropna()
@@ -151,7 +158,7 @@ def _fetch_stock_data_sync(symbol: str) -> Optional[StockDataResponse]:
                 currency="USD",
             )
         except Exception as e:
-            if "429" in str(e) or "Too Many Requests" in str(e):
+            if _is_rate_limited(e):
                 raise
             return None
 
@@ -196,7 +203,7 @@ def _fetch_stock_data_sync(symbol: str) -> Optional[StockDataResponse]:
             currency=currency,
         )
     except Exception as e:
-        if "429" in str(e) or "Too Many Requests" in str(e):
+        if _is_rate_limited(e):
             raise
         return None
 
@@ -232,8 +239,7 @@ async def fetch_stock_data_from_yfinance(symbol: str) -> StockDataResponse:
     except HTTPException:
         raise
     except Exception as e:
-        error_str = str(e)
-        if "429" in error_str or "Too Many Requests" in error_str:
+        if _is_rate_limited(e):
             if sym in _stock_data_cache:
                 return _stock_data_cache[sym][0]
             raise HTTPException(
@@ -242,7 +248,7 @@ async def fetch_stock_data_from_yfinance(symbol: str) -> StockDataResponse:
             ) from e
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching stock data: {error_str}",
+            detail=f"Error fetching stock data: {e}",
         ) from e
 
 
@@ -272,17 +278,20 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
     loop = asyncio.get_running_loop()
     q_upper = query.strip().upper()
 
+    @yf_retry
     def _do_search() -> list[dict]:
-        try:
-            results = yf.Search(q_upper, max_results=20).quotes
-            return results if isinstance(results, list) else []
-        except Exception as exc:
-            # Propagate rate-limit errors so callers can surface them
-            if "rate" in str(exc).lower() or "429" in str(exc):
-                raise
-            return []
+        results = yf.Search(q_upper, max_results=20).quotes
+        return results if isinstance(results, list) else []
 
-    raw_results = await loop.run_in_executor(get_executor(), _do_search)
+    try:
+        raw_results = await loop.run_in_executor(get_executor(), _do_search)
+    except Exception as exc:
+        if _is_rate_limited(exc):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Yahoo Finance rate limit on search. Please try again shortly.",
+            ) from exc
+        raw_results = []
 
     equities = [
         r for r in raw_results
@@ -306,7 +315,7 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
         loop.run_in_executor(get_executor(), _fetch_sparkline_sync, r["symbol"])
         for r in equities
     ]
-    gathered = await asyncio.gather(*price_tasks, *sparkline_tasks)
+    gathered = await asyncio.gather(*price_tasks, *sparkline_tasks, return_exceptions=True)
     prices = gathered[: len(equities)]
     sparklines = gathered[len(equities) :]
 
@@ -321,8 +330,8 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
         if currency is None and symbol in _stock_data_cache:
             currency = _stock_data_cache[symbol][0].currency
 
-        use_price = item.get("_price") if "_price" in item else price
-        use_sparkline = item.get("_sparkline") if "_sparkline" in item else sparkline
+        use_price = item.get("_price") if "_price" in item else (price if not isinstance(price, Exception) else None)
+        use_sparkline = item.get("_sparkline") if "_sparkline" in item else (sparkline if not isinstance(sparkline, Exception) else None)
 
         results.append(
             StockSearchResult(
@@ -349,6 +358,8 @@ _PERIOD_MAP: dict[str, tuple[str, str]] = {
     "1m": ("1mo", "1d"),
     "6m": ("6mo", "1d"),
     "1y": ("1y", "1d"),
+    "2y": ("2y", "1wk"),
+    "5y": ("5y", "1wk"),
 }
 
 
@@ -363,8 +374,9 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
     yf_period, yf_interval = _PERIOD_MAP.get(period, ("1mo", "1d"))
     loop = asyncio.get_running_loop()
 
+    @yf_retry
     def _fetch() -> list[StockHistoryPoint]:
-        hist = yf.Ticker(sym).history(period=yf_period, interval=yf_interval)
+        hist = yf.Ticker(sym).history(period=yf_period, interval=yf_interval, timeout=_YF_TIMEOUT)
         if hist.empty:
             return []
         points: list[StockHistoryPoint] = []
@@ -402,13 +414,14 @@ def _safe_info_val(val: Any) -> Any:
     """Convert yfinance values to JSON-safe types (avoids datetime/str type errors)."""
     if val is None:
         return None
-    if hasattr(val, "isoformat"):  # datetime, date, Timestamp - skip, often cause type errors
+    if hasattr(val, "isoformat"):  # datetime, date, Timestamp — skip
         return None
     if isinstance(val, (int, float)) and val != val:  # NaN
         return None
     return val
 
 
+@yf_retry
 def _fetch_stock_info_sync(symbol: str) -> StockInfoResponse:
     """Fetch stock info synchronously (runs in executor). Handles yfinance datetime/str bugs."""
     sym = symbol.upper()
@@ -419,15 +432,14 @@ def _fetch_stock_info_sync(symbol: str) -> StockInfoResponse:
             return StockInfoResponse(symbol=sym)
     except TypeError as e:
         if "datetime" in str(e) and "str" in str(e):
-            # yfinance bug: unsupported operand type(s) for -: 'datetime.datetime' and 'str'
+            # Known yfinance bug: unsupported operand type(s) for -: 'datetime.datetime' and 'str'
             return StockInfoResponse(symbol=sym)
         raise
     except Exception as e:
-        if "429" in str(e) or "Too Many Requests" in str(e):
-            return StockInfoResponse(symbol=sym)
-        raise
+        if _is_rate_limited(e):
+            raise  # Let tenacity retry
+        return StockInfoResponse(symbol=sym)
 
-    # Extract only needed keys; sanitize values to avoid type errors
     def get(k: str) -> Any:
         v = raw.get(k)
         return _safe_info_val(v) if v is not None else None
@@ -515,63 +527,109 @@ async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
 
     loop = asyncio.get_running_loop()
 
+    @yf_retry
     def _fetch() -> list[dict]:
-        try:
-            news = yf.Ticker(sym).news
-            return news if isinstance(news, list) else []
-        except Exception:
-            return []
+        news = yf.Ticker(sym).news
+        return news if isinstance(news, list) else []
 
     try:
         raw_news = await loop.run_in_executor(get_executor(), _fetch)
-        items: list[StockNewsItem] = []
-        for article in raw_news[:limit]:
-            content = article.get("content") or article
-
-            title = content.get("title", "") or article.get("title", "")
-
-            publisher: Optional[str] = None
-            provider = content.get("provider")
-            if isinstance(provider, dict):
-                publisher = provider.get("displayName")
-            elif isinstance(provider, str):
-                publisher = provider
-            else:
-                publisher = article.get("publisher")
-
-            link: Optional[str] = None
-            canonical = content.get("canonicalUrl") or content.get("clickThroughUrl")
-            if isinstance(canonical, dict):
-                link = canonical.get("url")
-            if not link:
-                link = article.get("link")
-
-            published_at: Optional[int] = None
-            pub_date = content.get("pubDate") or content.get("displayTime")
-            if pub_date:
-                from datetime import datetime
-
-                try:
-                    dt = datetime.fromisoformat(pub_date.replace("Z", "+00:00"))
-                    published_at = int(dt.timestamp() * 1000)
-                except Exception:
-                    pass
-            if not published_at:
-                pt = article.get("providerPublishTime")
-                if pt:
-                    published_at = int(pt) * 1000
-
-            items.append(
-                StockNewsItem(
-                    title=title,
-                    publisher=publisher,
-                    link=link,
-                    published_at=published_at,
-                )
-            )
-        if items:
-            await cache_set(cache_key, [i.model_dump(mode="json") for i in items], ttl=_NEWS_CACHE_TTL)
-        return items
     except Exception:
-        # Yahoo news API can fail (rate limit, invalid JSON, etc.) - return empty
         return []
+
+    items: list[StockNewsItem] = []
+    for article in raw_news[:limit]:
+        content = article.get("content") or article
+
+        title = content.get("title", "") or article.get("title", "")
+
+        publisher: Optional[str] = None
+        provider = content.get("provider")
+        if isinstance(provider, dict):
+            publisher = provider.get("displayName")
+        elif isinstance(provider, str):
+            publisher = provider
+        else:
+            publisher = article.get("publisher")
+
+        link: Optional[str] = None
+        canonical = content.get("canonicalUrl") or content.get("clickThroughUrl")
+        if isinstance(canonical, dict):
+            link = canonical.get("url")
+        if not link:
+            link = article.get("link")
+
+        published_at: Optional[int] = None
+        pub_date = content.get("pubDate") or content.get("displayTime")
+        if pub_date:
+            from datetime import datetime
+
+            try:
+                dt = datetime.fromisoformat(pub_date.replace("Z", "+00:00"))
+                published_at = int(dt.timestamp() * 1000)
+            except Exception:
+                pass
+        if not published_at:
+            pt = article.get("providerPublishTime")
+            if pt:
+                published_at = int(pt) * 1000
+
+        items.append(
+            StockNewsItem(
+                title=title,
+                publisher=publisher,
+                link=link,
+                published_at=published_at,
+            )
+        )
+    if items:
+        await cache_set(cache_key, [i.model_dump(mode="json") for i in items], ttl=_NEWS_CACHE_TTL)
+    return items
+
+
+_DIVIDENDS_CACHE_TTL = 3600  # 1 hour
+
+
+async def fetch_stock_dividends(symbol: str, years: int = 5) -> "StockDividendsResponse":
+    """Fetch dividend history for a stock (last N years)."""
+    from app.schemas.stock import StockDividendsResponse, DividendPoint
+    sym = symbol.upper()
+    cache_key = f"stock_dividends:{sym}:{years}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return StockDividendsResponse.model_validate(cached)
+
+    loop = asyncio.get_running_loop()
+
+    @yf_retry
+    def _fetch() -> dict:
+        ticker = yf.Ticker(sym)
+        divs = ticker.dividends
+        if divs is None or divs.empty:
+            return {"dividends": [], "currency": "USD", "annual_yield": None}
+        info = ticker.fast_info
+        currency = str(info.currency) if info and info.currency else "USD"
+        import pandas as pd
+        cutoff = pd.Timestamp.now(tz="UTC") - pd.DateOffset(years=years)
+        divs = divs[divs.index >= cutoff]
+        points = []
+        for ts, amount in divs.items():
+            t_ms = int(ts.timestamp() * 1000)
+            points.append({"t": t_ms, "amount": round(float(amount), 4)})
+        one_year_ago = pd.Timestamp.now(tz="UTC") - pd.DateOffset(years=1)
+        trailing = divs[divs.index >= one_year_ago]
+        trailing_total = float(trailing.sum()) if not trailing.empty else 0.0
+        last_price = info.last_price if info else None
+        annual_yield = round(trailing_total / float(last_price) * 100, 2) if last_price and last_price > 0 and trailing_total > 0 else None
+        return {"dividends": points, "currency": currency, "annual_yield": annual_yield}
+
+    try:
+        raw = await loop.run_in_executor(get_executor(), _fetch)
+        result = StockDividendsResponse(symbol=sym, **raw)
+        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_DIVIDENDS_CACHE_TTL)
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching dividends for {symbol}: {e}",
+        ) from e

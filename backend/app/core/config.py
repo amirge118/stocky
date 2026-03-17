@@ -19,8 +19,17 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = "http://localhost:3000"
 
+    # Telegram notifications
+    telegram_token: str = ""
+    telegram_chat_id: str = ""
+
+    # Celery
+    celery_broker_url: str = "redis://redis:6379/0"
+    celery_result_backend: str = "redis://redis:6379/1"
+
     # Optional
     redis_url: Optional[str] = None
+    sentry_dsn: Optional[str] = None
     environment: str = "development"
     log_level: str = "INFO"
     log_request_payload: bool = True

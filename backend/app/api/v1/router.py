@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import agents, health, market, portfolio, stocks, watchlists, ws
+from app.api.v1.endpoints import agents, alerts, health, market, portfolio, stocks, watchlists, ws
 
 api_router = APIRouter()
 
@@ -11,3 +11,4 @@ api_router.include_router(portfolio.router, prefix="/portfolio", tags=["portfoli
 api_router.include_router(agents.router, prefix="/agents", tags=["agents"])
 api_router.include_router(watchlists.router, prefix="/watchlists", tags=["watchlists"])
 api_router.include_router(market.router, prefix="/market", tags=["market"])
+api_router.include_router(alerts.router, prefix="/alerts", tags=["alerts"])

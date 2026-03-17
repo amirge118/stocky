@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { X, TrendingUp, TrendingDown, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { removeHolding } from "@/lib/api/portfolio"
-import type { PortfolioPosition } from "@/types/portfolio"
+import type { PortfolioPosition, PortfolioSummaryWithSector } from "@/types/portfolio"
 
 interface Props {
   positions: PortfolioPosition[]
@@ -106,7 +106,29 @@ export function PortfolioTable({ positions, isPending }: Props) {
 
   const removeMutation = useMutation({
     mutationFn: removeHolding,
-    onSuccess: () => {
+    onMutate: async (symbol) => {
+      await queryClient.cancelQueries({ queryKey: ["portfolio-summary"] })
+      const previous = queryClient.getQueryData<PortfolioSummaryWithSector>(["portfolio-summary"])
+      queryClient.setQueryData<PortfolioSummaryWithSector>(["portfolio-summary"], (old) => {
+        if (!old) return old
+        const p = old.portfolio
+        const newPositions = p.positions.filter((pos) => pos.symbol !== symbol)
+        return {
+          ...old,
+          portfolio: {
+            ...p,
+            positions: newPositions,
+          },
+        }
+      })
+      return { previous }
+    },
+    onError: (_err, _symbol, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["portfolio-summary"], context.previous)
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
       queryClient.invalidateQueries({ queryKey: ["portfolio-history"] })
       queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })

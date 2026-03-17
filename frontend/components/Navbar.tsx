@@ -2,22 +2,27 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { GlobalStockSearch } from "@/components/GlobalStockSearch"
 
 const NAV_LINKS = [
   { href: "/portfolio", label: "Portfolio" },
   { href: "/watchlist", label: "Watchlist" },
-  { href: "/market", label: "Market" },
-  { href: "/agents",   label: "Agents" },
+  { href: "/alerts",    label: "Alerts" },
+  { href: "/market",    label: "Market" },
+  { href: "/agents",    label: "Agents" },
 ]
 
 export function Navbar() {
   const pathname = usePathname()
 
   const isActive = (href: string) =>
-    pathname === href || (href !== "/portfolio" && href !== "/watchlist" && href !== "/agents" && pathname.startsWith(href + "/")) || (href === "/watchlist" && pathname.startsWith("/watchlist"))
+    pathname === href ||
+    (href !== "/portfolio" && href !== "/watchlist" && href !== "/agents" && href !== "/alerts" && pathname.startsWith(href + "/")) ||
+    (href === "/watchlist" && pathname.startsWith("/watchlist")) ||
+    (href === "/alerts" && pathname.startsWith("/alerts"))
 
   return (
-    <nav className="border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-md sticky top-0 z-50">
+    <nav className="glass-heavy border-b border-white/[0.06] sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-4 h-13 flex items-center gap-8">
         {/* Logo */}
         <Link
@@ -41,7 +46,7 @@ export function Navbar() {
                 className={`
                   relative px-3 py-1.5 rounded-md text-sm font-medium transition-colors
                   ${active
-                    ? "text-white bg-zinc-800"
+                    ? "text-electric-400 bg-electric-500/10 border border-electric-500/20 rounded-lg"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
                   }
                 `}
@@ -50,6 +55,11 @@ export function Navbar() {
               </Link>
             )
           })}
+        </div>
+
+        {/* Global Search */}
+        <div className="ml-auto">
+          <GlobalStockSearch />
         </div>
       </div>
     </nav>

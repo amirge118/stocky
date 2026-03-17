@@ -4,7 +4,9 @@ import type {
   StockAIAnalysis,
   StockCreate,
   StockData,
+  StockDividendsResponse,
   StockHistoryResponse,
+  StockIndicatorsResponse,
   StockInfoResponse,
   StockListResponse,
   StockNewsItem,
@@ -78,6 +80,14 @@ export async function getStockNews(symbol: string): Promise<StockNewsItem[]> {
 
 export async function getStockAnalysis(symbol: string): Promise<StockAIAnalysis> {
   return get<StockAIAnalysis>(`/api/v1/stocks/${symbol}/analysis`)
+}
+
+export async function getStockIndicators(symbol: string, period: string = "6m"): Promise<StockIndicatorsResponse> {
+  return get<StockIndicatorsResponse>(`/api/v1/stocks/${symbol.toUpperCase()}/indicators?period=${period}`)
+}
+
+export async function getStockDividends(symbol: string, years: number = 5): Promise<StockDividendsResponse> {
+  return get<StockDividendsResponse>(`/api/v1/stocks/${symbol.toUpperCase()}/dividends?years=${years}`)
 }
 
 export interface SectorPeer {

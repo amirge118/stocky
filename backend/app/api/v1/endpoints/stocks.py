@@ -1,18 +1,21 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db_session
+from app.core.limiter import limiter
 from app.schemas.stock import (
     CompareSummaryResponse,
     SectorPeerResponse,
     StockAIAnalysisResponse,
     StockCreate,
     StockDataResponse,
+    StockDividendsResponse,
     StockHistoryResponse,
+    StockIndicatorsResponse,
     StockInfoResponse,
     StockListResponse,
     StockNewsItem,
@@ -141,6 +144,15 @@ async def get_stock_analysis(symbol: str) -> StockAIAnalysisResponse:
     return await stock_service.generate_ai_analysis(symbol)
 
 
+@router.get("/{symbol}/dividends", summary="Get dividend history")
+async def get_stock_dividends(
+    symbol: str,
+    years: int = Query(5, ge=1, le=10, description="Number of years of history"),
+) -> StockDividendsResponse:
+    """Fetch dividend payment history and trailing yield."""
+    return await stock_service.fetch_stock_dividends(symbol, years=years)
+
+
 @router.get("/{symbol}", response_model=StockResponse, summary="Get stock by symbol")
 async def get_stock(
     symbol: str,
@@ -156,8 +168,30 @@ async def get_stock(
     return StockResponse.model_validate(stock)
 
 
+from app.services.indicators_service import compute_indicators
+
+@router.get("/{symbol}/indicators", response_model=StockIndicatorsResponse, summary="Get technical indicators")
+async def get_stock_indicators(
+    symbol: str,
+    period: str = Query("6m", description="Period: 1m | 6m | 1y | 2y | 5y"),
+) -> StockIndicatorsResponse:
+    """Compute RSI, MACD, SMA20, SMA50, and Bollinger Bands from historical price data."""
+    from app.core.cache import cache_get, cache_set
+    sym = symbol.upper()
+    cache_key = f"indicators:{sym}:{period}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return StockIndicatorsResponse.model_validate(cached)
+    history = await stock_service.fetch_stock_history(sym, period=period)
+    result = compute_indicators(sym, period, history.data)
+    await cache_set(cache_key, result.model_dump(mode="json"), ttl=300)
+    return result
+
+
 @router.post("", response_model=StockResponse, status_code=status.HTTP_201_CREATED, summary="Create a new stock")
+@limiter.limit("30/minute")
 async def create_stock(
+    request: Request,
     stock_data: StockCreate,
     db: AsyncSession = Depends(get_db_session),
 ) -> StockResponse:

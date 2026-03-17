@@ -20,6 +20,8 @@ const PERIODS = [
   { label: "1M", value: "1m" },
   { label: "6M", value: "6m" },
   { label: "1Y", value: "1y" },
+  { label: "2Y", value: "2y" },
+  { label: "5Y", value: "5y" },
 ]
 
 function formatXAxis(ts: number, period: string): string {

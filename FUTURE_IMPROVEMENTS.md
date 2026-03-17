@@ -19,7 +19,7 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### רעיונות חדשים
 
-- [ ] **E2E Tests with Playwright** [MEDIUM]
+- [x] **E2E Tests with Playwright** [MEDIUM] ✓
   - Add end-to-end tests for critical user flows (login, add stock, portfolio)
   - Run E2E in CI on every PR
   - Visual regression testing for key pages
@@ -144,7 +144,7 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### רעיונות חדשים
 
-- [ ] **Shareable Stock URLs** [MEDIUM]
+- [x] **Shareable Stock URLs** [MEDIUM] ✓
   - Encode selected symbols in URL (e.g. /stocks?symbols=AAPL,MSFT)
   - Allow sharing comparison or watchlist views
 
@@ -179,16 +179,16 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### רעיונות חדשים
 
-- [ ] **GitHub Actions CI** [HIGH]
+- [x] **GitHub Actions CI** [HIGH] ✓
   - Run tests, lint, type-check on every push/PR
   - Build Docker images on main branch
   - Optional: deploy to staging on merge
 
-- [ ] **Staging Environment** [MEDIUM]
+- [x] **Staging Environment** [MEDIUM] ✓
   - Dedicated staging URL for pre-production testing
   - Seed data for demo/testing
 
-- [ ] **Database Backup Automation** [MEDIUM]
+- [x] **Database Backup Automation** [MEDIUM] ✓
   - Scheduled pg_dump to object storage (S3, etc.)
   - Point-in-time recovery capability
 
@@ -219,7 +219,7 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### רעיונות חדשים
 
-- [ ] **CONTRIBUTING.md** [MEDIUM]
+- [x] **CONTRIBUTING.md** [MEDIUM] ✓
   - How to set up dev environment, run tests, submit PRs
   - Code style and commit message conventions
 
@@ -237,7 +237,7 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### רעיונות חדשים
 
-- [ ] **Dependabot / Renovate** [MEDIUM]
+- [x] **Dependabot / Renovate** [MEDIUM] ✓
   - Automated PRs for dependency updates
   - Keep security patches applied quickly
 
@@ -256,7 +256,7 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### רעיונות חדשים
 
-- [ ] **Rate Limiting on Auth Endpoints** [HIGH]
+- [x] **Rate Limiting on Auth Endpoints** [HIGH] ✓
   - Throttle login/register to prevent brute force
   - Per-IP and per-user limits
 

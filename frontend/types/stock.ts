@@ -102,3 +102,24 @@ export interface StockAIAnalysis {
   symbol: string
   analysis: string
 }
+
+export interface DividendPoint { t: number; amount: number }
+export interface StockDividendsResponse {
+  symbol: string
+  currency: string
+  dividends: DividendPoint[]
+  annual_yield: number | null
+}
+
+export interface IndicatorPoint { t: number; v: number | null }
+export interface BollingerPoint { t: number; upper: number | null; middle: number | null; lower: number | null }
+export interface MacdPoint { t: number; macd: number | null; signal: number | null; hist: number | null }
+export interface StockIndicatorsResponse {
+  symbol: string
+  period: string
+  sma20: IndicatorPoint[]
+  sma50: IndicatorPoint[]
+  rsi: IndicatorPoint[]
+  macd: MacdPoint[]
+  bollinger: BollingerPoint[]
+}

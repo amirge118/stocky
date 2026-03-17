@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.schemas.agent import SectorBreakdownResponse
 from app.schemas.holding import (
     HoldingCreate,
@@ -30,7 +31,9 @@ async def get_portfolio_summary(db: AsyncSession = Depends(get_db)) -> Portfolio
 
 
 @router.post("", response_model=PortfolioPosition, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute")
 async def add_holding(
+    request: Request,
     data: HoldingCreate,
     db: AsyncSession = Depends(get_db),
 ) -> PortfolioPosition:

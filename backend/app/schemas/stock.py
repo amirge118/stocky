@@ -147,3 +147,40 @@ class SectorPeerResponse(BaseModel):
     pe_ratio: Optional[float] = None
     market_cap: Optional[float] = None
     is_current: bool = False  # True if this is the stock being viewed
+
+
+class IndicatorPoint(BaseModel):
+    t: int  # Unix ms timestamp
+    v: Optional[float]  # value (None for missing/warmup periods)
+
+class BollingerPoint(BaseModel):
+    t: int
+    upper: Optional[float]
+    middle: Optional[float]  # SMA20
+    lower: Optional[float]
+
+class MacdPoint(BaseModel):
+    t: int
+    macd: Optional[float]
+    signal: Optional[float]
+    hist: Optional[float]
+
+class StockIndicatorsResponse(BaseModel):
+    symbol: str
+    period: str
+    sma20: list[IndicatorPoint]
+    sma50: list[IndicatorPoint]
+    rsi: list[IndicatorPoint]
+    macd: list[MacdPoint]
+    bollinger: list[BollingerPoint]
+
+
+class DividendPoint(BaseModel):
+    t: int    # Unix ms timestamp of ex-dividend date
+    amount: float  # dividend amount per share
+
+class StockDividendsResponse(BaseModel):
+    symbol: str
+    currency: str = "USD"
+    dividends: list[DividendPoint]
+    annual_yield: Optional[float] = None  # trailing 12-month yield (%)
