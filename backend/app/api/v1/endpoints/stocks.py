@@ -103,6 +103,8 @@ async def search_stocks(
     limit: int = Query(8, ge=1, le=15, description="Max results to return"),
 ) -> list[StockSearchResult]:
     """Search for stocks by ticker symbol or company name via yfinance."""
+    if not q.isascii():
+        return []
     try:
         return await stock_service.search_stocks_from_yfinance(q, limit=limit)
     except Exception as exc:

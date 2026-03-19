@@ -2,156 +2,42 @@
 
 import asyncio
 from datetime import datetime, timezone
-from typing import Optional
-
-import yfinance as yf
 
 from app.core.cache import cache_get, cache_set
-from app.core.executors import get_executor
-from app.core.yf_utils import yf_retry
+from app.core.fmp_client import get_fmp_client
 from app.schemas.market import (
     IndexData,
     MarketOverviewResponse,
     MoverData,
     SectorData,
-    SectorNewsItem,
 )
 
-_CACHE_TTL = 300  # 5 minutes
-_YF_TIMEOUT = 10  # seconds per individual yfinance call
+_CACHE_TTL = 900  # 15 minutes — conserve API quota
 
 INDICES: dict[str, str] = {
-    "S&P 500": "^GSPC",
-    "NASDAQ": "^IXIC",
-    "Dow Jones": "^DJI",
-    "VIX": "^VIX",
+    "S&P 500": "SPY",
 }
 
-SECTORS: dict[str, str] = {
-    "Technology": "XLK",
-    "Financials": "XLF",
-    "Health Care": "XLV",
-    "Consumer Disc.": "XLY",
-    "Consumer Staples": "XLP",
-    "Energy": "XLE",
-    "Industrials": "XLI",
-    "Materials": "XLB",
-    "Real Estate": "XLRE",
-    "Utilities": "XLU",
-    "Communication": "XLC",
-}
+# Sector ETFs not supported on current FMP plan tier — kept for future upgrade
+SECTORS: dict[str, str] = {}
 
+# Trimmed to ~20 mega-cap stocks confirmed available on the FMP basic plan
 TOP_MOVERS_UNIVERSE = [
-    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AVGO",
-    "JPM", "LLY", "V", "UNH", "XOM", "MA", "HD", "PG", "COST", "JNJ",
-    "ABBV", "WMT", "AMD", "MRK", "BAC", "NFLX", "ORCL", "CRM", "CVX",
-    "KO", "PEP", "TMO", "ACN", "MCD", "ADBE", "LIN", "DHR", "ABT",
-    "NKE", "WFC", "TXN", "PM", "MS", "UNP", "AMGN", "RTX", "SPGI",
-    "GE", "CAT", "NOW", "ISRG", "HIMS",
+    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA",
+    "JPM", "XOM", "JNJ", "WMT", "BAC", "NFLX", "AMD",
+    "ORCL", "ADBE", "GE", "KO", "WFC", "MCD",
 ]
 
 
-@yf_retry
-def _fetch_index_sync(symbol: str, name: str) -> Optional[IndexData]:
-    try:
-        ticker = yf.Ticker(symbol)
-        fast_info = ticker.fast_info
-        if fast_info is None:
-            return None
-        last_price = getattr(fast_info, "last_price", None)
-        previous_close = getattr(fast_info, "previous_close", None) or last_price
-        if not last_price:
-            return None
-        price = float(last_price)
-        prev = float(previous_close or price)
-        change = price - prev
-        change_pct = (change / prev * 100) if prev > 0 else 0.0
-
-        hist = ticker.history(period="5d", interval="1d", timeout=_YF_TIMEOUT)
-        sparkline: list[float] = []
-        if not hist.empty and "Close" in hist.columns:
-            closes = hist["Close"].dropna().tolist()
-            sparkline = [round(float(p), 2) for p in closes]
-
-        return IndexData(
-            symbol=symbol,
-            name=name,
-            price=round(price, 2),
-            change=round(change, 2),
-            change_percent=round(change_pct, 2),
-            sparkline=sparkline,
-        )
-    except Exception:
-        return None
-
-
-@yf_retry
-def _fetch_sector_sync(name: str, etf: str) -> Optional[SectorData]:
-    try:
-        ticker = yf.Ticker(etf)
-        fast_info = ticker.fast_info
-        if fast_info is None:
-            return None
-        last_price = getattr(fast_info, "last_price", None)
-        previous_close = getattr(fast_info, "previous_close", None) or last_price
-        if not last_price:
-            return None
-        price = float(last_price)
-        prev = float(previous_close or price)
-        change_pct = ((price - prev) / prev * 100) if prev > 0 else 0.0
-
-        news_items: list[SectorNewsItem] = []
-        try:
-            raw_news = ticker.news or []
-            for item in raw_news[:2]:
-                content = item.get("content", {})
-                title = content.get("title") or item.get("title", "")
-                url = (
-                    content.get("canonicalUrl", {}).get("url")
-                    or content.get("clickThroughUrl", {}).get("url")
-                    or item.get("link")
-                )
-                publisher = content.get("provider", {}).get("displayName") or item.get("publisher")
-                if title:
-                    news_items.append(SectorNewsItem(title=title, url=url, publisher=publisher))
-        except Exception:
-            pass
-
-        return SectorData(
-            name=name,
-            etf=etf,
-            price=round(price, 2),
-            change_percent=round(change_pct, 2),
-            news=news_items,
-        )
-    except Exception:
-        return None
-
-
-@yf_retry
-def _fetch_mover_sync(symbol: str) -> Optional[MoverData]:
-    """Fetch mover data using fast_info only — avoids the slow .info call."""
-    try:
-        ticker = yf.Ticker(symbol)
-        fast_info = ticker.fast_info
-        if fast_info is None:
-            return None
-        last_price = getattr(fast_info, "last_price", None)
-        previous_close = getattr(fast_info, "previous_close", None) or last_price
-        if not last_price:
-            return None
-        price = float(last_price)
-        prev = float(previous_close or price)
-        change_pct = ((price - prev) / prev * 100) if prev > 0 else 0.0
-
-        return MoverData(
-            symbol=symbol,
-            name=symbol,  # fast_info has no display name; symbol is used as fallback
-            price=round(price, 2),
-            change_percent=round(change_pct, 2),
-        )
-    except Exception:
-        return None
+def _parse_quote(q: dict) -> tuple[float, float, float, float]:
+    """Return (price, prev_close, change, change_pct) from an FMP quote dict."""
+    price = float(q.get("price") or 0)
+    prev_close = float(q.get("previousClose") or price)
+    change = float(q.get("change") or (price - prev_close))
+    change_pct = float(
+        q.get("changePercentage") or ((change / prev_close * 100) if prev_close > 0 else 0.0)
+    )
+    return price, prev_close, change, change_pct
 
 
 async def get_market_overview() -> MarketOverviewResponse:
@@ -161,32 +47,84 @@ async def get_market_overview() -> MarketOverviewResponse:
     if cached:
         return MarketOverviewResponse.model_validate(cached)
 
-    loop = asyncio.get_running_loop()
-    executor = get_executor()
+    client = get_fmp_client()
+    all_syms = list(dict.fromkeys(
+        list(INDICES.values()) + list(SECTORS.values()) + TOP_MOVERS_UNIVERSE
+    ))
 
-    index_tasks = [
-        loop.run_in_executor(executor, _fetch_index_sync, symbol, name)
-        for name, symbol in INDICES.items()
-    ]
-    sector_tasks = [
-        loop.run_in_executor(executor, _fetch_sector_sync, name, etf)
-        for name, etf in SECTORS.items()
-    ]
-    mover_tasks = [
-        loop.run_in_executor(executor, _fetch_mover_sync, symbol)
-        for symbol in TOP_MOVERS_UNIVERSE
-    ]
+    async def _get_quote(sym: str):
+        try:
+            raw = await client.get("/stable/quote", {"symbol": sym})
+            items = raw if isinstance(raw, list) else []
+            return sym, items[0] if items else None
+        except Exception:
+            return sym, None
 
-    index_results, sector_results, mover_results = await asyncio.gather(
-        asyncio.gather(*index_tasks, return_exceptions=True),
-        asyncio.gather(*sector_tasks, return_exceptions=True),
-        asyncio.gather(*mover_tasks, return_exceptions=True),
-    )
+    quote_results = await asyncio.gather(*[_get_quote(sym) for sym in all_syms])
+    all_map = {sym: q for sym, q in quote_results if q}
 
-    indices = [r for r in index_results if isinstance(r, IndexData)]
-    sectors = [r for r in sector_results if isinstance(r, SectorData)]
+    idx_map = {sym: all_map[sym] for sym in INDICES.values() if sym in all_map}
+    sec_map = {sym: all_map[sym] for sym in SECTORS.values() if sym in all_map}
+    mov_map = {sym: all_map[sym] for sym in TOP_MOVERS_UNIVERSE if sym in all_map}
 
-    movers = [r for r in mover_results if isinstance(r, MoverData)]
+    # Build indices
+    sym_to_name = {v: k for k, v in INDICES.items()}
+    indices: list[IndexData] = []
+    for sym, name in sym_to_name.items():
+        q = idx_map.get(sym)
+        if not q:
+            continue
+        price, _, change, change_pct = _parse_quote(q)
+        if price == 0:
+            continue
+        indices.append(
+            IndexData(
+                symbol=sym,
+                name=name,
+                price=round(price, 2),
+                change=round(change, 2),
+                change_percent=round(change_pct, 2),
+                sparkline=[],
+            )
+        )
+
+    # Build sectors
+    sectors: list[SectorData] = []
+    for name, etf in SECTORS.items():
+        q = sec_map.get(etf)
+        if not q:
+            continue
+        price, _, _, change_pct = _parse_quote(q)
+        if price == 0:
+            continue
+        sectors.append(
+            SectorData(
+                name=name,
+                etf=etf,
+                price=round(price, 2),
+                change_percent=round(change_pct, 2),
+                news=[],
+            )
+        )
+
+    # Build movers
+    movers: list[MoverData] = []
+    for sym in TOP_MOVERS_UNIVERSE:
+        q = mov_map.get(sym)
+        if not q:
+            continue
+        price, _, _, change_pct = _parse_quote(q)
+        if price == 0:
+            continue
+        movers.append(
+            MoverData(
+                symbol=sym,
+                name=q.get("name") or sym,
+                price=round(price, 2),
+                change_percent=round(change_pct, 2),
+            )
+        )
+
     movers_sorted = sorted(movers, key=lambda m: m.change_percent, reverse=True)
     gainers = movers_sorted[:5]
     losers = list(reversed(movers_sorted[-5:])) if len(movers_sorted) >= 5 else []

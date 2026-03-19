@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     anthropic_api_key: str = ""
 
+    # Financial Data
+    fmp_api_key: str = ""
+
     # CORS
     cors_origins: str = "http://localhost:3000"
 

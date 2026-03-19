@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { AlertDialog } from "@/components/features/stocks/AlertDialog"
 import { LivePriceBadge } from "@/components/features/stocks/LivePriceBadge"
 import { getStock, fetchStockData, getStockInfo } from "@/lib/api/stocks"
+import { ApiError } from "@/lib/api/client"
 import { StockChart } from "@/components/features/stocks/StockChart"
 import { StockIndicators } from "@/components/features/stocks/StockIndicators"
 import { StockKeyStats } from "@/components/features/stocks/StockKeyStats"
@@ -30,10 +31,11 @@ export default function StockDetailPage() {
     queryFn: () => getStock(symbol),
   })
 
-  const { data: liveData, isPending: liveLoading } = useQuery({
+  const { data: liveData, isPending: liveLoading, error: liveError } = useQuery({
     queryKey: ["stock-data", symbol],
     queryFn: () => fetchStockData(symbol),
     staleTime: 60_000,
+    retry: 1,
   })
 
   const { data: info, isPending: infoLoading } = useQuery({
@@ -65,6 +67,17 @@ export default function StockDetailPage() {
             Price Alert
           </Button>
         </div>
+
+        {/* Data unavailable banner */}
+        {liveError && !liveLoading && (
+          <div className="rounded-lg border border-amber-800/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-300">
+            {liveError instanceof ApiError && liveError.status === 503
+              ? "Market data is temporarily unavailable — daily API quota reached. Prices will refresh when the quota resets (midnight UTC)."
+              : liveError instanceof ApiError && (liveError.status === 404 || liveError.status === 402)
+              ? `Live price data for ${symbol.toUpperCase()} is not available on the current data plan. Only major US equities are supported.`
+              : "Live price data is temporarily unavailable."}
+          </div>
+        )}
 
         {/* Header */}
         <div>

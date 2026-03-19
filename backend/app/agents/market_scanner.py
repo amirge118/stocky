@@ -2,32 +2,9 @@ import asyncio
 import time
 from typing import Optional
 
-import yfinance as yf
-
 from app.agents.base import AgentResult, AgentStatus, BaseAgent
 from app.core.ai_client import call_claude_json
-from app.core.executors import get_executor
-
-
-def _fetch_fast_info_sync(symbol: str) -> Optional[dict]:
-    try:
-        fast_info = yf.Ticker(symbol).fast_info
-        price = float(fast_info.last_price or 0)
-        prev = float(fast_info.previous_close or price)
-        if price == 0:
-            return None
-        change_pct = (price - prev) / prev * 100 if prev > 0 else 0.0
-        vol = fast_info.three_month_average_volume
-        return {
-            "symbol": symbol,
-            "price": round(price, 2),
-            "change_pct": round(change_pct, 2),
-            "volume": int(vol) if vol else None,
-            "year_high": float(fast_info.year_high) if fast_info.year_high else None,
-            "year_low": float(fast_info.year_low) if fast_info.year_low else None,
-        }
-    except Exception:
-        return None
+from app.core.fmp_client import get_fmp_client
 
 
 class MarketScannerAgent(BaseAgent):
@@ -73,10 +50,38 @@ class MarketScannerAgent(BaseAgent):
                 run_duration_ms=int((time.time() - start) * 1000),
             )
 
-        loop = asyncio.get_event_loop()
-        tasks = [loop.run_in_executor(get_executor(), _fetch_fast_info_sync, sym) for sym in symbols]
-        results = await asyncio.gather(*tasks)
-        stock_data = [r for r in results if r is not None]
+        # Fetch all symbols individually via FMP (concurrent)
+        client = get_fmp_client()
+
+        async def _get_quote(sym: str):
+            try:
+                raw = await client.get("/stable/quote", {"symbol": sym})
+                items = raw if isinstance(raw, list) else []
+                return items[0] if items else None
+            except Exception:
+                return None
+
+        quote_results = await asyncio.gather(*[_get_quote(sym) for sym in symbols])
+        all_quotes = [q for q in quote_results if q]
+
+        stock_data: list[dict] = []
+        for q in all_quotes:
+            sym = q.get("symbol", "")
+            price = q.get("price")
+            if not sym or not price:
+                continue
+            price = float(price)
+            change_pct = float(q.get("changePercentage") or 0)
+            stock_data.append(
+                {
+                    "symbol": sym,
+                    "price": round(price, 2),
+                    "change_pct": round(change_pct, 2),
+                    "volume": int(q["volume"]) if q.get("volume") else None,
+                    "year_high": float(q["yearHigh"]) if q.get("yearHigh") else None,
+                    "year_low": float(q["yearLow"]) if q.get("yearLow") else None,
+                }
+            )
 
         if not stock_data:
             return AgentResult(

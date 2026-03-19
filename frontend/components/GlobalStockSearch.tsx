@@ -17,11 +17,12 @@ export function GlobalStockSearch() {
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (query.trim().length < 1) { setResults([]); setIsOpen(false); return }
+    const trimmed = query.trim()
+    if (trimmed.length < 1 || !/^[\x00-\x7F]+$/.test(trimmed)) { setResults([]); setIsOpen(false); return }
     setIsLoading(true)
     debounceRef.current = setTimeout(async () => {
       try {
-        const data = await searchStocks(query.trim())
+        const data = await searchStocks(trimmed)
         setResults(data.slice(0, 6))
         setIsOpen(data.length > 0)
         setHighlighted(-1)

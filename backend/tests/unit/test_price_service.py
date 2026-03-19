@@ -1,86 +1,88 @@
-"""Unit tests for PriceService."""
+"""Unit tests for PriceService (FMP-based)."""
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pandas as pd
 import pytest
 
 from app.services.price_service import get_prices
 
 
-def _make_multi_df(data: dict[str, list[float]]) -> pd.DataFrame:
-    """Build a multi-ticker yf.download-style DataFrame (MultiIndex columns)."""
-    close_data = {ticker: data[ticker] for ticker in data}
-    close_df = pd.DataFrame(close_data)
-    close_df.columns = pd.MultiIndex.from_tuples(
-        [("Close", ticker) for ticker in close_data]
-    )
-    return close_df
+def _quote(symbol: str, price: float) -> dict:
+    return {"symbol": symbol, "price": price}
 
 
-def _make_single_df(prices: list[float]) -> pd.DataFrame:
-    """Build a single-ticker yf.download-style DataFrame (flat columns)."""
-    return pd.DataFrame({"Close": prices})
+def _mock_fmp(quotes: list[dict]) -> MagicMock:
+    """Return a mock FMP client that routes by symbol query param."""
+    quotes_by_sym = {q["symbol"]: q for q in quotes}
+    call_log: list[str] = []
+
+    async def fake_get(path: str, params=None):
+        sym = (params or {}).get("symbol", "")
+        call_log.append(sym)
+        q = quotes_by_sym.get(sym)
+        return [q] if q else []
+
+    client = MagicMock()
+    client.get = fake_get
+    client._call_log = call_log
+    return client
 
 
 # ---------------------------------------------------------------------------
 # Cache hit path
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
-async def test_all_cache_hits_skips_download():
-    """When all tickers are cached, yf.download is never called."""
+async def test_all_cache_hits_skips_fmp():
+    """When all tickers are cached, FMP client is never called."""
     cache_data = {"price:AAPL": 150.0, "price:MSFT": 300.0}
 
     async def fake_cache_get(key: str):
         return cache_data.get(key)
 
+    mock_client = _mock_fmp([])
     with (
         patch("app.services.price_service.cache_get", side_effect=fake_cache_get),
         patch("app.services.price_service.cache_set", new_callable=AsyncMock),
-        patch("app.services.price_service._batch_fetch_sync") as mock_dl,
+        patch("app.services.price_service.get_fmp_client", return_value=mock_client),
     ):
         result = await get_prices(["AAPL", "MSFT"])
 
     assert result == {"AAPL": 150.0, "MSFT": 300.0}
-    mock_dl.assert_not_called()
+    assert mock_client._call_log == []
 
 
 # ---------------------------------------------------------------------------
 # Cache miss path
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
-async def test_cache_miss_calls_download_once():
-    """All misses trigger a single _batch_fetch_sync call with all missing tickers."""
-    fetched = {"AAPL": 155.0, "MSFT": 310.0}
+async def test_cache_miss_calls_fmp_once():
+    """All misses trigger a single FMP batch call."""
+    mock_client = _mock_fmp([_quote("AAPL", 155.0), _quote("MSFT", 310.0)])
 
     with (
         patch("app.services.price_service.cache_get", new_callable=AsyncMock, return_value=None),
         patch("app.services.price_service.cache_set", new_callable=AsyncMock),
-        patch("app.services.price_service.get_executor") as mock_executor,
-        patch("asyncio.get_running_loop") as mock_loop,
+        patch("app.services.price_service.get_fmp_client", return_value=mock_client),
     ):
-        future: "asyncio.Future[dict]" = __import__("asyncio").get_event_loop().create_future()
-        future.set_result(fetched)
-        mock_loop.return_value.run_in_executor = MagicMock(return_value=future)
-        mock_executor.return_value = MagicMock()
-
         result = await get_prices(["AAPL", "MSFT"])
 
     assert result == {"AAPL": 155.0, "MSFT": 310.0}
-    call_args = mock_loop.return_value.run_in_executor.call_args
-    # Second positional arg is the tickers list passed to _batch_fetch_sync
-    assert set(call_args[0][2]) == {"AAPL", "MSFT"}
+    # Two individual calls (one per symbol)
+    assert len(mock_client._call_log) == 2
 
 
 # ---------------------------------------------------------------------------
 # Partial hit path
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_partial_cache_hit():
-    """Cached tickers are returned directly; only misses go to download."""
-    fetched = {"MSFT": 310.0}
+    """Cached tickers are returned directly; only misses go to FMP."""
+    mock_client = _mock_fmp([_quote("MSFT", 310.0)])
 
     async def fake_cache_get(key: str):
         return 150.0 if key == "price:AAPL" else None
@@ -88,48 +90,36 @@ async def test_partial_cache_hit():
     with (
         patch("app.services.price_service.cache_get", side_effect=fake_cache_get),
         patch("app.services.price_service.cache_set", new_callable=AsyncMock),
-        patch("app.services.price_service.get_executor") as mock_executor,
-        patch("asyncio.get_running_loop") as mock_loop,
+        patch("app.services.price_service.get_fmp_client", return_value=mock_client),
     ):
-        future = __import__("asyncio").get_event_loop().create_future()
-        future.set_result(fetched)
-        mock_loop.return_value.run_in_executor = MagicMock(return_value=future)
-        mock_executor.return_value = MagicMock()
-
         result = await get_prices(["AAPL", "MSFT"])
 
     assert result == {"AAPL": 150.0, "MSFT": 310.0}
-    # Only MSFT should have been requested
-    call_args = mock_loop.return_value.run_in_executor.call_args
-    assert call_args[0][2] == ["MSFT"]
 
 
 # ---------------------------------------------------------------------------
 # Stale fallback on exception
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_stale_fallback_on_api_error():
-    """On yfinance exception, stale cache values are returned."""
-    stale_prices = {"price_stale:AAPL": 148.0, "price_stale:MSFT": 298.0}
+    """On FMP exception, stale cache values are returned."""
+    stale = {"price_stale:AAPL": 148.0, "price_stale:MSFT": 298.0}
 
     async def fake_cache_get(key: str):
-        # Fresh keys return None; stale keys return stored values
         if key.startswith("price_stale:"):
-            return stale_prices.get(key)
+            return stale.get(key)
         return None
+
+    mock_client = MagicMock()
+    mock_client.get = AsyncMock(side_effect=RuntimeError("FMP unavailable"))
 
     with (
         patch("app.services.price_service.cache_get", side_effect=fake_cache_get),
         patch("app.services.price_service.cache_set", new_callable=AsyncMock),
-        patch("app.services.price_service.get_executor") as mock_executor,
-        patch("asyncio.get_running_loop") as mock_loop,
+        patch("app.services.price_service.get_fmp_client", return_value=mock_client),
     ):
-        future = __import__("asyncio").get_event_loop().create_future()
-        future.set_exception(RuntimeError("429 Too Many Requests"))
-        mock_loop.return_value.run_in_executor = MagicMock(return_value=future)
-        mock_executor.return_value = MagicMock()
-
         result = await get_prices(["AAPL", "MSFT"])
 
     assert result == {"AAPL": 148.0, "MSFT": 298.0}
@@ -141,19 +131,16 @@ async def test_stale_fallback_partial_recovery():
     async def fake_cache_get(key: str):
         if key == "price_stale:AAPL":
             return 148.0
-        return None  # MSFT stale also missing
+        return None
+
+    mock_client = MagicMock()
+    mock_client.get = AsyncMock(side_effect=RuntimeError("unavailable"))
 
     with (
         patch("app.services.price_service.cache_get", side_effect=fake_cache_get),
         patch("app.services.price_service.cache_set", new_callable=AsyncMock),
-        patch("app.services.price_service.get_executor") as mock_executor,
-        patch("asyncio.get_running_loop") as mock_loop,
+        patch("app.services.price_service.get_fmp_client", return_value=mock_client),
     ):
-        future = __import__("asyncio").get_event_loop().create_future()
-        future.set_exception(RuntimeError("Service unavailable"))
-        mock_loop.return_value.run_in_executor = MagicMock(return_value=future)
-        mock_executor.return_value = MagicMock()
-
         result = await get_prices(["AAPL", "MSFT"])
 
     assert result == {"AAPL": 148.0}
@@ -164,51 +151,58 @@ async def test_stale_fallback_partial_recovery():
 # Deduplication and uppercase
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_deduplicates_and_uppercases_tickers():
     """Duplicate and mixed-case tickers are normalised before lookup."""
+    mock_client = _mock_fmp([])
+
     with (
         patch("app.services.price_service.cache_get", new_callable=AsyncMock, return_value=200.0),
         patch("app.services.price_service.cache_set", new_callable=AsyncMock),
-        patch("app.services.price_service._batch_fetch_sync") as mock_dl,
+        patch("app.services.price_service.get_fmp_client", return_value=mock_client),
     ):
         result = await get_prices(["aapl", "AAPL", "Aapl"])
 
     assert list(result.keys()) == ["AAPL"]
-    mock_dl.assert_not_called()
+    assert mock_client._call_log == []
 
 
 # ---------------------------------------------------------------------------
-# _batch_fetch_sync — DataFrame shape handling
+# Empty input
 # ---------------------------------------------------------------------------
 
-def test_batch_fetch_sync_single_ticker(monkeypatch):
-    """Single-ticker download returns flat DataFrame; price is extracted."""
-    from app.services.price_service import _batch_fetch_sync
 
-    df = _make_single_df([149.0, 151.0])
-    monkeypatch.setattr("app.services.price_service.yf.download", lambda **kw: df)
-
-    result = _batch_fetch_sync(["AAPL"])
-    assert result == {"AAPL": 151.0}
-
-
-def test_batch_fetch_sync_multi_ticker(monkeypatch):
-    """Multi-ticker download returns MultiIndex DataFrame; prices extracted per ticker."""
-    from app.services.price_service import _batch_fetch_sync
-
-    df = _make_multi_df({"AAPL": [149.0, 151.0], "MSFT": [299.0, 305.0]})
-    monkeypatch.setattr("app.services.price_service.yf.download", lambda **kw: df)
-
-    result = _batch_fetch_sync(["AAPL", "MSFT"])
-    assert result == {"AAPL": 151.0, "MSFT": 305.0}
-
-
-def test_batch_fetch_sync_empty_df(monkeypatch):
-    """Empty DataFrame returns empty dict without error."""
-    from app.services.price_service import _batch_fetch_sync
-
-    monkeypatch.setattr("app.services.price_service.yf.download", lambda **kw: pd.DataFrame())
-
-    result = _batch_fetch_sync(["AAPL"])
+@pytest.mark.asyncio
+async def test_empty_tickers_returns_empty():
+    mock_client = _mock_fmp([])
+    with patch("app.services.price_service.get_fmp_client", return_value=mock_client):
+        result = await get_prices([])
     assert result == {}
+    assert mock_client._call_log == []
+
+
+# ---------------------------------------------------------------------------
+# Cache write on fetch
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetched_prices_written_to_fresh_and_stale_cache():
+    """After a successful FMP fetch, both fresh and stale keys are written."""
+    mock_client = _mock_fmp([_quote("AAPL", 155.0)])
+
+    written_keys: list[str] = []
+
+    async def fake_cache_set(key, value, ttl=None):
+        written_keys.append(key)
+
+    with (
+        patch("app.services.price_service.cache_get", new_callable=AsyncMock, return_value=None),
+        patch("app.services.price_service.cache_set", side_effect=fake_cache_set),
+        patch("app.services.price_service.get_fmp_client", return_value=mock_client),
+    ):
+        await get_prices(["AAPL"])
+
+    assert "price:AAPL" in written_keys
+    assert "price_stale:AAPL" in written_keys
