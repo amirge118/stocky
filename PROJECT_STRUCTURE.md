@@ -27,6 +27,7 @@ stocky/
 
 ### `docs/setup/` - Setup & Installation
 - `QUICK_START.md` - Fastest way to get started
+- `DOCKER.md` - Single-file Docker Compose + env URLs
 - `ENV_SETUP.md` - Environment variables configuration
 - `RUN_SERVERS.md` - Server management guide
 - `ARCHITECTURE_SETUP.md` - Project architecture overview
@@ -124,6 +125,12 @@ backend/
 ### `.cursorrules` Files
 - `backend/.cursorrules` - Backend-specific rules
 - `frontend/.cursorrules` - Frontend-specific rules
+
+### `.cursor/skills/` (optional)
+- `ui-ux-pro-max/` - Cursor UI/UX design skill ([docs/ai/ui-ux-pro-max.md](docs/ai/ui-ux-pro-max.md)); installed via `npx uipro-cli init --ai cursor`
+
+### IDE plugins (not in repo tree)
+- **Superpowers** ([obra/superpowers](https://github.com/obra/superpowers)) — install in Cursor with `/add-plugin superpowers`; documented in [docs/ai/superpowers.md](docs/ai/superpowers.md)
 
 ## Adding New Files
 

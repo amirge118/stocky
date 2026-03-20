@@ -39,7 +39,7 @@ export async function apiRequest<T>(
       throw new ApiError(
         response.status,
         errorData.error?.code || "UNKNOWN_ERROR",
-        errorData.error?.message || "An error occurred",
+        errorData.error?.message || (errorData as unknown as { detail?: string }).detail || "An error occurred",
         errorData.error?.details
       )
     }
@@ -80,6 +80,13 @@ export async function post<T>(endpoint: string, data?: unknown): Promise<T> {
 export async function put<T>(endpoint: string, data?: unknown): Promise<T> {
   return apiRequest<T>(endpoint, {
     method: "PUT",
+    body: data ? JSON.stringify(data) : undefined,
+  })
+}
+
+export async function patch<T>(endpoint: string, data?: unknown): Promise<T> {
+  return apiRequest<T>(endpoint, {
+    method: "PATCH",
     body: data ? JSON.stringify(data) : undefined,
   })
 }

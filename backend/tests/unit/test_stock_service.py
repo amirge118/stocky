@@ -285,6 +285,7 @@ async def test_delete_stock_not_found(db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Migrated to FMP — see test_stock_data_service.py")
 @patch("app.services.stock_data.yf")
 async def test_fetch_stock_data_from_yfinance_success(mock_yf):
     """Test fetching stock data from yfinance successfully."""
@@ -317,6 +318,7 @@ async def test_fetch_stock_data_from_yfinance_success(mock_yf):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Migrated to FMP — see test_stock_data_service.py")
 @patch("app.services.stock_data.yf")
 async def test_fetch_stock_data_empty_history_raises_error(mock_yf):
     """Test that empty history raises HTTPException."""
@@ -334,6 +336,7 @@ async def test_fetch_stock_data_empty_history_raises_error(mock_yf):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Migrated to FMP — see test_stock_data_service.py")
 @patch("app.services.stock_data.cache_get")
 @patch("app.services.stock_data.cache_set")
 @patch("app.services.stock_data.yf")
@@ -425,6 +428,7 @@ async def test_search_stocks_from_yfinance_fallback_direct_lookup(mock_yf, mock_
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Migrated to FMP — see test_stock_data_service.py")
 @patch("app.services.stock_data.cache_get")
 @patch("app.services.stock_data.yf")
 async def test_fetch_stock_data_exception_handling(mock_yf, mock_cache_get):

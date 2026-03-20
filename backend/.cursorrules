@@ -1,35 +1,8 @@
 # Backend Architecture Rules: FastAPI Stock Insight App
 
-## Future Improvements Documentation
+## Future Improvements
 
-### ⚠️ MANDATORY: Document All Ideas
-
-**For EVERY request, feature, or idea related to backend:**
-
-1. **Add to FUTURE_IMPROVEMENTS.md** (root directory):
-   - Every backend feature request
-   - Every API improvement idea
-   - Every performance optimization suggestion
-   - Every infrastructure improvement
-   - Every technical debt item
-
-2. **Categorize appropriately**:
-   - Backend Improvements → Database & Performance
-   - Backend Improvements → API Enhancements
-   - Backend Improvements → Authentication & Security
-   - Backend Improvements → Features
-   - Backend Improvements → Monitoring & Observability
-
-3. **Include context**: Brief description of why this improvement is valuable
-
-**Example**:
-```markdown
-### API Enhancements
-- [ ] Add API rate limiting per user/IP [HIGH]
-- [ ] Implement WebSocket support for real-time stock updates [MEDIUM]
-```
-
-**DO NOT implement features without documenting ideas in FUTURE_IMPROVEMENTS.md first!**
+Document every feature idea in **`FUTURE_IMPROVEMENTS.md`** (repo root). Full workflow: **`.cursor/rules/project-overview.md`**. Categorize under **Backend Improvements** when relevant.
 
 ## File Structure & Organization
 

@@ -7,8 +7,7 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && ./venv/bin/uvicorn app.main:app --reload --host 127.0.0.1",
 
-    "docker:up": "docker-compose up",
-    "docker:infra": "docker-compose up db redis",
+    "docker:up": "docker compose up",
 
     "setup": "npm run setup:frontend && npm run setup:backend",
     "setup:frontend": "cd frontend && npm install",

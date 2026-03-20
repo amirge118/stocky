@@ -1,4 +1,5 @@
 import asyncio
+from datetime import date, timedelta
 from typing import Optional
 
 from sqlalchemy import select
@@ -16,15 +17,14 @@ from app.schemas.holding import (
 from app.schemas.stock import (
     PortfolioNewsItem,
     StockDataResponse,
-    StockHistoryResponse,
     StockInfoResponse,
 )
 from app.services.stock_data import (
     fetch_stock_data_from_yfinance,
-    fetch_stock_history,
     fetch_stock_info,
     fetch_stock_news,
 )
+from app.services.yfinance_service import fetch_history_daily, fetch_history_intraday
 
 
 async def upsert_holding(
@@ -33,8 +33,13 @@ async def upsert_holding(
     name: str,
     shares: float,
     price_per_share: float,
+    purchase_date: Optional[date] = None,
 ) -> HoldingResponse:
-    """Insert or update a holding using weighted average cost."""
+    """Insert or update a holding using weighted average cost.
+
+    purchase_date is only set on initial insert; subsequent updates preserve
+    the original entry date.
+    """
     sym = symbol.upper()
     result = await db.execute(select(Holding).where(Holding.symbol == sym))
     existing = result.scalar_one_or_none()
@@ -46,6 +51,7 @@ async def upsert_holding(
             shares=shares,
             avg_cost=price_per_share,
             total_cost=shares * price_per_share,
+            purchase_date=purchase_date or date.today(),
         )
         db.add(holding)
     else:
@@ -55,6 +61,7 @@ async def upsert_holding(
         existing.avg_cost = new_total_cost / new_shares
         existing.total_cost = new_total_cost
         existing.name = name
+        # Do NOT overwrite purchase_date on update
         holding = existing
 
     await db.commit()
@@ -256,29 +263,80 @@ async def get_portfolio_news(db: AsyncSession, limit: int = 20) -> list[Portfoli
 
 
 async def get_portfolio_history(db: AsyncSession, period: str = "1m") -> PortfolioHistoryResponse:
-    """Compute portfolio value over time using historical prices for each holding."""
+    """Compute portfolio $ value over time using yfinance historical prices.
+
+    For the "1d" period we use intraday (5-min) bars.
+    For all other periods we use daily closes, respecting each holding's
+    purchase_date so a holding only contributes value from the day it was bought.
+    """
+    from collections import defaultdict
+
     result = await db.execute(select(Holding).order_by(Holding.symbol))
     holdings = list(result.scalars().all())
     if not holdings:
         return PortfolioHistoryResponse(period=period, data=[])
 
-    hist_tasks = [fetch_stock_history(h.symbol, period) for h in holdings]
-    hist_results = await asyncio.gather(*hist_tasks, return_exceptions=True)
+    # ── Intraday branch (1D) ────────────────────────────────────────────────
+    if period == "1d":
+        intraday_results = await asyncio.gather(
+            *[fetch_history_intraday(h.symbol) for h in holdings],
+            return_exceptions=True,
+        )
+        ts_values: dict[int, float] = defaultdict(float)
+        for holding, bars in zip(holdings, intraday_results):
+            if not isinstance(bars, list):
+                continue
+            for dt, price in bars:
+                ts_ms = int(dt.timestamp() * 1000)
+                ts_values[ts_ms] += holding.shares * price
 
-    # Build date -> total_value map
-    from collections import defaultdict
-    date_values: dict[int, float] = defaultdict(float)
-    for holding, hist_result in zip(holdings, hist_results):
-        if not isinstance(hist_result, StockHistoryResponse) or not hist_result.data:
+        if not ts_values:
+            return PortfolioHistoryResponse(period=period, data=[])
+
+        points = [
+            PortfolioHistoryPoint(t=t, value=round(v, 2))
+            for t, v in sorted(ts_values.items())
+        ]
+        return PortfolioHistoryResponse(period=period, data=points)
+
+    # ── Daily branch ────────────────────────────────────────────────────────
+    today = date.today()
+    period_map: dict[str, date] = {
+        "1w": today - timedelta(days=7),
+        "1m": today - timedelta(days=30),
+        "6m": today - timedelta(days=180),
+        "1y": today - timedelta(days=365),
+    }
+
+    if period == "all":
+        window_start = min(h.purchase_date for h in holdings)
+    else:
+        window_start = period_map.get(period, today - timedelta(days=30))
+
+    daily_results = await asyncio.gather(
+        *[fetch_history_daily(h.symbol, window_start, today) for h in holdings],
+        return_exceptions=True,
+    )
+
+    date_values: dict[date, float] = defaultdict(float)
+    for holding, prices in zip(holdings, daily_results):
+        if not isinstance(prices, dict):
             continue
-        for point in hist_result.data:
-            date_values[point.t] += holding.shares * point.c
+        for d, price in prices.items():
+            # Only count this holding from its purchase_date onward
+            if d >= holding.purchase_date:
+                date_values[d] += holding.shares * price
 
     if not date_values:
         return PortfolioHistoryResponse(period=period, data=[])
 
+    import calendar
+
     points = [
-        PortfolioHistoryPoint(t=t, value=round(v, 2))
-        for t, v in sorted(date_values.items())
+        PortfolioHistoryPoint(
+            t=int(calendar.timegm(d.timetuple()) * 1000),
+            value=round(v, 2),
+        )
+        for d, v in sorted(date_values.items())
     ]
     return PortfolioHistoryResponse(period=period, data=points)

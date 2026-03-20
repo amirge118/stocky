@@ -19,3 +19,11 @@ Four background AI agents run on a schedule and can also be triggered manually:
 - **Sector Trend** — Analyzes performance trends across market sectors and highlights which sectors are strengthening or weakening.
 
 All agents store their results in the database and cache the latest report in Redis for fast retrieval. The `/agents` dashboard shows the status and latest output of every agent; clicking through shows full report history.
+
+## AI coding agents
+
+Conventions for Cursor, Claude Code, etc.: **[AGENTS.md](AGENTS.md)** → [docs/ai/README.md](docs/ai/README.md).
+
+**Optional — UI/UX Pro Max (Cursor skill):** design-system search and UX guidance live under `.cursor/skills/ui-ux-pro-max/`. See [docs/ai/ui-ux-pro-max.md](docs/ai/ui-ux-pro-max.md) (does not replace project rules in `frontend/.cursorrules`).
+
+**Optional — Superpowers:** development methodology plugin for Cursor/Claude ([obra/superpowers](https://github.com/obra/superpowers)); install with `/add-plugin superpowers`. Details: [docs/ai/superpowers.md](docs/ai/superpowers.md).

@@ -1,34 +1,8 @@
 # Frontend Architecture Rules: Next.js 15 Stock Insight App
 
-## Future Improvements Documentation
+## Future Improvements
 
-### ⚠️ MANDATORY: Document All Ideas
-
-**For EVERY request, feature, or idea related to frontend:**
-
-1. **Add to FUTURE_IMPROVEMENTS.md** (root directory):
-   - Every frontend feature request
-   - Every UI/UX improvement idea
-   - Every performance optimization suggestion
-   - Every component enhancement
-   - Every user experience improvement
-
-2. **Categorize appropriately**:
-   - Frontend Improvements → User Experience
-   - Frontend Improvements → Performance
-   - Frontend Improvements → Features
-   - Frontend Improvements → State Management
-
-3. **Include context**: Brief description of why this improvement is valuable
-
-**Example**:
-```markdown
-### Features
-- [ ] Add stock search with autocomplete [HIGH]
-- [ ] Implement stock charts and graphs (Chart.js, Recharts) [MEDIUM]
-```
-
-**DO NOT implement features without documenting ideas in FUTURE_IMPROVEMENTS.md first!**
+Document every feature idea in **`FUTURE_IMPROVEMENTS.md`** (repo root). Full workflow and categories: **`.cursor/rules/project-overview.md`**. Categorize under **Frontend Improvements** when relevant.
 
 ## File Structure & Organization
 
@@ -160,6 +134,47 @@ frontend/
 - **Feature Components**: Domain-specific components
 - **Layout Components**: Page structure components
 - **Shared Components**: Common utilities
+
+## UI, API client & React Query (canonical — Cursor + Claude)
+
+- **Primitives:** Use Radix/Shadcn via `@/components/ui/*`. Do not hand-roll dialogs, buttons, or inputs.
+- **HTTP:** Use `get` / `post` / `put` / `del` from `@/lib/api/client.ts`. Do not call `fetch` directly from components.
+- **Icons:** `lucide-react` only (inline SVG only for charts/sparklines).
+- **React Query v5:** Use `isPending` for loading skeletons — not `isLoading`. Use `queryClient` from `useQueryClient()`, not a singleton import.
+- **Mutations:** On success, `invalidateQueries` for affected `queryKey`s; on error, `toast({ variant: "destructive", ... })`.
+- **Navigation:** `router.push()` from `next/navigation` — not `window.location.href`.
+- **Pages:** Keep `page.tsx` thin; delegate to `components/features/*`.
+
+### Dark theme tokens (finance UI)
+
+| Token | Use |
+|-------|-----|
+| `bg-zinc-950` | Page canvas |
+| `bg-zinc-900` | Cards, panels |
+| `bg-zinc-800` | Table headers, hover, inputs |
+| `border-zinc-800` | Card borders |
+| `text-zinc-400` | Secondary / labels |
+| `text-zinc-500` | Tertiary, placeholders |
+| `text-green-400` / `text-red-400` | Gain / loss |
+| `bg-green-400/10` / `bg-red-400/10` | Gain / loss badge backgrounds |
+
+- Cards: `rounded-xl border border-zinc-800 bg-zinc-900`
+- Inputs: `bg-zinc-800 border-zinc-600 text-white placeholder:text-zinc-500`
+- Primary button: `bg-blue-600 hover:bg-blue-500 text-white`
+- Ghost: `text-zinc-400 hover:text-white hover:bg-zinc-800`
+
+### Numbers & money
+
+- Numeric tables/cells: `tabular-nums`
+- Currency: `toLocaleString("en-US", { style: "currency", currency: "USD" })`
+- Percentages: `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
+- Prices: `font-mono`
+
+### Quick paths
+
+- Portfolio: `app/stocks/page.tsx`, `types/portfolio.ts`, `lib/api/portfolio.ts`, `components/features/portfolio/`
+- Stock detail: `app/stocks/[symbol]/page.tsx`, `lib/api/stocks.ts`, `components/features/stocks/`
+- API client: `lib/api/client.ts` · UI primitives: `components/ui/`
 
 ## Key Dependencies & Versions
 

@@ -5,6 +5,8 @@
 > For detailed tech stack information, see: [tech-stack-versions.md](./tech-stack-versions.md)
 > 
 > For architecture details, see: [architecture.md](./architecture.md)
+> 
+> For the Cursor + Claude rules index, see: [docs/ai/README.md](../../docs/ai/README.md)
 
 ## Quick Reference
 

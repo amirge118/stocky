@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { getSectorPeers } from "@/lib/api/stocks"
 
 interface StockSectorOverviewProps {
@@ -25,8 +24,6 @@ function fmtPct(n: number | null): string {
 }
 
 export function StockSectorOverview({ symbol, sector, industry }: StockSectorOverviewProps) {
-  const router = useRouter()
-
   const { data: peers, isPending } = useQuery({
     queryKey: ["sector-peers", sector, symbol],
     queryFn: () => getSectorPeers(sector!, symbol, 10),
@@ -36,33 +33,16 @@ export function StockSectorOverview({ symbol, sector, industry }: StockSectorOve
 
   if (!sector) return null
 
-  const handleCompareAll = () => {
-    const symbols = peers?.map((p) => p.symbol) ?? []
-    if (symbols.length > 0) {
-      router.push(`/stocks/compare?symbols=${symbols.join(",")}`)
-    }
-  }
-
   return (
     <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">
-            Sector Overview
-          </h2>
-          <p className="text-zinc-500 text-xs mt-0.5">
-            {sector}
-            {industry ? ` · ${industry}` : ""}
-          </p>
-        </div>
-        {peers && peers.length > 1 && (
-          <button
-            onClick={handleCompareAll}
-            className="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
-          >
-            Compare All →
-          </button>
-        )}
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">
+          Sector Overview
+        </h2>
+        <p className="text-zinc-500 text-xs mt-0.5">
+          {sector}
+          {industry ? ` · ${industry}` : ""}
+        </p>
       </div>
 
       {isPending ? (
@@ -121,7 +101,7 @@ export function StockSectorOverview({ symbol, sector, industry }: StockSectorOve
                     className={`py-2.5 text-right tabular-nums text-xs font-medium ${
                       peer.day_change_percent != null
                         ? peer.day_change_percent >= 0
-                          ? "text-emerald-400"
+                          ? "text-green-400"
                           : "text-red-400"
                         : "text-zinc-500"
                     }`}

@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/venv/
+backend/.venv/
+
+# Build outputs
+frontend/.next/
+frontend/out/
+frontend/dist/
+
+# Test coverage reports
+frontend/coverage/
+backend/htmlcov/
+backend/.coverage
+backend/coverage.xml
+
+# Compiled / generated files
+frontend/tsconfig.tsbuildinfo
+frontend/next-env.d.ts
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.mypy_cache/
+**/.pytest_cache/
+**/.ruff_cache/
+
+# Logs
+frontend/logs/
+backend/logs/
+**/*.log
+
+# Lock files (large, rarely useful to read)
+frontend/package-lock.json
+package-lock.json
+backend/requirements*.txt
+
+# Database / migrations (rarely need full file reads)
+backend/alembic/versions/
+
+# Docker / CI (low signal for code tasks)
+docker-compose*.yml
+.github/
+
+# Docs (not needed for coding tasks)
+docs/
+CONTRIBUTING.md
+FUTURE_IMPROVEMENTS.md
+PROJECT_STRUCTURE.md
+PR_REVIEW.md
+
+# Playwright / e2e artifacts
+frontend/e2e/
+frontend/playwright-report/
+frontend/test-results/
+
+# IDE / OS artifacts
+.DS_Store
+.idea/
+.vscode/
+**/.env
+**/.env.*

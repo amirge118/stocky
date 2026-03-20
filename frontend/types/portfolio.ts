@@ -35,6 +35,7 @@ export interface AddHoldingRequest {
   name: string
   shares: number
   price_per_share: number
+  purchase_date?: string
 }
 
 export interface PortfolioNewsItem {

@@ -1,19 +1,27 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import Link from "next/link"
+import { Inter, JetBrains_Mono } from "next/font/google"
+import AlertNotifier from "@/components/AlertNotifier"
+import { Navbar } from "@/components/Navbar"
 import { Providers } from "@/lib/providers"
 import "@/styles/globals.css"
 
-// Configure Inter font with fallback to system fonts if Google Fonts fails
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
+  variable: "--font-sans",
   fallback: ["system-ui", "arial"],
 })
 
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
+  weight: ["400", "500", "600"],
+})
+
 export const metadata: Metadata = {
-  title: "Stock Insight App",
-  description: "Financial stock analysis platform with AI-powered insights",
+  title: "Stocky — Financial Intelligence Platform",
+  description: "Portfolio tracking, AI-powered analysis, and real-time price alerts.",
 }
 
 export default function RootLayout({
@@ -23,29 +31,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}>
         <Providers>
-          <nav className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-50">
-            <div className="max-w-5xl mx-auto px-4 h-12 flex items-center gap-6">
-              <Link href="/" className="text-sm font-bold text-white tracking-tight">
-                Stocky
-              </Link>
-              <div className="flex items-center gap-4 text-sm text-zinc-400">
-                <Link href="/stocks" className="hover:text-zinc-200 transition-colors">
-                  Stocks
-                </Link>
-                <Link href="/stocks/compare" className="hover:text-zinc-200 transition-colors">
-                  Compare
-                </Link>
-                <Link href="/portfolio" className="hover:text-zinc-200 transition-colors">
-                  Portfolio
-                </Link>
-                <Link href="/agents" className="hover:text-zinc-200 transition-colors">
-                  Agents
-                </Link>
-              </div>
-            </div>
-          </nav>
+          <AlertNotifier />
+          <Navbar />
           {children}
         </Providers>
       </body>

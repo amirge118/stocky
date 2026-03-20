@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.schemas.agent import SectorBreakdownResponse
 from app.schemas.holding import (
     HoldingCreate,
@@ -30,17 +31,22 @@ async def get_portfolio_summary(db: AsyncSession = Depends(get_db)) -> Portfolio
 
 
 @router.post("", response_model=PortfolioPosition, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute")
 async def add_holding(
+    request: Request,
     data: HoldingCreate,
     db: AsyncSession = Depends(get_db),
 ) -> PortfolioPosition:
     """Add shares to a position (or create it). Returns the enriched position."""
+    from datetime import date
+
     holding = await holding_service.upsert_holding(
         db,
         symbol=data.symbol,
         name=data.name,
         shares=data.shares,
         price_per_share=data.price_per_share,
+        purchase_date=data.purchase_date or date.today(),
     )
 
     # Return a lightweight PortfolioPosition without live price lookup
@@ -60,7 +66,7 @@ async def add_holding(
 
 @router.get("/history", response_model=PortfolioHistoryResponse)
 async def get_portfolio_history(
-    period: str = Query("1m", description="1m | 6m | 1y"),
+    period: str = Query("1m", description="1d | 1w | 1m | 6m | 1y | all"),
     db: AsyncSession = Depends(get_db),
 ) -> PortfolioHistoryResponse:
     """Get portfolio value over time (computed from historical prices)."""

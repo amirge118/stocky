@@ -1,16 +1,41 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { X, TrendingUp, TrendingDown, Download } from "lucide-react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { X, TrendingUp, TrendingDown, Download, Bell, ChevronUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { removeHolding } from "@/lib/api/portfolio"
-import type { PortfolioPosition } from "@/types/portfolio"
+import { fetchAlerts } from "@/lib/api/alerts"
+import type { PortfolioPosition, PortfolioSummaryWithSector } from "@/types/portfolio"
+import type { Alert } from "@/types/alerts"
 
 interface Props {
   positions: PortfolioPosition[]
   isPending: boolean
 }
+
+type SortCol =
+  | "symbol"
+  | "shares"
+  | "avg_cost"
+  | "current_price"
+  | "day_change_percent"
+  | "current_value"
+  | "gain_loss_pct"
+  | "portfolio_pct"
+
+const COLUMNS: { label: string; key: SortCol | null; align: "left" | "right" }[] = [
+  { label: "Symbol",       key: "symbol",             align: "left" },
+  { label: "Shares",       key: "shares",             align: "right" },
+  { label: "Avg Cost",     key: "avg_cost",           align: "right" },
+  { label: "Price",        key: "current_price",      align: "right" },
+  { label: "Day %",        key: "day_change_percent", align: "right" },
+  { label: "Market Value", key: "current_value",      align: "right" },
+  { label: "Return",       key: "gain_loss_pct",      align: "right" },
+  { label: "Weight",       key: "portfolio_pct",      align: "right" },
+  { label: "",             key: null,                 align: "right" },
+]
 
 function fmtUSD(n: number | null, decimals = 2): string {
   if (n === null) return "—"
@@ -34,7 +59,7 @@ function GainLossPill({ value, pct }: { value: number | null; pct: number | null
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium tabular-nums ${
         isUp
-          ? "bg-emerald-400/10 text-emerald-400"
+          ? "bg-green-400/10 text-green-400"
           : "bg-red-400/10 text-red-400"
       }`}
     >
@@ -89,9 +114,48 @@ function positionsToCSV(positions: PortfolioPosition[]): string {
   return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
 }
 
+function sortPositions(
+  positions: PortfolioPosition[],
+  col: SortCol,
+  dir: "asc" | "desc"
+): PortfolioPosition[] {
+  return [...positions].sort((a, b) => {
+    const aVal = a[col as keyof PortfolioPosition]
+    const bVal = b[col as keyof PortfolioPosition]
+
+    if (aVal === null || aVal === undefined) return 1
+    if (bVal === null || bVal === undefined) return -1
+
+    let cmp = 0
+    if (typeof aVal === "string" && typeof bVal === "string") {
+      cmp = aVal.localeCompare(bVal)
+    } else {
+      cmp = (aVal as number) - (bVal as number)
+    }
+    return dir === "asc" ? cmp : -cmp
+  })
+}
+
 export function PortfolioTable({ positions, isPending }: Props) {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const [sort, setSort] = useState<{ col: SortCol; dir: "asc" | "desc" }>({
+    col: "symbol",
+    dir: "asc",
+  })
+
+  const { data: alerts = [] } = useQuery({
+    queryKey: ["alerts"],
+    queryFn: () => fetchAlerts(50, 0),
+    staleTime: 30_000,
+  })
+
+  const alertsByTicker: Record<string, Alert[]> = {}
+  for (const alert of alerts) {
+    if (!alert.is_active) continue
+    if (!alertsByTicker[alert.ticker]) alertsByTicker[alert.ticker] = []
+    alertsByTicker[alert.ticker].push(alert)
+  }
 
   const handleExportCSV = () => {
     const csv = positionsToCSV(positions)
@@ -106,7 +170,29 @@ export function PortfolioTable({ positions, isPending }: Props) {
 
   const removeMutation = useMutation({
     mutationFn: removeHolding,
-    onSuccess: () => {
+    onMutate: async (symbol) => {
+      await queryClient.cancelQueries({ queryKey: ["portfolio-summary"] })
+      const previous = queryClient.getQueryData<PortfolioSummaryWithSector>(["portfolio-summary"])
+      queryClient.setQueryData<PortfolioSummaryWithSector>(["portfolio-summary"], (old) => {
+        if (!old) return old
+        const p = old.portfolio
+        const newPositions = p.positions.filter((pos) => pos.symbol !== symbol)
+        return {
+          ...old,
+          portfolio: {
+            ...p,
+            positions: newPositions,
+          },
+        }
+      })
+      return { previous }
+    },
+    onError: (_err, _symbol, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["portfolio-summary"], context.previous)
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
       queryClient.invalidateQueries({ queryKey: ["portfolio-history"] })
       queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
@@ -145,15 +231,26 @@ export function PortfolioTable({ positions, isPending }: Props) {
     )
   }
 
+  const sortedPositions = sortPositions(positions, sort.col, sort.dir)
+
+  const handleSort = (key: SortCol | null) => {
+    if (!key) return
+    setSort((prev) =>
+      prev.col === key
+        ? { col: key, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { col: key, dir: "asc" }
+    )
+  }
+
   return (
     <div className="rounded-2xl border border-zinc-800 overflow-hidden">
       {/* Table header strip */}
       <div className="bg-zinc-900/50 px-5 py-2.5 border-b border-zinc-800 flex items-center justify-between">
-        <span className="text-[11px] font-medium tracking-widest uppercase text-zinc-500">
+        <span className="text-xs font-medium tracking-widest uppercase text-zinc-500">
           Holdings
         </span>
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-zinc-600">
+          <span className="text-xs text-zinc-600">
             {positions.length} position{positions.length !== 1 ? "s" : ""}
           </span>
           <Button
@@ -171,29 +268,36 @@ export function PortfolioTable({ positions, isPending }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-zinc-800/60">
-            {["Symbol", "Shares", "Avg Cost", "Price", "Day %", "Market Value", "Return", "Weight", ""].map(
-              (col, i) => (
-                <th
-                  key={i}
-                  className={`px-5 py-2.5 text-[11px] font-medium tracking-widest uppercase text-zinc-600 bg-zinc-900/30 ${
-                    i === 0 ? "text-left" : i === 8 ? "w-10" : "text-right"
-                  }`}
-                >
-                  {col}
-                </th>
-              )
-            )}
+            {COLUMNS.map((col, i) => (
+              <th
+                key={i}
+                onClick={() => handleSort(col.key)}
+                className={`px-5 py-2.5 text-xs font-medium tracking-widest uppercase text-zinc-600 bg-zinc-900/30 select-none ${
+                  col.align === "left" ? "text-left" : i === COLUMNS.length - 1 ? "w-10" : "text-right"
+                } ${col.key ? "cursor-pointer hover:text-zinc-400 transition-colors" : ""}`}
+              >
+                <span className="inline-flex items-center gap-1">
+                  {col.label}
+                  {col.key && sort.col === col.key && (
+                    sort.dir === "asc"
+                      ? <ChevronUp size={11} className="text-zinc-400" />
+                      : <ChevronDown size={11} className="text-zinc-400" />
+                  )}
+                </span>
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {positions.map((pos, idx) => {
+          {sortedPositions.map((pos, idx) => {
             const isUp = pos.gain_loss !== null ? pos.gain_loss >= 0 : null
             const priceColor =
               isUp === true
-                ? "text-emerald-400"
+                ? "text-green-400"
                 : isUp === false
                   ? "text-red-400"
                   : "text-zinc-300"
+            const activeAlertsForPos = alertsByTicker[pos.symbol] ?? []
 
             return (
               <tr
@@ -213,17 +317,34 @@ export function PortfolioTable({ positions, isPending }: Props) {
                     <span
                       className={`w-1 h-8 rounded-full shrink-0 transition-colors ${
                         isUp === true
-                          ? "bg-emerald-500/50 group-hover:bg-emerald-400"
+                          ? "bg-green-500/50 group-hover:bg-green-400"
                           : isUp === false
                             ? "bg-red-500/50 group-hover:bg-red-400"
                             : "bg-zinc-700"
                       }`}
                     />
                     <div>
-                      <div className="font-mono font-bold text-white tracking-wide">
-                        {pos.symbol}
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-white tracking-wide">
+                          {pos.symbol}
+                        </span>
+                        {activeAlertsForPos.length > 0 && (
+                          <span
+                            className="inline-flex items-center gap-0.5 text-amber-400"
+                            title={`${activeAlertsForPos.length} active alert${activeAlertsForPos.length !== 1 ? "s" : ""}`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              router.push(`/stocks/${pos.symbol}?tab=alerts`)
+                            }}
+                          >
+                            <Bell size={11} />
+                            <span className="text-[10px] font-semibold tabular-nums">
+                              {activeAlertsForPos.length}
+                            </span>
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[11px] text-zinc-500 truncate max-w-[160px] mt-0.5">
+                      <div className="text-xs text-zinc-500 truncate max-w-[160px] mt-0.5">
                         {pos.name}
                       </div>
                     </div>
@@ -257,7 +378,7 @@ export function PortfolioTable({ positions, isPending }: Props) {
                     <span
                       className={`tabular-nums text-xs font-medium ${
                         pos.day_change_percent >= 0
-                          ? "text-emerald-400"
+                          ? "text-green-400"
                           : "text-red-400"
                       }`}
                     >
@@ -274,7 +395,7 @@ export function PortfolioTable({ positions, isPending }: Props) {
                   <span className="tabular-nums text-white font-medium">
                     {fmtUSD(pos.current_value)}
                   </span>
-                  <div className="text-[11px] text-zinc-600 tabular-nums">
+                  <div className="text-xs text-zinc-600 tabular-nums">
                     {fmtUSD(pos.gain_loss)} P&amp;L
                   </div>
                 </td>

@@ -23,11 +23,11 @@ export default function PortfolioPage() {
     setMounted(true)
   }, [])
 
-  const { data: summaryData, isPending, isFetching } = useQuery({
+  const { data: summaryData, isPending, isFetching, isError } = useQuery({
     queryKey: ["portfolio-summary"],
     queryFn: getPortfolioSummary,
-    refetchInterval: 60_000,
-    staleTime: 5 * 60_000,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   })
 
   const data = summaryData?.portfolio
@@ -81,6 +81,24 @@ export default function PortfolioPage() {
     )
   }
 
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 px-10 py-12 text-center max-w-sm">
+          <p className="text-zinc-200 font-semibold text-lg mb-2">Failed to load portfolio</p>
+          <p className="text-zinc-500 text-sm mb-6">Could not reach the server. Check your connection and try again.</p>
+          <Button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })}
+            className="h-8 px-4 text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 rounded-lg"
+          >
+            <RefreshCw size={12} className="mr-1.5" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-5">
@@ -105,8 +123,8 @@ export default function PortfolioPage() {
                 <RefreshCw size={12} className="text-zinc-500 animate-spin" />
               ) : (
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-40" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-40" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                 </span>
               )}
               <span className="text-[11px] text-zinc-600 tracking-wide">Live</span>

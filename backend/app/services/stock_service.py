@@ -19,6 +19,8 @@ from app.services.stock_ai import generate_ai_analysis, generate_compare_summary
 from app.services.stock_data import (
     fetch_stock_data_batch,
     fetch_stock_data_from_yfinance,
+    fetch_stock_dividends,
+    fetch_stock_enriched_batch,
     fetch_stock_history,
     fetch_stock_info,
     fetch_stock_news,
@@ -30,6 +32,8 @@ __all__ = [
     "generate_compare_summary",
     "fetch_stock_data_batch",
     "fetch_stock_data_from_yfinance",
+    "fetch_stock_dividends",
+    "fetch_stock_enriched_batch",
     "fetch_stock_history",
     "fetch_stock_info",
     "fetch_stock_news",

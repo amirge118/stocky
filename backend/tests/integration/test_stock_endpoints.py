@@ -1,5 +1,5 @@
 """Integration tests for stock API endpoints."""
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -272,18 +272,28 @@ async def test_search_stocks_empty(client: TestClient):
 
 @pytest.mark.asyncio
 async def test_get_stock_data_success(client: TestClient):
-    """Test fetching live stock data."""
-    mock_ticker = MagicMock()
-    mock_fast_info = MagicMock()
-    mock_fast_info.last_price = 155.0
-    mock_fast_info.previous_close = 150.0
-    mock_fast_info.three_month_average_volume = 1000000
-    mock_fast_info.market_cap = 2500000000000
-    mock_fast_info.currency = "USD"
-    mock_ticker.fast_info = mock_fast_info
+    """Test fetching live stock data via FMP."""
+    from unittest.mock import AsyncMock as AM
 
-    with patch("app.services.stock_data.yf") as mock_yf:
-        mock_yf.Ticker.return_value = mock_ticker
+    from app.schemas.stock import StockDataResponse
+
+    mock_response = StockDataResponse(
+        symbol="AAPL",
+        name="Apple Inc.",
+        current_price=155.0,
+        previous_close=150.0,
+        change=5.0,
+        change_percent=3.33,
+        volume=1000000,
+        market_cap=2500000000000.0,
+        currency="USD",
+    )
+
+    with patch(
+        "app.api.v1.endpoints.stocks.stock_service.fetch_stock_data_from_yfinance",
+        new_callable=AM,
+        return_value=mock_response,
+    ):
         response = client.get("/api/v1/stocks/AAPL/data")
 
     assert response.status_code == 200

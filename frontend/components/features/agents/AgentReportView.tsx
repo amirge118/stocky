@@ -19,12 +19,12 @@ function Badge({
 
 function StockDeepDiveView({ data }: { data: Record<string, unknown> }) {
   const recColors: Record<string, string> = {
-    BUY: "bg-emerald-500/15 text-emerald-400",
+    BUY: "bg-green-500/15 text-green-400",
     HOLD: "bg-amber-500/15 text-amber-400",
     SELL: "bg-red-500/15 text-red-400",
   }
   const sentColors: Record<string, string> = {
-    POSITIVE: "bg-emerald-500/15 text-emerald-400",
+    POSITIVE: "bg-green-500/15 text-green-400",
     NEUTRAL: "bg-zinc-700 text-zinc-400",
     NEGATIVE: "bg-red-500/15 text-red-400",
   }
@@ -50,8 +50,8 @@ function StockDeepDiveView({ data }: { data: Record<string, unknown> }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {data.bull_case ? (
-          <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-lg p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600 mb-1">
+          <div className="bg-green-500/5 border border-green-500/15 rounded-lg p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-green-600 mb-1">
               Bull Case
             </p>
             <p className="text-xs text-zinc-300">{String(data.bull_case)}</p>
@@ -88,7 +88,7 @@ function StockDeepDiveView({ data }: { data: Record<string, unknown> }) {
 
 function PortfolioHealthView({ data }: { data: Record<string, unknown> }) {
   const gradeColors: Record<string, string> = {
-    A: "bg-emerald-500/15 text-emerald-400",
+    A: "bg-green-500/15 text-green-400",
     B: "bg-green-500/15 text-green-400",
     C: "bg-amber-500/15 text-amber-400",
     D: "bg-orange-500/15 text-orange-400",
@@ -148,7 +148,7 @@ function PortfolioHealthView({ data }: { data: Record<string, unknown> }) {
             <ul className="space-y-1">
               {(data.rebalancing_suggestions as string[]).map((s) => (
                 <li key={s} className="text-xs text-zinc-400 flex gap-2">
-                  <span className="text-emerald-600 shrink-0">→</span>
+                  <span className="text-green-600 shrink-0">→</span>
                   {s}
                 </li>
               ))}
@@ -161,7 +161,7 @@ function PortfolioHealthView({ data }: { data: Record<string, unknown> }) {
 
 function MarketScannerView({ data }: { data: Record<string, unknown> }) {
   const moodColors: Record<string, string> = {
-    BULLISH: "bg-emerald-500/15 text-emerald-400",
+    BULLISH: "bg-green-500/15 text-green-400",
     BEARISH: "bg-red-500/15 text-red-400",
     NEUTRAL: "bg-zinc-700 text-zinc-400",
     MIXED: "bg-amber-500/15 text-amber-400",
@@ -185,13 +185,13 @@ function MarketScannerView({ data }: { data: Record<string, unknown> }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {Array.isArray(data.top_opportunities) && data.top_opportunities.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600 mb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-green-600 mb-2">
               Opportunities
             </p>
             <ul className="space-y-1">
               {(data.top_opportunities as string[]).map((o) => (
                 <li key={o} className="text-xs text-zinc-300 flex gap-2">
-                  <span className="text-emerald-600 shrink-0">↑</span>
+                  <span className="text-green-600 shrink-0">↑</span>
                   {o}
                 </li>
               ))}
@@ -220,12 +220,12 @@ function MarketScannerView({ data }: { data: Record<string, unknown> }) {
 
 function SectorTrendView({ data }: { data: Record<string, unknown> }) {
   const trendColors: Record<string, string> = {
-    UPTREND: "bg-emerald-500/15 text-emerald-400",
+    UPTREND: "bg-green-500/15 text-green-400",
     DOWNTREND: "bg-red-500/15 text-red-400",
     SIDEWAYS: "bg-zinc-700 text-zinc-400",
   }
   const outlookColors: Record<string, string> = {
-    POSITIVE: "bg-emerald-500/15 text-emerald-400",
+    POSITIVE: "bg-green-500/15 text-green-400",
     NEUTRAL: "bg-zinc-700 text-zinc-400",
     NEGATIVE: "bg-red-500/15 text-red-400",
   }
@@ -243,7 +243,7 @@ function SectorTrendView({ data }: { data: Record<string, unknown> }) {
       <div className="flex gap-4 flex-wrap text-xs text-zinc-500">
         {data.best_sector ? (
           <span>
-            Best: <span className="text-emerald-400">{String(data.best_sector)}</span>
+            Best: <span className="text-green-400">{String(data.best_sector)}</span>
           </span>
         ) : null}
         {data.worst_sector ? (
@@ -274,7 +274,7 @@ function SectorTrendView({ data }: { data: Record<string, unknown> }) {
                 />
                 {s.performance_3m !== null && s.performance_3m !== undefined && (
                   <span
-                    className={`text-xs ${(s.performance_3m as number) >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                    className={`text-xs ${(s.performance_3m as number) >= 0 ? "text-green-400" : "text-red-400"}`}
                   >
                     3M: {(s.performance_3m as number) >= 0 ? "+" : ""}
                     {(s.performance_3m as number).toFixed(1)}%

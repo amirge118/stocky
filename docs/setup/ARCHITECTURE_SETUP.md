@@ -3,6 +3,8 @@
 ## Overview
 The Stock Insight App architecture has been set up with comprehensive rules, dependency management, and best practices documentation.
 
+**Unified agent index:** [docs/ai/README.md](../ai/README.md) and repo root [AGENTS.md](../../AGENTS.md) — canonical paths for Cursor and Claude Code.
+
 ## Created Structure
 
 ```
