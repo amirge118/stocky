@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     telegram_token: str = ""
     telegram_chat_id: str = ""
 
+    # WhatsApp notifications (Meta Cloud API)
+    whatsapp_token: str = ""
+    whatsapp_phone_number_id: str = ""
+
     # Celery
     celery_broker_url: str = "redis://redis:6379/0"
     celery_result_backend: str = "redis://redis:6379/1"

@@ -17,3 +17,7 @@ export function updateAlert(id: number, data: AlertUpdate): Promise<Alert> {
 export function deleteAlert(id: number): Promise<void> {
   return del<void>(`/api/v1/alerts/${id}`)
 }
+
+export function triggerAlert(id: number, currentPrice: number): Promise<Alert> {
+  return post<Alert>(`/api/v1/alerts/${id}/trigger`, { current_price: currentPrice })
+}

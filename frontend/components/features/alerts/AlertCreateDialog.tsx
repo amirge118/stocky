@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createAlert } from "@/lib/api/alerts"
 import type { ConditionType } from "@/types/alerts"
+import { NotificationChannelHint } from "./NotificationChannelHint"
 
 const CONDITIONS: { value: ConditionType; label: string }[] = [
   { value: "ABOVE", label: "Above" },
@@ -67,7 +68,9 @@ export function AlertCreateDialog({ open, onOpenChange }: AlertCreateDialogProps
           <DialogTitle className="text-white">New Price Alert</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+        <NotificationChannelHint />
+
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1" noValidate>
           <div className="space-y-1">
             <label className="text-xs text-zinc-400 font-medium">Ticker</label>
             <Input

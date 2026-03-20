@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { fetchAlerts, updateAlert } from "@/lib/api/alerts"
+import { fetchAlerts, triggerAlert } from "@/lib/api/alerts"
 import { useStockPrices } from "./useStockPrices"
 
 export function useAlertChecker() {
@@ -66,7 +66,7 @@ export function useAlertChecker() {
         })
       }
 
-      updateAlert(alert.id, { is_active: false }).then(() => {
+      triggerAlert(alert.id, currentPrice).then(() => {
         queryClient.invalidateQueries({ queryKey: ["alerts"] })
       })
     }
