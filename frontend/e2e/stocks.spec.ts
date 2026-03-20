@@ -97,16 +97,20 @@ test.describe("Stocks Feature", () => {
   })
 
   test("should display loading state", async ({ page }) => {
-    // Delay the API response
+    // Hold the API response so the loading spinner stays visible long enough to assert
     await page.route("**/api/v1/stocks*", async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      await route.continue()
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: [], meta: { page: 1, limit: 20, total: 0, total_pages: 0 } }),
+      })
     })
 
-    await page.goto("/stocks")
-
-    // Should show loading indicator
-    await expect(page.locator('[role="status"]')).toBeVisible()
+    // domcontentloaded returns before the delayed API call resolves,
+    // so the loading spinner is still visible when we assert
+    await page.goto("/stocks", { waitUntil: "domcontentloaded" })
+    await expect(page.locator('[role="status"]')).toBeVisible({ timeout: 5000 })
   })
 
   test("should display error message on API failure", async ({ page }) => {
@@ -125,7 +129,7 @@ test.describe("Stocks Feature", () => {
 
     await page.goto("/stocks")
 
-    // Should show error message
-    await expect(page.locator("text=error")).toBeVisible({ timeout: 5000 })
+    // Should show error message (TanStack Query retries once before showing error, allow ~10s)
+    await expect(page.getByText(/error/i)).toBeVisible({ timeout: 10000 })
   })
 })
