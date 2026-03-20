@@ -31,7 +31,7 @@ anthropic==0.18.1
 # Caching & Performance (Optional)
 redis==5.0.1
 slowapi==0.1.9
-sentry-sdk[fastapi]==1.40.5
+sentry-sdk[fastapi]==2.55.0
 
 # Scheduling
 apscheduler==3.10.4
