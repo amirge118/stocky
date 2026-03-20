@@ -38,4 +38,4 @@ apscheduler==3.10.4
 celery[redis]==5.3.6
 
 # Environment & Configuration
-python-dotenv==1.0.0
+python-dotenv==1.2.2
