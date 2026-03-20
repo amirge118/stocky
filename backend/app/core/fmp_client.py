@@ -1,7 +1,7 @@
 """Async httpx client for Financial Modeling Prep (FMP) API."""
 
 import logging
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 import httpx
 from tenacity import (
@@ -34,7 +34,7 @@ _retry_on_transient = retry(
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError)),
     reraise=True,
-    before_sleep=before_sleep_log(logger, logging.WARNING),
+    before_sleep=before_sleep_log(cast(Any, logger), logging.WARNING),
 )
 
 
