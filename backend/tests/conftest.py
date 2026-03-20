@@ -5,6 +5,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
 from app.core.dependencies import get_db_session
+from app.core.limiter import limiter
 from app.main import app
 
 # Test database
@@ -36,7 +37,7 @@ async def db_session():
 
 @pytest.fixture
 def client(db_session):
-    """Create a test client."""
+    """Create a test client with rate limiter storage reset to prevent cross-test interference."""
     # Create a sync wrapper for async db_session
     async def override_get_db():
         yield db_session
@@ -44,6 +45,11 @@ def client(db_session):
     app.dependency_overrides[get_db_session] = override_get_db
     app.dependency_overrides[get_db] = override_get_db
 
+    # Reset the rate limiter's in-memory storage before each test so request
+    # counts from previous tests don't bleed into the current one.
+    limiter._limiter.storage.reset()
+
     with TestClient(app) as test_client:
         yield test_client
+
     app.dependency_overrides.clear()
