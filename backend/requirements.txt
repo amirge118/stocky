@@ -35,7 +35,7 @@ sentry-sdk[fastapi]==1.40.5
 
 # Scheduling
 apscheduler==3.10.4
-celery[redis]==5.3.6
+celery[redis]==5.6.2
 
 # Environment & Configuration
 python-dotenv==1.0.0
