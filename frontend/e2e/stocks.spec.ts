@@ -107,10 +107,10 @@ test.describe("Stocks Feature", () => {
       })
     })
 
-    // domcontentloaded returns before the delayed API call resolves,
-    // so the loading spinner is still visible when we assert
-    await page.goto("/stocks", { waitUntil: "domcontentloaded" })
+    // Fire navigation without awaiting so we can assert the spinner while the API is delayed
+    const gotoPromise = page.goto("/stocks")
     await expect(page.locator('[role="status"]')).toBeVisible({ timeout: 5000 })
+    await gotoPromise
   })
 
   test("should display error message on API failure", async ({ page }) => {
@@ -129,7 +129,7 @@ test.describe("Stocks Feature", () => {
 
     await page.goto("/stocks")
 
-    // Should show error message (TanStack Query retries once before showing error, allow ~10s)
-    await expect(page.getByText(/error/i)).toBeVisible({ timeout: 10000 })
+    // Should show error alert (TanStack Query retries once before showing error, allow ~10s)
+    await expect(page.locator('[class*="border-destructive"]').first()).toBeVisible({ timeout: 10000 })
   })
 })
