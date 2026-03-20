@@ -38,7 +38,11 @@ export function StockDividends({ symbol }: StockDividendsProps) {
             <Tooltip
               contentStyle={{ backgroundColor: "#18181b", border: "1px solid #3f3f46", borderRadius: "8px", fontSize: "11px" }}
               labelStyle={{ color: "#a1a1aa" }}
-              formatter={(v: number) => [`$${v.toFixed(4)}`, "Dividend"]}
+              formatter={(value) => {
+                const v = typeof value === "number" ? value : Number(value)
+                const n = Number.isFinite(v) ? v : 0
+                return [`$${n.toFixed(4)}`, "Dividend"]
+              }}
             />
             <Bar dataKey="amount" fill="#4ade80" radius={[2, 2, 0, 0]} />
           </BarChart>

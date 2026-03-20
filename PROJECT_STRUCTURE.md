@@ -27,6 +27,7 @@ stocky/
 
 ### `docs/setup/` - Setup & Installation
 - `QUICK_START.md` - Fastest way to get started
+- `DOCKER.md` - Single-file Docker Compose + env URLs
 - `ENV_SETUP.md` - Environment variables configuration
 - `RUN_SERVERS.md` - Server management guide
 - `ARCHITECTURE_SETUP.md` - Project architecture overview

@@ -54,10 +54,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 interface RsiChartProps {
   data: IndicatorPoint[]
-  period: string
 }
 
-function RsiChart({ data, period }: RsiChartProps) {
+function RsiChart({ data }: RsiChartProps) {
   const filtered = data.filter((p) => p.v !== null)
   if (filtered.length === 0) {
     return <div className="h-20 flex items-center justify-center text-zinc-600 text-xs">No RSI data</div>
@@ -86,7 +85,11 @@ function RsiChart({ data, period }: RsiChartProps) {
           <Tooltip
             {...tooltipStyle}
             labelFormatter={(v) => formatXAxis(v as number)}
-            formatter={(v: number) => [v.toFixed(2), "RSI"]}
+            formatter={(value) => {
+              const v = typeof value === "number" ? value : Number(value)
+              const n = Number.isFinite(v) ? v : 0
+              return [n.toFixed(2), "RSI"]
+            }}
           />
           <ReferenceLine y={70} stroke="#f87171" strokeDasharray="4 2" strokeWidth={1} />
           <ReferenceLine y={30} stroke="#4ade80" strokeDasharray="4 2" strokeWidth={1} />
@@ -107,10 +110,9 @@ function RsiChart({ data, period }: RsiChartProps) {
 
 interface MacdChartProps {
   data: MacdPoint[]
-  period: string
 }
 
-function MacdChart({ data, period }: MacdChartProps) {
+function MacdChart({ data }: MacdChartProps) {
   const filtered = data.filter((p) => p.macd !== null || p.signal !== null)
   if (filtered.length === 0) {
     return <div className="h-20 flex items-center justify-center text-zinc-600 text-xs">No MACD data</div>
@@ -137,7 +139,11 @@ function MacdChart({ data, period }: MacdChartProps) {
           <Tooltip
             {...tooltipStyle}
             labelFormatter={(v) => formatXAxis(v as number)}
-            formatter={(v: number, name: string) => [v.toFixed(4), name]}
+            formatter={(value, name) => {
+              const v = typeof value === "number" ? value : Number(value)
+              const n = Number.isFinite(v) ? v : 0
+              return [n.toFixed(4), String(name ?? "")]
+            }}
           />
           <ReferenceLine y={0} stroke="#3f3f46" strokeWidth={1} />
           <Bar
@@ -174,10 +180,9 @@ function MacdChart({ data, period }: MacdChartProps) {
 
 interface BollingerChartProps {
   data: BollingerPoint[]
-  period: string
 }
 
-function BollingerChart({ data, period }: BollingerChartProps) {
+function BollingerChart({ data }: BollingerChartProps) {
   const filtered = data.filter((p) => p.middle !== null)
   if (filtered.length === 0) {
     return <div className="h-20 flex items-center justify-center text-zinc-600 text-xs">No Bollinger data</div>
@@ -223,7 +228,11 @@ function BollingerChart({ data, period }: BollingerChartProps) {
           <Tooltip
             {...tooltipStyle}
             labelFormatter={(v) => formatXAxis(v as number)}
-            formatter={(v: number, name: string) => [`$${v.toFixed(2)}`, name]}
+            formatter={(value, name) => {
+              const v = typeof value === "number" ? value : Number(value)
+              const n = Number.isFinite(v) ? v : 0
+              return [`$${n.toFixed(2)}`, String(name ?? "")]
+            }}
           />
           {/* Shaded band: upper as top boundary */}
           <Area
@@ -304,19 +313,19 @@ export function StockIndicators({ symbol }: StockIndicatorsProps) {
       {/* RSI */}
       <div>
         <SectionLabel>RSI (14)</SectionLabel>
-        {isPending ? <ChartSkeleton /> : <RsiChart data={data?.rsi ?? []} period={period} />}
+        {isPending ? <ChartSkeleton /> : <RsiChart data={data?.rsi ?? []} />}
       </div>
 
       {/* MACD */}
       <div>
         <SectionLabel>MACD (12, 26, 9)</SectionLabel>
-        {isPending ? <ChartSkeleton /> : <MacdChart data={data?.macd ?? []} period={period} />}
+        {isPending ? <ChartSkeleton /> : <MacdChart data={data?.macd ?? []} />}
       </div>
 
       {/* Bollinger Bands */}
       <div>
         <SectionLabel>Bollinger Bands (20, 2)</SectionLabel>
-        {isPending ? <ChartSkeleton /> : <BollingerChart data={data?.bollinger ?? []} period={period} />}
+        {isPending ? <ChartSkeleton /> : <BollingerChart data={data?.bollinger ?? []} />}
       </div>
     </div>
   )

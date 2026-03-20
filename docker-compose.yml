@@ -1,56 +1,22 @@
+# Single stack: backend, Celery worker/beat, frontend.
+# All DB / Redis / API settings come from backend/.env (DATABASE_URL, REDIS_URL, CELERY_*, keys, …).
+#
+#   cp backend/.env.example backend/.env   # then edit URLs to match your Postgres & Redis (cloud or local)
+# Optional repo-root .env for compose: NEXT_PUBLIC_API_BASE_URL, NEXT_PUBLIC_APP_ENV (see .env.example)
+
 name: stocky
 
 services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: stocky
-      POSTGRES_PASSWORD: stocky_dev
-      POSTGRES_DB: stock_insight
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U stocky -d stock_insight"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql+asyncpg://stocky:stocky_dev@db:5432/stock_insight
-      REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: dev-secret-key-change-in-production
-      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://frontend:3000
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
-      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-      SENTRY_DSN: ${SENTRY_DSN:-}
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./backend:/app
     command: >
@@ -62,22 +28,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     command: celery -A app.celery_app worker --loglevel=info --concurrency=2
-    environment:
-      DATABASE_URL: postgresql+asyncpg://stocky:stocky_dev@db:5432/stock_insight
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
-      SECRET_KEY: dev-secret-key-change-in-production
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
-      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-      SENTRY_DSN: ${SENTRY_DSN:-}
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./backend:/app
 
@@ -86,22 +40,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     command: celery -A app.celery_app beat --loglevel=info --scheduler celery.beat:PersistentScheduler
-    environment:
-      DATABASE_URL: postgresql+asyncpg://stocky:stocky_dev@db:5432/stock_insight
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
-      SECRET_KEY: dev-secret-key-change-in-production
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
-      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-      SENTRY_DSN: ${SENTRY_DSN:-}
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./backend:/app
 
@@ -112,14 +54,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
-      NEXT_PUBLIC_APP_ENV: development
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+      NEXT_PUBLIC_APP_ENV: ${NEXT_PUBLIC_APP_ENV:-development}
     volumes:
       - ./frontend:/app
       - /app/node_modules
     depends_on:
       - backend
-
-volumes:
-  postgres_data:
-  redis-data:

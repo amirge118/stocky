@@ -49,8 +49,8 @@ pip install -r requirements-dev.txt
 # Unit tests only (fast, no DB)
 pytest tests/unit -v
 
-# All tests (needs running Postgres via Docker)
-docker compose up db redis -d
+# All tests (needs Postgres; Redis if your tests require it — use cloud URLs or e.g.)
+# docker run -d --name stocky-test-pg -e POSTGRES_PASSWORD=test -e POSTGRES_DB=stock_insight -p 5432:5432 postgres:16-alpine
 pytest tests -v --cov=app --cov-fail-under=55
 ```
 

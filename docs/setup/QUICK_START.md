@@ -28,25 +28,26 @@ pg_isready
 
 ## Step 4: Run the App
 
-**Option A – Docker infra + local code (recommended):**
+**Option A – Local backend + frontend (recommended after DB is available):**
 
 ```bash
 cd /path/to/stocky
 npm run setup
-# Terminal 1: start db + redis
-npm run docker:infra
-# Terminal 2: start backend + frontend
+# Ensure Postgres + Redis match backend/.env (e.g. steps above, or cloud URLs in .env)
 npm run dev:all
 ```
 
-**Option B – Full Docker:**
+**Option B – Full stack in Docker:**
 
 ```bash
 cd /path/to/stocky
-docker-compose up
+cp backend/.env.example backend/.env
+# Edit backend/.env with your DATABASE_URL, REDIS_URL, CELERY_*, API keys
+# Optional: cp .env.example .env  (NEXT_PUBLIC_* for the frontend container)
+docker compose up --build
 ```
 
-Before first run: copy `backend/.env.example` to `backend/.env` and set `DATABASE_URL`, `REDIS_URL`, and API keys.
+See [DOCKER.md](./DOCKER.md) for optional `docker run` snippets if you need local Postgres/Redis without Compose.
 
 ## Alternative: Manual Setup
 

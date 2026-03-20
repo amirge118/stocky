@@ -18,7 +18,7 @@ if ! curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health 
   echo "Backend not running. Start it in a separate terminal:"
   echo "  cd backend && source venv/bin/activate && uvicorn app.main:app --reload"
   echo ""
-  echo "Or with Docker: docker-compose up db redis backend"
+  echo "Or with Docker: docker compose up backend"
   echo ""
 fi
 

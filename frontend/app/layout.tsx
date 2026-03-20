@@ -1,11 +1,9 @@
 import type { Metadata } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
-import dynamic from "next/dynamic"
+import AlertNotifier from "@/components/AlertNotifier"
 import { Navbar } from "@/components/Navbar"
 import { Providers } from "@/lib/providers"
 import "@/styles/globals.css"
-
-const AlertNotifier = dynamic(() => import("@/components/AlertNotifier"), { ssr: false })
 
 const inter = Inter({
   subsets: ["latin"],
