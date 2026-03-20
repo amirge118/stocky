@@ -100,7 +100,7 @@ class FMPClient:
                     raise FMPRateLimitError(f"FMP rate limit: {msg}")
                 return []
 
-        return data
+        return data  # type: ignore[no-any-return]
 
     async def aclose(self) -> None:
         await self._client.aclose()
