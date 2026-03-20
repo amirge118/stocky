@@ -66,8 +66,16 @@ jobs:
       - name: Install dependencies
         run: npm ci 2>/dev/null || npm install
 
+      - name: Install Playwright system dependencies (Ubuntu 24.04)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            libasound2t64 libatk-bridge2.0-0 libatk1.0-0 libcups2 libdrm2 \
+            libgbm1 libgtk-3-0 libnspr4 libnss3 libxcomposite1 libxdamage1 \
+            libxfixes3 libxkbcommon0 libxrandr2 libxss1 libxtst6 xdg-utils
+
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run E2E smoke tests
         env:
