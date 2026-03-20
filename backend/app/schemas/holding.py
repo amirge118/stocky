@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -13,6 +13,7 @@ class HoldingCreate(BaseModel):
     name: str
     shares: float
     price_per_share: float
+    purchase_date: Optional[date] = None
 
 
 class HoldingResponse(BaseModel):
@@ -22,6 +23,7 @@ class HoldingResponse(BaseModel):
     shares: float
     avg_cost: float
     total_cost: float
+    purchase_date: date
     created_at: datetime
     updated_at: Optional[datetime]
 
@@ -42,6 +44,7 @@ class PortfolioPosition(BaseModel):
     portfolio_pct: Optional[float]
     day_change: Optional[float] = None
     day_change_percent: Optional[float] = None
+    purchase_date: Optional[date] = None
 
 
 class PortfolioSummary(BaseModel):

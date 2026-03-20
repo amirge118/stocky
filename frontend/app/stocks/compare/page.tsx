@@ -5,10 +5,8 @@ import { Suspense, useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { StockComparisonChart } from "@/components/features/stocks/StockComparisonChart"
-import { CompareFundamentalsTable } from "@/components/features/stocks/CompareFundamentalsTable"
-import { CompareAISummary } from "@/components/features/stocks/CompareAISummary"
 
-const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6"]
+const COLORS = ["#4ade80", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6"]
 
 function CompareContent() {
   const searchParams = useSearchParams()
@@ -24,13 +22,8 @@ function CompareContent() {
   const [activeSymbols, setActiveSymbols] = useState(symbols)
 
   useEffect(() => {
-    const parsed = symbolsParam
-      .split(",")
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean)
-      .slice(0, 5)
-    setInputValue(parsed.join(", "))
-    setActiveSymbols(parsed)
+    setInputValue(symbols.join(", "))
+    setActiveSymbols(symbols)
   }, [symbolsParam])
 
   const handleApply = () => {
@@ -90,11 +83,7 @@ function CompareContent() {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            <StockComparisonChart symbols={activeSymbols} colors={COLORS} />
-            <CompareFundamentalsTable symbols={activeSymbols} />
-            <CompareAISummary symbols={activeSymbols} />
-          </div>
+          <StockComparisonChart symbols={activeSymbols} colors={COLORS} />
         )}
       </div>
     </div>

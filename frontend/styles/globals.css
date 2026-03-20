@@ -32,30 +32,52 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    /* Semantic chart colors */
+    --color-gain: #4ade80;  /* green-400 */
+    --color-loss: #f87171;  /* red-400 */
+
+    /* Deep Charcoal base */
+    --background:        221 35% 6%;
+    --foreground:        210 40% 96%;
+
+    /* Midnight Navy for cards/surfaces */
+    --card:              223 42% 9%;
+    --card-foreground:   210 40% 96%;
+    --popover:           223 42% 9%;
+    --popover-foreground:210 40% 96%;
+
+    /* Electric Blue primary */
+    --primary:           199 95% 48%;
+    --primary-foreground:210 40% 98%;
+
+    /* Slightly lighter navy for secondary surfaces */
+    --secondary:         222 32% 14%;
+    --secondary-foreground: 210 40% 96%;
+    --muted:             222 32% 12%;
+    --muted-foreground:  218 14% 55%;
+
+    /* Electric Blue also drives the accent */
+    --accent:            199 95% 48%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+
+    /* Soft Coral for destructive */
+    --destructive:       350 89% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+
+    /* Borders: very subtle blue-white tint */
+    --border:            220 18% 16%;
+    --input:             220 18% 16%;
+    --ring:              199 95% 48%;
+
+    /* Enforce 8px base radius */
+    --radius:            0.5rem;
+
+    /* Chart colors — brand palette */
+    --chart-1:           199 95% 48%;
+    --chart-2:           160 60% 54%;
+    --chart-3:           350 89% 60%;
+    --chart-4:           87 68% 55%;
+    --chart-5:           270 65% 65%;
   }
 }
 
@@ -66,4 +88,91 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  ::selection {
+    background: rgba(14, 165, 233, 0.25);
+    color: #e0f2fe;
+  }
+  ::-webkit-scrollbar       { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+}
+
+@layer utilities {
+  /* Glassmorphism */
+  .glass {
+    background: rgba(15, 22, 35, 0.60);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .glass-heavy {
+    background: rgba(15, 22, 35, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+
+  /* Glow border on hover */
+  .hover-glow-blue {
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .hover-glow-blue:hover {
+    box-shadow: 0 0 0 1px rgba(14,165,233,0.5), 0 0 20px 0 rgba(14,165,233,0.15);
+    border-color: rgba(14,165,233,0.4);
+  }
+  .hover-glow-mint:hover {
+    box-shadow: 0 0 0 1px rgba(52,211,153,0.5), 0 0 20px 0 rgba(52,211,153,0.15);
+    border-color: rgba(52,211,153,0.4);
+  }
+
+  /* Gradient text */
+  .gradient-text-blue {
+    background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .gradient-text-lime {
+    background: linear-gradient(135deg, #a3e635 0%, #34d399 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Standard card shell */
+  .card-surface { @apply rounded-xl border border-zinc-800 bg-zinc-900; }
+
+  /* Section / column header */
+  .section-label { @apply text-xs font-semibold uppercase tracking-widest text-zinc-500; }
+
+  /* Bento grid helper */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: minmax(80px, auto);
+    gap: 0.75rem;
+  }
+
+  /* Shimmer skeleton */
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255,255,255,0.04) 0%,
+      rgba(255,255,255,0.08) 50%,
+      rgba(255,255,255,0.04) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2.5s linear infinite;
+  }
+}
+
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-33.333%); }
+}
+
+.animate-ticker {
+  animation: ticker 28s linear infinite;
 }

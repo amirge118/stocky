@@ -21,7 +21,8 @@ bcrypt==4.1.2
 
 # HTTP & External APIs
 httpx==0.26.0
-yfinance==0.2.33
+tenacity>=8.2.0
+yfinance>=1.0.0
 
 # AI/ML Services
 openai==1.10.0
@@ -30,9 +31,11 @@ anthropic==0.18.1
 # Caching & Performance (Optional)
 redis==5.0.1
 slowapi==0.1.9
+sentry-sdk[fastapi]==1.40.5
 
 # Scheduling
 apscheduler==3.10.4
+celery[redis]==5.3.6
 
 # Environment & Configuration
 python-dotenv==1.0.0

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+import uuid
 from collections.abc import Awaitable, Callable
 from typing import Union
 
@@ -59,6 +60,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
+        request_id = uuid.uuid4().hex[:12]
+        request.state.request_id = request_id
         client_ip = request.client.host if request.client else "unknown"
         method = request.method
         path = request.url.path
@@ -99,7 +102,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         else:
             log_level = logging.ERROR
 
-        parts = [f"{client_ip} {method} {path} {status} {duration_ms:.0f}ms"]
+        parts = [f"[{request_id}] {client_ip} {method} {path} {status} {duration_ms:.0f}ms"]
         if getattr(settings, "log_request_payload", True) and request_body:
             parts.append(f"  request: {_safe_payload(request_body)}")
         if getattr(settings, "log_response_payload", True) and response_body:
@@ -108,5 +111,6 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         # Server-Timing header for DevTools performance visibility
         response.headers["Server-Timing"] = f"total;dur={duration_ms:.0f}"
+        response.headers["X-Request-ID"] = request_id
 
         return response

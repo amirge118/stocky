@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(*)"
+      "Bash(*)",
+      "WebSearch",
+      "WebFetch(domain:site.financialmodelingprep.com)",
+      "WebFetch(domain:financialmodelingprep.com)",
+      "WebFetch(domain:intelligence.financialmodelingprep.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:dlthub.com)",
+      "Skill(update-config)"
     ],
     "deny": []
   }

@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.services.stock_data import fetch_stock_data_from_yfinance
+from app.services.price_service import get_prices
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ _POLL_INTERVAL = 30  # seconds
 
 
 async def _broadcast_prices() -> None:
-    """Poll yfinance for subscribed symbols and broadcast to clients."""
+    """Batch-fetch prices for all subscribed symbols and broadcast to clients."""
     while True:
         try:
             await asyncio.sleep(_POLL_INTERVAL)
@@ -29,29 +29,22 @@ async def _broadcast_prices() -> None:
             if not symbols:
                 continue
 
-            for symbol in symbols:
-                try:
-                    data = await fetch_stock_data_from_yfinance(symbol)
-                    payload = {
-                        "type": "price",
-                        "symbol": symbol,
-                        "price": data.current_price,
-                        "change": data.change,
-                        "change_percent": data.change_percent,
-                    }
-                    msg = json.dumps(payload)
-                    dead: list[WebSocket] = []
-                    for ws in _subscribers.get(symbol, set()):
-                        try:
-                            await ws.send_text(msg)
-                        except Exception:
-                            dead.append(ws)
-                    for ws in dead:
-                        _subscribers[symbol].discard(ws)
-                        if not _subscribers[symbol]:
-                            del _subscribers[symbol]
-                except Exception as e:
-                    logger.debug("WS poll error for %s: %s", symbol, e)
+            # Single batch fetch instead of one call per symbol
+            prices = await get_prices(symbols)
+
+            for symbol, price in prices.items():
+                payload = json.dumps({"type": "price", "symbol": symbol, "price": price})
+                dead: list[WebSocket] = []
+                for ws in _subscribers.get(symbol, set()):
+                    try:
+                        await ws.send_text(payload)
+                    except Exception:
+                        dead.append(ws)
+                for ws in dead:
+                    _subscribers[symbol].discard(ws)
+                    if not _subscribers[symbol]:
+                        del _subscribers[symbol]
+
         except asyncio.CancelledError:
             break
         except Exception as e:
@@ -93,17 +86,13 @@ async def websocket_prices(websocket: WebSocket) -> None:
                     my_symbols = [str(s).upper().strip() for s in symbols[:20] if str(s).strip()]
                     _add_subscription(websocket, my_symbols)
 
-                    for symbol in my_symbols:
+                    # Send immediate prices for newly subscribed symbols via batch
+                    if my_symbols:
                         try:
-                            price_data = await fetch_stock_data_from_yfinance(symbol)
-                            payload = {
-                                "type": "price",
-                                "symbol": symbol,
-                                "price": price_data.current_price,
-                                "change": price_data.change,
-                                "change_percent": price_data.change_percent,
-                            }
-                            await websocket.send_text(json.dumps(payload))
+                            prices = await get_prices(my_symbols)
+                            for symbol, price in prices.items():
+                                payload = {"type": "price", "symbol": symbol, "price": price}
+                                await websocket.send_text(json.dumps(payload))
                         except Exception:
                             pass
             except json.JSONDecodeError:

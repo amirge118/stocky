@@ -2,62 +2,68 @@ import asyncio
 import time
 from typing import Optional
 
-import yfinance as yf
-
 from app.agents.base import AgentResult, AgentStatus, BaseAgent
 from app.core.ai_client import call_claude_json
-from app.core.executors import get_executor
+from app.core.fmp_client import get_fmp_client
 
 
-def _fetch_fundamentals_sync(symbol: str) -> dict:
-    ticker = yf.Ticker(symbol)
-    fast_info = ticker.fast_info
-    info = ticker.info
+def _sf(x: object) -> Optional[float]:
+    if x is None:
+        return None
+    try:
+        v = float(x)  # type: ignore[arg-type]
+        return None if v != v else v
+    except (ValueError, TypeError):
+        return None
 
-    hist_3mo = ticker.history(period="3mo", interval="1d")
-    hist_1y = ticker.history(period="1y", interval="1d")
-    news = ticker.news or []
 
-    sma_50: Optional[float] = None
-    sma_200: Optional[float] = None
+async def _fetch_fundamentals(symbol: str) -> dict:
+    """Fetch fundamentals from FMP using concurrent requests."""
+    client = get_fmp_client()
+    quote_raw, profile_raw, news_raw = await asyncio.gather(
+        client.get(f"/v3/quote/{symbol}"),
+        client.get(f"/v3/profile/{symbol}"),
+        client.get("/v3/stock_news", {"tickers": symbol, "limit": 5}),
+        return_exceptions=True,
+    )
 
-    if not hist_3mo.empty and len(hist_3mo) >= 50:
-        sma_50 = round(float(hist_3mo["Close"].iloc[-50:].mean()), 2)
-    elif not hist_3mo.empty:
-        sma_50 = round(float(hist_3mo["Close"].mean()), 2)
+    q: dict = quote_raw[0] if isinstance(quote_raw, list) and quote_raw else {}
+    p: dict = profile_raw[0] if isinstance(profile_raw, list) and profile_raw else {}
 
-    if not hist_1y.empty and len(hist_1y) >= 200:
-        sma_200 = round(float(hist_1y["Close"].iloc[-200:].mean()), 2)
-    elif not hist_1y.empty:
-        sma_200 = round(float(hist_1y["Close"].mean()), 2)
+    news_titles: list[str] = []
+    if isinstance(news_raw, list):
+        news_titles = [n.get("title", "") for n in news_raw[:5] if n.get("title")]
 
-    current_price = float(fast_info.last_price or 0)
+    price = float(q.get("price") or 0)
+    prev = float(q.get("previousClose") or price)
 
-    news_titles = [
-        (n.get("content") or n).get("title", "") or n.get("title", "")
-        for n in news[:5]
-    ]
+    sma_50 = round(float(q["priceAvg50"]), 2) if q.get("priceAvg50") else None
+    sma_200 = round(float(q["priceAvg200"]), 2) if q.get("priceAvg200") else None
+
+    market_cap = q.get("marketCap") or p.get("mktCap")
+    last_div = _sf(p.get("lastDiv"))
+    div_yield = round(last_div / price, 4) if last_div and price > 0 else None
 
     return {
         "symbol": symbol,
-        "current_price": round(current_price, 2),
-        "previous_close": round(float(fast_info.previous_close or current_price), 2),
-        "market_cap": int(fast_info.market_cap) if fast_info.market_cap else None,
-        "pe_ratio": info.get("trailingPE"),
-        "forward_pe": info.get("forwardPE"),
-        "beta": info.get("beta"),
-        "dividend_yield": info.get("dividendYield"),
-        "sector": info.get("sector"),
-        "industry": info.get("industry"),
-        "fifty_two_week_high": info.get("fiftyTwoWeekHigh"),
-        "fifty_two_week_low": info.get("fiftyTwoWeekLow"),
-        "revenue_growth": info.get("revenueGrowth"),
-        "earnings_growth": info.get("earningsGrowth"),
-        "profit_margins": info.get("profitMargins"),
-        "debt_to_equity": info.get("debtToEquity"),
+        "current_price": round(price, 2),
+        "previous_close": round(prev, 2),
+        "market_cap": int(float(market_cap)) if market_cap else None,
+        "pe_ratio": _sf(q.get("pe")),
+        "forward_pe": None,
+        "beta": _sf(p.get("beta")),
+        "dividend_yield": div_yield,
+        "sector": p.get("sector"),
+        "industry": p.get("industry"),
+        "fifty_two_week_high": _sf(q.get("yearHigh")),
+        "fifty_two_week_low": _sf(q.get("yearLow")),
+        "revenue_growth": None,
+        "earnings_growth": None,
+        "profit_margins": None,
+        "debt_to_equity": None,
         "sma_50": sma_50,
         "sma_200": sma_200,
-        "news_titles": [t for t in news_titles if t],
+        "news_titles": news_titles,
     }
 
 
@@ -80,9 +86,8 @@ class StockDeepDiveAgent(BaseAgent):
         sym = symbol.upper()
         start = time.time()
 
-        loop = asyncio.get_event_loop()
         try:
-            fundamentals = await loop.run_in_executor(get_executor(), _fetch_fundamentals_sync, sym)
+            fundamentals = await _fetch_fundamentals(sym)
         except Exception as e:
             return AgentResult(
                 agent_name=self.name,
@@ -157,7 +162,11 @@ Return exactly this JSON structure:
             agent_type=self.agent_type,
             status=AgentStatus.COMPLETED,
             target_symbol=sym,
-            data={**analysis, "fundamentals": fundamentals, "news_titles": fundamentals.get("news_titles", [])},
+            data={
+                **analysis,
+                "fundamentals": fundamentals,
+                "news_titles": fundamentals.get("news_titles", []),
+            },
             tokens_used=tokens,
             run_duration_ms=int((time.time() - start) * 1000),
         )

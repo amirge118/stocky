@@ -49,23 +49,29 @@ const StatRow = ({
     </div>
   )
 
-const STATS = [
-  { key: "market_cap", label: "Market Cap", fmt: (i: StockInfoResponse) => formatMarketCap(i.market_cap) },
-  { key: "pe", label: "P/E", fmt: (i: StockInfoResponse) => fmt2(i.pe_ratio) },
-  { key: "fpe", label: "Fwd P/E", fmt: (i: StockInfoResponse) => fmt2(i.forward_pe) },
-  { key: "beta", label: "Beta", fmt: (i: StockInfoResponse) => fmt2(i.beta) },
-  { key: "52h", label: "52W High", fmt: (i: StockInfoResponse) => (i.fifty_two_week_high != null ? `$${i.fifty_two_week_high.toFixed(2)}` : "—") },
-  { key: "52l", label: "52W Low", fmt: (i: StockInfoResponse) => (i.fifty_two_week_low != null ? `$${i.fifty_two_week_low.toFixed(2)}` : "—") },
-  { key: "vol", label: "Avg Vol", fmt: (i: StockInfoResponse) => fmtVol(i.average_volume) },
-  { key: "div", label: "Div Yield", fmt: (i: StockInfoResponse) => fmtPct(i.dividend_yield) },
-] as const
+function getStats(currencySymbol: string) {
+  return [
+    { key: "market_cap", label: "Market Cap", fmt: (i: StockInfoResponse) => formatMarketCap(i.market_cap) },
+    { key: "pe", label: "P/E", fmt: (i: StockInfoResponse) => fmt2(i.pe_ratio) },
+    { key: "fpe", label: "Fwd P/E", fmt: (i: StockInfoResponse) => fmt2(i.forward_pe) },
+    { key: "beta", label: "Beta", fmt: (i: StockInfoResponse) => fmt2(i.beta) },
+    { key: "52h", label: "52W High", fmt: (i: StockInfoResponse) => (i.fifty_two_week_high != null ? `${currencySymbol}${i.fifty_two_week_high.toFixed(2)}` : "—") },
+    { key: "52l", label: "52W Low", fmt: (i: StockInfoResponse) => (i.fifty_two_week_low != null ? `${currencySymbol}${i.fifty_two_week_low.toFixed(2)}` : "—") },
+    { key: "vol", label: "Avg Vol", fmt: (i: StockInfoResponse) => fmtVol(i.average_volume) },
+    { key: "div", label: "Div Yield", fmt: (i: StockInfoResponse) => fmtPct(i.dividend_yield) },
+  ]
+}
 
 interface StockKeyStatsProps {
   info: StockInfoResponse
   compact?: boolean
+  currency?: string
 }
 
-export function StockKeyStats({ info, compact = false }: StockKeyStatsProps) {
+export function StockKeyStats({ info, compact = false, currency = "USD" }: StockKeyStatsProps) {
+  const currencySymbol = currency === "ILS" ? "₪" : "$"
+  const STATS = getStats(currencySymbol)
+
   if (compact) {
     return (
       <div className="rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-3">

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Plus, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,17 +16,82 @@ import { AlertDialog } from "@/components/features/stocks/AlertDialog"
 import { useWatchlist } from "@/lib/hooks/useWatchlist"
 import type { Stock } from "@/types/stock"
 
-export default function StocksPage() {
+function StocksContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const { addToWatchlist, removeFromWatchlist } = useWatchlist()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [exchangeFilter, setExchangeFilter] = useState<string | undefined>()
-  const [sectorFilter, setSectorFilter] = useState<string | undefined>()
-  const [watchlistOnly, setWatchlistOnly] = useState(false)
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "")
+  const [exchangeFilter, setExchangeFilter] = useState<string | undefined>(
+    () => searchParams.get("exchange") ?? undefined
+  )
+  const [sectorFilter, setSectorFilter] = useState<string | undefined>(
+    () => searchParams.get("sector") ?? undefined
+  )
+  const [watchlistOnly, setWatchlistOnly] = useState(
+    () => searchParams.get("watchlist") === "true"
+  )
   const [selectedStocks, setSelectedStocks] = useState<Stock[]>([])
   const [alertDialogOpen, setAlertDialogOpen] = useState(false)
   const queryClient = useQueryClient()
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get("q") ?? "")
+    setExchangeFilter(searchParams.get("exchange") ?? undefined)
+    setSectorFilter(searchParams.get("sector") ?? undefined)
+    setWatchlistOnly(searchParams.get("watchlist") === "true")
+  }, [searchParams])
+
+  const updateUrl = useCallback(
+    (
+      newSearch: string,
+      newExchange: string | undefined,
+      newSector: string | undefined,
+      newWatchlist: boolean
+    ) => {
+      const params = new URLSearchParams()
+      if (newSearch) params.set("q", newSearch)
+      if (newExchange) params.set("exchange", newExchange)
+      if (newSector) params.set("sector", newSector)
+      if (newWatchlist) params.set("watchlist", "true")
+      const qs = params.toString()
+      router.replace(`/stocks${qs ? `?${qs}` : ""}`)
+    },
+    [router]
+  )
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchQuery(value)
+      updateUrl(value, exchangeFilter, sectorFilter, watchlistOnly)
+    },
+    [exchangeFilter, sectorFilter, watchlistOnly, updateUrl]
+  )
+
+  const handleExchangeFilterChange = useCallback(
+    (value: string | undefined) => {
+      setExchangeFilter(value)
+      updateUrl(searchQuery, value, sectorFilter, watchlistOnly)
+    },
+    [searchQuery, sectorFilter, watchlistOnly, updateUrl]
+  )
+
+  const handleSectorFilterChange = useCallback(
+    (value: string | undefined) => {
+      setSectorFilter(value)
+      updateUrl(searchQuery, exchangeFilter, value, watchlistOnly)
+    },
+    [searchQuery, exchangeFilter, watchlistOnly, updateUrl]
+  )
+
+  const handleWatchlistOnlyChange = useCallback(
+    (value: boolean) => {
+      setWatchlistOnly(value)
+      updateUrl(searchQuery, exchangeFilter, sectorFilter, value)
+    },
+    [searchQuery, exchangeFilter, sectorFilter, updateUrl]
+  )
 
   const { data, isPending } = useQuery({
     queryKey: ["stocks", 1, 500],
@@ -92,13 +158,13 @@ export default function StocksPage() {
             <StockSearchFilter
               stocks={stocks}
               searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
+              onSearchChange={handleSearchChange}
               exchangeFilter={exchangeFilter}
-              onExchangeFilterChange={setExchangeFilter}
+              onExchangeFilterChange={handleExchangeFilterChange}
               sectorFilter={sectorFilter}
-              onSectorFilterChange={setSectorFilter}
+              onSectorFilterChange={handleSectorFilterChange}
               watchlistOnly={watchlistOnly}
-              onWatchlistOnlyChange={setWatchlistOnly}
+              onWatchlistOnlyChange={handleWatchlistOnlyChange}
             />
 
             {/* Bulk Actions */}
@@ -114,9 +180,18 @@ export default function StocksPage() {
 
             {/* Stock Table */}
             {isPending ? (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-12 animate-pulse">
-                <div className="h-5 w-32 rounded bg-zinc-700 mb-4" />
-                <div className="h-64 rounded bg-zinc-800" />
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+                <div className="divide-y divide-zinc-800">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 px-4 py-3 animate-pulse">
+                      <div className="h-4 w-16 rounded bg-zinc-800" />
+                      <div className="h-4 w-32 rounded bg-zinc-800 flex-1" />
+                      <div className="h-4 w-20 rounded bg-zinc-800" />
+                      <div className="h-4 w-16 rounded bg-zinc-800" />
+                      <div className="h-6 w-24 rounded bg-zinc-800" />
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <StockTable
@@ -162,5 +237,19 @@ export default function StocksPage() {
         <AlertDialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen} />
       </div>
     </div>
+  )
+}
+
+export default function StocksPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+          <div className="animate-pulse h-8 w-48 rounded bg-zinc-800" />
+        </div>
+      }
+    >
+      <StocksContent />
+    </Suspense>
   )
 }

@@ -71,6 +71,7 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
   const [selected, setSelected] = useState<StockSearchResult | null>(null)
   const [shares, setShares] = useState("")
   const [purchasePrice, setPurchasePrice] = useState("")
+  const [purchaseDate, setPurchaseDate] = useState("")
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Reset when closed
@@ -83,6 +84,7 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
       setSelected(null)
       setShares("")
       setPurchasePrice("")
+      setPurchaseDate("")
     }
   }, [open])
 
@@ -174,11 +176,13 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
     const sharesNum = parseFloat(shares)
     const priceNum = parseFloat(purchasePrice)
     if (!sharesNum || sharesNum <= 0 || !priceNum || priceNum <= 0) return
+    const todayIso = new Date().toISOString().split("T")[0]
     mutation.mutate({
       symbol: selected.symbol,
       name: selected.name,
       shares: sharesNum,
       price_per_share: priceNum,
+      purchase_date: purchaseDate || todayIso,
     })
   }
 
@@ -349,6 +353,18 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
                 value={purchasePrice}
                 onChange={(e) => setPurchasePrice(e.target.value)}
                 className="bg-zinc-800 border-zinc-600 text-white placeholder:text-zinc-500 focus-visible:ring-zinc-500"
+              />
+            </div>
+
+            {/* Purchase date input */}
+            <div className="space-y-1.5">
+              <Label className="text-zinc-300">Purchase date</Label>
+              <Input
+                type="date"
+                max={new Date().toISOString().split("T")[0]}
+                value={purchaseDate}
+                onChange={(e) => setPurchaseDate(e.target.value)}
+                className="bg-zinc-800 border-zinc-600 text-white focus-visible:ring-zinc-500"
               />
             </div>
 

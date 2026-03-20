@@ -50,6 +50,10 @@ htmlcov/
 *.sqlite
 *.sqlite3
 
+# Celery Beat (local scheduler state)
+celerybeat-schedule
+celerybeat-schedule.*
+
 # Logs
 *.log
 logs/

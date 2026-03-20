@@ -39,14 +39,14 @@ interface StatProps {
 function Stat({ label, primary, secondary, accent = "neutral", large }: StatProps) {
   const accentColor =
     accent === "gain"
-      ? "text-emerald-400"
+      ? "text-green-400"
       : accent === "loss"
         ? "text-red-400"
         : "text-white"
 
   const dotColor =
     accent === "gain"
-      ? "bg-emerald-400"
+      ? "bg-green-400"
       : accent === "loss"
         ? "bg-red-400"
         : "bg-zinc-600"
@@ -55,7 +55,7 @@ function Stat({ label, primary, secondary, accent = "neutral", large }: StatProp
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
         <span className={`inline-block w-1.5 h-1.5 rounded-full ${dotColor}`} />
-        <span className="text-[11px] font-medium tracking-widest uppercase text-zinc-500">
+        <span className="text-xs font-medium tracking-widest uppercase text-zinc-500">
           {label}
         </span>
       </div>
@@ -98,7 +98,7 @@ export function PortfolioSummaryCard({ summary, isPending }: Props) {
 
   // Gradient border shifts with P&L direction
   const gradientClass = isGain
-    ? "bg-gradient-to-br from-emerald-500/30 via-zinc-800 to-zinc-900"
+    ? "bg-gradient-to-br from-green-500/30 via-zinc-800 to-zinc-900"
     : "bg-gradient-to-br from-red-500/20 via-zinc-800 to-zinc-900"
 
   const hasDayData = summary.total_day_change != null || summary.total_day_change_pct != null
@@ -179,7 +179,7 @@ export function PortfolioSummaryCard({ summary, isPending }: Props) {
         {/* Today's Movers */}
         {(leaders.length > 0 || losers.length > 0) && (
           <div className="mt-4 pt-4 border-t border-zinc-800/60">
-            <p className="text-[11px] font-medium tracking-widest uppercase text-zinc-600 mb-2">
+            <p className="text-xs font-medium tracking-widest uppercase text-zinc-600 mb-2">
               Today&apos;s movers
             </p>
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
@@ -190,7 +190,7 @@ export function PortfolioSummaryCard({ summary, isPending }: Props) {
                     <Link
                       key={p.symbol}
                       href={`/stocks/${p.symbol}`}
-                      className="text-emerald-400 hover:text-emerald-300 font-medium tabular-nums transition-colors"
+                      className="text-green-400 hover:text-green-300 font-medium tabular-nums transition-colors"
                     >
                       {p.symbol} {fmtPct(p.day_change_percent ?? 0)} (
                       {p.day_change != null && p.day_change >= 0 ? "+" : ""}
@@ -226,10 +226,10 @@ export function PortfolioSummaryCard({ summary, isPending }: Props) {
           <div className="mt-5 space-y-1">
             <div className="h-px w-full bg-zinc-800" />
             <div className="flex items-center justify-between pt-2">
-              <span className="text-[11px] text-zinc-600 tracking-widest uppercase">
+              <span className="text-xs text-zinc-600 tracking-widest uppercase">
                 Portfolio performance
               </span>
-              <span className={`text-[11px] font-medium ${isGain ? "text-emerald-500" : "text-red-400"}`}>
+              <span className={`text-xs font-medium ${isGain ? "text-green-400" : "text-red-400"}`}>
                 {fmtPct(summary.total_gain_loss_pct)} all-time
               </span>
             </div>
@@ -237,7 +237,7 @@ export function PortfolioSummaryCard({ summary, isPending }: Props) {
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
                   isGain
-                    ? "bg-gradient-to-r from-emerald-600 to-emerald-400"
+                    ? "bg-gradient-to-r from-green-600 to-green-400"
                     : "bg-gradient-to-r from-red-700 to-red-500"
                 }`}
                 style={{

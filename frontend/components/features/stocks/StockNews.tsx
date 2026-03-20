@@ -30,14 +30,17 @@ export function StockNews({ symbol }: StockNewsProps) {
       <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Latest News</h2>
 
       {isPending ? (
-        <div className="space-y-2.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="animate-pulse flex gap-2">
-              <div className="flex-1 space-y-1">
-                <div className="h-3 bg-zinc-800 rounded w-full" />
-                <div className="h-3 bg-zinc-800 rounded w-4/5" />
+        <div className="divide-y divide-zinc-800/70">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="py-2 first:pt-0 last:pb-0 animate-pulse">
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <div className="flex-1 space-y-1">
+                  <div className="h-3 bg-zinc-800 rounded w-full" />
+                  <div className="h-3 bg-zinc-800 rounded w-4/5" />
+                </div>
+                <div className="h-2.5 w-2.5 rounded bg-zinc-800 shrink-0 mt-0.5" />
               </div>
-              <div className="h-3 bg-zinc-800 rounded w-6 shrink-0" />
+              <div className="h-2.5 bg-zinc-800/70 rounded w-24" />
             </div>
           ))}
         </div>

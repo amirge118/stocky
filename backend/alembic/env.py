@@ -1,13 +1,11 @@
 from logging.config import fileConfig
-from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.pool import NullPool
 
 from alembic import context
 
-# Import your models and Base
-from app.core.database import Base
-from app.core.config import settings
+from app.core.database import Base, _asyncpg_connect_args, effective_database_url
 
 # Import all models so Alembic can detect them
 from app.models.stock import Stock  # noqa: F401
@@ -22,8 +20,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set the SQLAlchemy URL from settings
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Set the SQLAlchemy URL from settings (same IPv4 / SSL rules as the app)
+config.set_main_option("sqlalchemy.url", effective_database_url())
 
 # add your model's MetaData object here
 # for 'autogenerate' support
@@ -73,12 +71,11 @@ async def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = settings.database_url
-    connectable = async_engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
+    migration_url = effective_database_url()
+    connectable = create_async_engine(
+        migration_url,
+        poolclass=NullPool,
+        connect_args=_asyncpg_connect_args(migration_url),
     )
 
     async with connectable.connect() as connection:

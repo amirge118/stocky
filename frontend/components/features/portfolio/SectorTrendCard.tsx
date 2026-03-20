@@ -1,8 +1,8 @@
 "use client"
 
-import { useQueries } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { Flame, TrendingUp } from "lucide-react"
-import { fetchStockData } from "@/lib/api/stocks"
+import { fetchStockDataBatch } from "@/lib/api/stocks"
 import type { SectorSlice } from "@/types/agent"
 
 const SECTOR_ETF: Record<string, string> = {
@@ -30,15 +30,15 @@ export function SectorTrendCard({ sectors }: SectorTrendCardProps) {
     .map((s) => ({ sector: s.sector, etf: SECTOR_ETF[s.sector] }))
     .filter((x) => x.etf)
 
-  const queries = useQueries({
-    queries: sectorEtfs.map(({ etf }) => ({
-      queryKey: ["sector-etf", etf],
-      queryFn: () => fetchStockData(etf),
-      staleTime: 5 * 60_000,
-    })),
-  })
+  // Deduplicate ETF symbols (e.g. Financial + Financial Services both map to XLF)
+  const etfSymbols = [...new Set(sectorEtfs.map((x) => x.etf))]
 
-  const isLoading = queries.some((q) => q.isPending)
+  const { data: batchData, isPending: isLoading } = useQuery({
+    queryKey: ["sector-etf-batch", etfSymbols.join(",")],
+    queryFn: () => fetchStockDataBatch(etfSymbols),
+    staleTime: 5 * 60_000,
+    enabled: etfSymbols.length > 0,
+  })
 
   if (sectors.length === 0) return null
 
@@ -59,8 +59,8 @@ export function SectorTrendCard({ sectors }: SectorTrendCardProps) {
         </div>
       ) : (
         <div className="space-y-2">
-          {sectorEtfs.map(({ sector }, i) => {
-            const data = queries[i]?.data
+          {sectorEtfs.map(({ sector, etf }) => {
+            const data = batchData?.[etf]
             const sectorSlice = sectors.find((s) => s.sector === sector)
             const weight = sectorSlice?.weight_pct ?? 0
             const change = data?.change_percent ?? null
@@ -88,7 +88,7 @@ export function SectorTrendCard({ sectors }: SectorTrendCardProps) {
                     className={`tabular-nums text-sm font-medium ${
                       change != null
                         ? change >= 0
-                          ? "text-emerald-400"
+                          ? "text-green-400"
                           : "text-red-400"
                         : "text-zinc-500"
                     }`}

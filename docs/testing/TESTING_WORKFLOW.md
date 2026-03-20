@@ -31,7 +31,13 @@
    tests/integration/test_stock_endpoints.py  # for app/api/v1/endpoints/stocks.py
    ```
 
-3. **Test Coverage**: Minimum 80% for new code
+3. **Live Postgres URL + connectivity** (optional; uses real `DATABASE_URL` from `backend/.env`):
+   ```bash
+   cd backend && pytest tests/integration/test_database_connection.py -v
+   ```
+   Skips if `DATABASE_URL` is empty or not `postgresql+asyncpg://...`. Validates host/DB path and runs `SELECT 1` with the same SSL rules as `app.core.database`.
+
+4. **Test Coverage**: Minimum 80% for new code
 
 ### Frontend Testing Requirements
 

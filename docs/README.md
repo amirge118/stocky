@@ -18,6 +18,7 @@ docs/
 ### Getting Started
 - **[Quick Start](setup/QUICK_START.md)** - Fastest way to get running
 - **[Environment Setup](setup/ENV_SETUP.md)** - Configure environment variables
+- **[Supabase + Docker](setup/SUPABASE_DOCKER.md)** - Fix Errno 99 / IPv6-only direct host
 - **[Start Development](setup/START_DEVELOPMENT.md)** - Complete setup guide
 
 ### Development

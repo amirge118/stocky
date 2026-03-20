@@ -95,6 +95,19 @@ postgresql+asyncpg://username:password@host:port/database
 DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/stock_insight
 ```
 
+### Cloud Postgres (Supabase, Neon, RDS) + Docker
+
+`asyncpg` needs **TLS** for most remote hosts. The backend enables `ssl=True` automatically when the URL host is **not** `localhost`, `127.0.0.1`, `host.docker.internal`, or common Compose service names (`postgres`, `db`, `database`).
+
+- **`DATABASE_SSL=true`** — force SSL (optional; same as default for remote hosts).
+- **`DATABASE_SSL=false`** — disable SSL if your DB is reachable on a “remote” hostname but does not use TLS (unusual).
+
+From **app containers**, point `DATABASE_URL` at `host.docker.internal` (or your cloud URL), not `localhost`, if the database listens on the host machine.
+
+If you see **`OSError: [Errno 99] Cannot assign requested address`**, check URL, TLS, and IPv4 vs IPv6 for your provider.
+
+If you see **`SSLCertVerificationError`** / *self signed certificate in certificate chain* when using **macOS Command Line Tools Python** (LibreSSL) or a **corporate proxy**, set **`DATABASE_SSL_VERIFY=false`** in `backend/.env` for **local development only** (never in production). Prefer a Python build linked to OpenSSL (e.g. `brew install python@3.11`) or fix system trust store instead.
+
 ### Creating Database
 
 ```bash

@@ -1,9 +1,0 @@
-# Development override - copy to docker-compose.override.yml for local overrides
-# The main docker-compose.yml already includes volumes + --reload for hot reload.
-# Use this file only for additional local overrides (e.g. env vars, ports).
-#
-# Usage: cp docker-compose.override.yml.example docker-compose.override.yml
-#        docker-compose up
-
-services:
-  backend: {}

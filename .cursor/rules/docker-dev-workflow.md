@@ -2,55 +2,31 @@
 
 ## Purpose
 
-This rule ensures that when you add or modify services (frontend, backend, AI agents, databases, caches, etc.), they are properly integrated into Docker and npm scripts so developers can run the app with minimal setup.
+When you add or change app services (frontend, backend, workers), keep them in the **single** [`docker-compose.yml`](../../docker-compose.yml) and document env vars in `backend/.env.example` / [`docs/setup/DOCKER.md`](../../docs/setup/DOCKER.md).
 
-## Mandatory: Add New Services to Docker
+## Mandatory: Compose integration
 
-**When creating or modifying ANY of the following:**
+**When creating or modifying app services** (API, Next.js, Celery workers):
 
-- Backend API (FastAPI, Flask, etc.)
-- Frontend app (Next.js, React, etc.)
-- AI/ML services (agents, workers, inference)
-- Databases (PostgreSQL, Redis, etc.)
-- Message queues, caches, or other infrastructure
+1. **Add or update the service in `docker-compose.yml`** with:
+   - `build` or `image` as appropriate
+   - **`env_file: ./backend/.env`** for Python/Celery services (unless documented otherwise)
+   - `depends_on` only between services defined in this file (no bundled `db`/`redis`)
 
-**You MUST:**
+2. **npm scripts** in root [`package.json`](../../package.json):
+   - `npm run docker:up` — `docker compose up`
+   - `npm run dev:backend` / `npm run dev:frontend` / `npm run dev:all` — run outside Docker
 
-1. **Add the service to `docker-compose.yml`** with:
-   - Appropriate `build` or `image`
-   - Environment variables (from `.env.example`)
-   - Health checks where applicable
-   - Correct `depends_on` for startup order
+3. **Document** in Quick Start or DOCKER.md if the default flow changes.
 
-2. **Add npm scripts to root `package.json`** for common workflows:
-   - `npm run docker:infra` – runs only infrastructure (db, redis) for local dev
-   - `npm run docker:up` – runs full stack
-   - `npm run dev:backend` / `npm run dev:frontend` – run app services locally with hot reload
+## Recommended workflows
 
-3. **Document in README** how to start the new service (Option A/B/C as in Quick Start)
+- **Docker:** `docker compose up --build` — URLs entirely from `backend/.env`.
+- **Hybrid:** Postgres/Redis wherever you host them + `npm run dev:all` for code with hot reload.
 
-## Recommended Development Workflow
+Optional local DB/Redis: see [`docs/setup/DOCKER.md`](../../docs/setup/DOCKER.md) (`docker run` examples). You can still add a **local-only** `docker-compose.override.yml` (gitignored) if you need personal overrides.
 
-**Option A (preferred):** Docker for infra, local for code
-
-- Terminal 1: `npm run docker:infra` (db, redis)
-- Terminal 2: `npm run dev:all` (backend + frontend with hot reload)
-
-**Option B:** Full Docker
-
-- `npm run docker:up` – everything in containers
-- Use `docker-compose.override.yml` for volume mounts and `--reload` when developing
-
-## Adding a New Service – Checklist
-
-1. Add service block to `docker-compose.yml`
-2. Add to `docker:infra` profile or create `docker:app` if it's an app service
-3. Add `npm run dev:<service>` to `package.json` if it runs locally
-4. Update `backend/.env.example` (or relevant `.env.example`) with connection details for localhost when using `docker:infra`
-5. Update README Quick Start if the default flow changes
-6. **Backend/API services**: Include request/response logging middleware from the start (see [api-design-rules.md](./api-design-rules.md) – API Request/Response Logging)
-
-## Example: Adding a New AI Worker
+## Example: new worker service
 
 ```yaml
 # docker-compose.yml
@@ -58,22 +34,14 @@ services:
   ai-worker:
     build: ./backend
     command: python -m app.workers.ai_worker
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-    depends_on:
-      db: { condition: service_healthy }
-      redis: { condition: service_healthy }
-```
-
-```json
-// package.json
-"dev:worker": "cd backend && ./venv/bin/python -m app.workers.ai_worker"
+    env_file:
+      - ./backend/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 ```
 
 ## Reference
 
-- Root [package.json](../../package.json) – npm scripts
-- [docker-compose.yml](../../docker-compose.yml) – service definitions
-- [README.md](../../README.md) – Quick Start and commands
+- [`docker-compose.yml`](../../docker-compose.yml)
+- [`docs/setup/DOCKER.md`](../../docs/setup/DOCKER.md)
+- [`package.json`](../../package.json)

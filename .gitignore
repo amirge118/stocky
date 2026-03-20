@@ -53,6 +53,9 @@ yarn-error.log*
 coverage/
 .nyc_output/
 
+# Database backups (local)
+backups/
+
 # Temporary files
 *.tmp
 *.temp
@@ -70,6 +73,13 @@ docker-compose.override.yml
 
 # Claude/Cursor local settings
 .claude/settings.local.json
+
+# Cursor skills (e.g. UI/UX Pro Max Python search)
+.cursor/skills/**/__pycache__/
+.cursor/skills/**/*.pyc
+
+# Optional: persisted design systems from ui-ux-pro-max (`--persist`)
+# design-system/
 
 # Cursor plan files (local)
 .cursor/plans/

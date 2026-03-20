@@ -2,9 +2,12 @@ import logging
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -15,17 +18,30 @@ from app import agents  # noqa: F401
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.database import engine
+from app.core.limiter import limiter
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.middleware.error_handler import (
     general_exception_handler,
     http_exception_handler,
+    sqlalchemy_exception_handler,
     validation_exception_handler,
 )
 from app.middleware.request_logging import RequestLoggingMiddleware
 
 # Import models so Alembic can detect them
 from app.models.agent_report import AgentReport  # noqa: F401
+from app.models.alert import Alert  # noqa: F401
 from app.models.holding import Holding  # noqa: F401
 from app.models.stock import Stock  # noqa: F401
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        traces_sample_rate=0.1,
+        profiles_sample_rate=0.1,
+        environment=settings.environment,
+    )
 
 # Ensure request logging middleware logs are visible
 _logger = logging.getLogger("app.middleware.request_logging")
@@ -51,6 +67,10 @@ application = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Rate limiting
+application.state.limiter = limiter
+application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # Security headers middleware
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -80,9 +100,10 @@ application.add_middleware(
     max_age=600,
 )
 
-# Exception handlers
+# Exception handlers (SQLAlchemy before broad Exception)
 application.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
 application.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
+application.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)  # type: ignore[arg-type]
 application.add_exception_handler(Exception, general_exception_handler)
 
 # Include routers
