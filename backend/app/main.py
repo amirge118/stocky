@@ -6,8 +6,9 @@ import sentry_sdk
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -19,8 +20,6 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.database import engine
 from app.core.limiter import limiter
-from sqlalchemy.exc import SQLAlchemyError
-
 from app.middleware.error_handler import (
     general_exception_handler,
     http_exception_handler,
@@ -33,6 +32,7 @@ from app.middleware.request_logging import RequestLoggingMiddleware
 from app.models.agent_report import AgentReport  # noqa: F401
 from app.models.alert import Alert  # noqa: F401
 from app.models.holding import Holding  # noqa: F401
+from app.models.notification_settings import NotificationSettings  # noqa: F401
 from app.models.stock import Stock  # noqa: F401
 
 if settings.sentry_dsn:

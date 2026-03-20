@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Bell } from "lucide-react"
 import { useAlerts } from "@/lib/hooks/useAlerts"
+import { NotificationChannelHint } from "@/components/features/alerts/NotificationChannelHint"
 
 export interface AlertDialogProps {
   open: boolean
@@ -72,6 +73,8 @@ export function AlertDialog({ open, onOpenChange, symbol: initialSymbol, current
         </DialogHeader>
 
         <div className="space-y-4">
+          <NotificationChannelHint />
+
           {/* Symbol — only when not pre-set */}
           {!initialSymbol && (
             <div className="space-y-1.5">

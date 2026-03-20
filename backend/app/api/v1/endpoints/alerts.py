@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -5,8 +6,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.limiter import limiter
-from app.schemas.alert import AlertCreate, AlertResponse, AlertUpdate
+from app.core.telegram import send_alert_message
+from app.core.whatsapp import send_whatsapp_message
+from app.schemas.alert import (
+    AlertCreate,
+    AlertResponse,
+    AlertTriggerRequest,
+    AlertUpdate,
+)
 from app.services import alert_service
+from app.services.notification_settings_service import get_or_create_settings
 
 router = APIRouter()
 
@@ -78,3 +87,49 @@ async def delete_alert(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Alert {alert_id} not found",
         )
+
+
+@router.post("/{alert_id}/trigger", response_model=AlertResponse)
+async def trigger_alert(
+    alert_id: int,
+    data: AlertTriggerRequest,
+    db: AsyncSession = Depends(get_db),
+) -> AlertResponse:
+    """Mark an alert as triggered (idempotent) and dispatch Telegram notification."""
+    alert = await alert_service.get_alert(db, alert_id)
+    if not alert:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Alert {alert_id} not found",
+        )
+    if not alert.is_active:
+        return AlertResponse.model_validate(alert)
+
+    await alert_service.mark_triggered(db, alert)
+    alert.is_active = False
+    await db.commit()
+    await db.refresh(alert)
+
+    settings_row = await get_or_create_settings(db)
+    if settings_row.telegram_enabled and settings_row.telegram_chat_id:
+        asyncio.create_task(
+            send_alert_message(
+                ticker=alert.ticker,
+                condition_type=alert.condition_type,
+                target_price=alert.target_price,
+                current_price=data.current_price,
+                chat_id=settings_row.telegram_chat_id,
+            )
+        )
+    if settings_row.whatsapp_enabled and settings_row.whatsapp_phone:
+        asyncio.create_task(
+            send_whatsapp_message(
+                ticker=alert.ticker,
+                condition_type=alert.condition_type,
+                target_price=alert.target_price,
+                current_price=data.current_price,
+                phone=settings_row.whatsapp_phone,
+            )
+        )
+
+    return AlertResponse.model_validate(alert)

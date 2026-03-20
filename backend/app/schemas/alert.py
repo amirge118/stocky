@@ -23,6 +23,10 @@ class AlertUpdate(BaseModel):
     target_price: Optional[Decimal] = Field(default=None, gt=0, le=1_000_000)
 
 
+class AlertTriggerRequest(BaseModel):
+    current_price: float = Field(..., gt=0)
+
+
 class AlertResponse(BaseModel):
     id: int
     ticker: str

@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createAlert, fetchAlerts } from "@/lib/api/alerts"
 import { AlertRow } from "@/components/features/alerts/AlertRow"
+import { NotificationChannelHint } from "@/components/features/alerts/NotificationChannelHint"
 import type { ConditionType } from "@/types/alerts"
 
 type Mode = "price" | "percent"
@@ -105,6 +106,8 @@ export function StockAlertsSection({ symbol, currentPrice }: Props) {
           ))}
         </div>
       </div>
+
+      <NotificationChannelHint />
 
       {/* Single-line form */}
       <form onSubmit={handleSubmit} className="space-y-1.5">

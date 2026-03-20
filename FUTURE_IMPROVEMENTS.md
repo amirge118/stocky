@@ -28,9 +28,22 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ## Planned Next
 
-- [ ] **Email/Telegram Alert Delivery** [MEDIUM]
-  - Deliver triggered alerts via email or Telegram bot in addition to browser push
-  - Backend: new notification channel model + delivery service
+- [x] **Telegram & WhatsApp Alert Delivery** [MEDIUM] ✓
+  - Notification settings singleton with per-channel toggles (Telegram, WhatsApp, browser push)
+  - `/settings` page with Chat ID / phone number inputs, save, and test connection per channel
+  - `POST /api/v1/alerts/{id}/trigger` fires Telegram + WhatsApp server-side on alert trigger
+  - `useAlertChecker` calls trigger endpoint instead of updateAlert
+  - WhatsApp uses Meta Cloud API (`WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` env vars)
+
+- [ ] **Backend-Driven Alert Checker Cron Job** [MEDIUM]
+  - Fire Telegram alerts even when browser is closed (no frontend needed)
+  - Scheduled job polls active alerts and compares against live prices
+
+- [ ] **Per-Alert Notification Channel Override** [LOW]
+  - Choose Telegram-only, browser-only, or both on a per-alert basis
+
+- [ ] **Telegram Bot Webhook with `/start` Auto-Reply** [LOW]
+  - Bot auto-replies to `/start` with the user's Chat ID to simplify onboarding
 
 - [ ] **Alert History / Notification Log UI** [LOW]
   - Show past triggered alerts with timestamp and price at trigger

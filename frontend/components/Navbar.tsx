@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/watchlist", label: "Watchlist" },
   { href: "/market",    label: "Market" },
   { href: "/agents",    label: "Agents" },
+  { href: "/settings",  label: "Settings" },
 ]
 
 export function Navbar() {
