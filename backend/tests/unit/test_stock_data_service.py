@@ -424,6 +424,7 @@ async def test_fetch_news_empty_on_failure():
     with (
         patch("app.services.stock_data.cache_get", new_callable=AsyncMock, return_value=None),
         patch("app.services.stock_data.get_fmp_client", return_value=mock_client),
+        patch("app.services.stock_data.yf_client.fetch_news", new_callable=AsyncMock, return_value=[]),
     ):
         result = await fetch_stock_news("AAPL")
 
@@ -450,6 +451,7 @@ async def test_search_fmp_rate_limit_falls_back_to_yfinance():
     mock_yf_client = MagicMock()
     mock_yf_client.search_yf = AsyncMock(return_value=[hims_result])
     mock_yf_client.search_tase = MagicMock(return_value=[])
+    mock_yf_client.fetch_quote = AsyncMock(return_value=None)
 
     with (
         patch("app.services.stock_data.cache_get", new_callable=AsyncMock, return_value=None),

@@ -1,6 +1,7 @@
 """Reliability helpers for yfinance: rate-limit detection and retry decorator."""
 
 import logging
+from typing import Any, cast
 
 from tenacity import (
     before_sleep_log,
@@ -42,5 +43,5 @@ yf_retry = retry(
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception(_is_retryable),
     reraise=True,
-    before_sleep=before_sleep_log(logger, logging.WARNING),
+    before_sleep=before_sleep_log(cast(Any, logger), logging.WARNING),
 )

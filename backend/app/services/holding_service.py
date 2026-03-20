@@ -17,6 +17,8 @@ from app.schemas.holding import (
 from app.schemas.stock import (
     PortfolioNewsItem,
     StockDataResponse,
+    StockHistoryPoint,
+    StockHistoryResponse,
     StockInfoResponse,
 )
 from app.services.stock_data import (
@@ -262,6 +264,50 @@ async def get_portfolio_news(db: AsyncSession, limit: int = 20) -> list[Portfoli
     return merged[:limit]
 
 
+async def fetch_stock_history(symbol: str, period: str) -> StockHistoryResponse:
+    """Fetch historical price data for a symbol and return as StockHistoryResponse.
+
+    For the "1d" period intraday (5-min) bars are used.
+    For all other periods daily closes are used.
+    """
+    import calendar
+
+    if period == "1d":
+        bars = await fetch_history_intraday(symbol)
+        data = [
+            StockHistoryPoint(
+                t=int(dt.timestamp() * 1000),
+                o=price,
+                h=price,
+                l=price,
+                c=price,
+            )
+            for dt, price in bars
+        ]
+        return StockHistoryResponse(symbol=symbol, period=period, data=data)
+
+    today = date.today()
+    period_map: dict[str, date] = {
+        "1w": today - timedelta(days=7),
+        "1m": today - timedelta(days=30),
+        "6m": today - timedelta(days=180),
+        "1y": today - timedelta(days=365),
+    }
+    window_start = period_map.get(period, today - timedelta(days=30))
+    prices = await fetch_history_daily(symbol, window_start, today)
+    data = [
+        StockHistoryPoint(
+            t=int(calendar.timegm(d.timetuple()) * 1000),
+            o=price,
+            h=price,
+            l=price,
+            c=price,
+        )
+        for d, price in sorted(prices.items())
+    ]
+    return StockHistoryResponse(symbol=symbol, period=period, data=data)
+
+
 async def get_portfolio_history(db: AsyncSession, period: str = "1m") -> PortfolioHistoryResponse:
     """Compute portfolio $ value over time using yfinance historical prices.
 
@@ -276,67 +322,23 @@ async def get_portfolio_history(db: AsyncSession, period: str = "1m") -> Portfol
     if not holdings:
         return PortfolioHistoryResponse(period=period, data=[])
 
-    # ── Intraday branch (1D) ────────────────────────────────────────────────
-    if period == "1d":
-        intraday_results = await asyncio.gather(
-            *[fetch_history_intraday(h.symbol) for h in holdings],
-            return_exceptions=True,
-        )
-        ts_values: dict[int, float] = defaultdict(float)
-        for holding, bars in zip(holdings, intraday_results):
-            if not isinstance(bars, list):
-                continue
-            for dt, price in bars:
-                ts_ms = int(dt.timestamp() * 1000)
-                ts_values[ts_ms] += holding.shares * price
-
-        if not ts_values:
-            return PortfolioHistoryResponse(period=period, data=[])
-
-        points = [
-            PortfolioHistoryPoint(t=t, value=round(v, 2))
-            for t, v in sorted(ts_values.items())
-        ]
-        return PortfolioHistoryResponse(period=period, data=points)
-
-    # ── Daily branch ────────────────────────────────────────────────────────
-    today = date.today()
-    period_map: dict[str, date] = {
-        "1w": today - timedelta(days=7),
-        "1m": today - timedelta(days=30),
-        "6m": today - timedelta(days=180),
-        "1y": today - timedelta(days=365),
-    }
-
-    if period == "all":
-        window_start = min(h.purchase_date for h in holdings)
-    else:
-        window_start = period_map.get(period, today - timedelta(days=30))
-
-    daily_results = await asyncio.gather(
-        *[fetch_history_daily(h.symbol, window_start, today) for h in holdings],
+    history_results = await asyncio.gather(
+        *[fetch_stock_history(h.symbol, period) for h in holdings],
         return_exceptions=True,
     )
 
-    date_values: dict[date, float] = defaultdict(float)
-    for holding, prices in zip(holdings, daily_results):
-        if not isinstance(prices, dict):
+    ts_values: dict[int, float] = defaultdict(float)
+    for holding, history in zip(holdings, history_results):
+        if not isinstance(history, StockHistoryResponse):
             continue
-        for d, price in prices.items():
-            # Only count this holding from its purchase_date onward
-            if d >= holding.purchase_date:
-                date_values[d] += holding.shares * price
+        for point in history.data:
+            ts_values[point.t] += holding.shares * point.c
 
-    if not date_values:
+    if not ts_values:
         return PortfolioHistoryResponse(period=period, data=[])
 
-    import calendar
-
     points = [
-        PortfolioHistoryPoint(
-            t=int(calendar.timegm(d.timetuple()) * 1000),
-            value=round(v, 2),
-        )
-        for d, v in sorted(date_values.items())
+        PortfolioHistoryPoint(t=t, value=round(v, 2))
+        for t, v in sorted(ts_values.items())
     ]
     return PortfolioHistoryResponse(period=period, data=points)

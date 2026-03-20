@@ -1,7 +1,7 @@
 import asyncio
 import time
 from datetime import date, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 from app.agents.base import AgentResult, AgentStatus, BaseAgent
 from app.core.ai_client import call_claude_json
@@ -31,6 +31,8 @@ async def _fetch_etf_performance(etf_symbol: str) -> dict:
     from_1y = (today - timedelta(days=366)).isoformat()
     to_date = today.isoformat()
 
+    hist_3m_raw: Any
+    hist_1y_raw: Any
     hist_3m_raw, hist_1y_raw = await asyncio.gather(
         client.get(
             "/stable/historical-price-eod/full",
