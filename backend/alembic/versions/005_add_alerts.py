@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "005_add_alerts"
@@ -20,7 +21,20 @@ conditiontype_enum = sa.Enum("ABOVE", "BELOW", "EQUAL", name="conditiontype")
 
 
 def upgrade() -> None:
-    conditiontype_enum.create(op.get_bind(), checkfirst=True)
+    # Idempotent: a failed run can leave `conditiontype` in the DB while alembic is still
+    # before 005; `create_type=False` on the column does not always stop SQLAlchemy from
+    # emitting CREATE TYPE again, so use a safe PG block instead of Enum.create().
+    op.execute(
+        """
+        DO $do$
+        BEGIN
+            CREATE TYPE conditiontype AS ENUM ('ABOVE', 'BELOW', 'EQUAL');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END
+        $do$;
+        """
+    )
 
     op.create_table(
         "alerts",
@@ -28,7 +42,11 @@ def upgrade() -> None:
         sa.Column("ticker", sa.String(10), nullable=False),
         sa.Column(
             "condition_type",
-            sa.Enum("ABOVE", "BELOW", "EQUAL", name="conditiontype", create_type=False),
+            postgresql.ENUM(
+                "ABOVE", "BELOW", "EQUAL",
+                name="conditiontype",
+                create_type=False,
+            ),
             nullable=False,
         ),
         sa.Column("target_price", sa.Numeric(12, 4), nullable=False),

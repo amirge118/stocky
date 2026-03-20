@@ -19,9 +19,12 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.database import engine
 from app.core.limiter import limiter
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.middleware.error_handler import (
     general_exception_handler,
     http_exception_handler,
+    sqlalchemy_exception_handler,
     validation_exception_handler,
 )
 from app.middleware.request_logging import RequestLoggingMiddleware
@@ -97,9 +100,10 @@ application.add_middleware(
     max_age=600,
 )
 
-# Exception handlers
+# Exception handlers (SQLAlchemy before broad Exception)
 application.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
 application.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
+application.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)  # type: ignore[arg-type]
 application.add_exception_handler(Exception, general_exception_handler)
 
 # Include routers

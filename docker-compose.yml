@@ -19,9 +19,10 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./backend:/app
+    # Do not ignore alembic failures — otherwise the API starts with an outdated DB schema (500s).
+    # --loop asyncio: uvloop + asyncpg + TLS often raises OSError [Errno 99] to cloud Postgres (e.g. Supabase).
     command: >
-      sh -c "alembic upgrade head 2>/dev/null || true &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      sh -c "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --loop asyncio"
 
   celery-worker:
     build:

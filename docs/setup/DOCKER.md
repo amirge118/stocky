@@ -38,3 +38,22 @@ Then point `backend/.env` at `localhost` (or `host.docker.internal` from **insid
 ## Containers and the host
 
 `docker-compose.yml` sets `extra_hosts: host.docker.internal:host-gateway` on Python services so `DATABASE_URL` can use `host.docker.internal` when the DB listens on your machine, not inside Compose.
+
+## Troubleshooting: `500` on `/api/v1/portfolio/...` or `/alerts`
+
+1. **Supabase + Docker + `Errno 99`** — direct host `db.*.supabase.co` is often **IPv6-only**; Docker Desktop may not reach it. Use the **pooler** URI from the Supabase dashboard (IPv4). See **[SUPABASE_DOCKER.md](./SUPABASE_DOCKER.md)**.
+
+2. **Migrations** — the backend container runs `alembic upgrade head` on start. If it failed in older setups (errors were previously ignored), fix the DB connection and recreate the container:
+   ```bash
+   docker compose logs backend | tail -80
+   docker compose exec backend alembic upgrade head
+   docker compose restart backend
+   ```
+3. **`localhost:8000` in the browser Network tab** is normal when the UI calls an API on your machine; it is not wrong if your `NEXT_PUBLIC_API_BASE_URL` is `http://localhost:8000`. A **500** means the server handled the request but threw an error (often schema/DB).
+
+4. **`OSError: [Errno 99]`** can also be **uvloop + asyncpg**; Compose runs uvicorn with **`--loop asyncio`**.
+
+5. **Wrong `DATABASE_URL` from inside the container** or **missing TLS for cloud Postgres**. Fix:
+   - Use `host.docker.internal` (not `localhost`) if Postgres runs on your Mac/host.
+   - For **Supabase from Docker**, prefer the **pooler** URI (IPv4). Direct `db.*.supabase.co` is often IPv6-only → Errno 99. See [SUPABASE_DOCKER.md](./SUPABASE_DOCKER.md).
+   - The app sets `ssl=True` for non-local hosts automatically (see `DATABASE_SSL` in `backend/.env.example`).
