@@ -22,6 +22,7 @@ bcrypt==4.1.2
 # HTTP & External APIs
 httpx==0.26.0
 tenacity>=8.2.0
+yfinance>=1.0.0
 
 # AI/ML Services
 openai==1.10.0

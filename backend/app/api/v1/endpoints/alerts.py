@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,10 +27,11 @@ async def create_alert(
 async def list_alerts(
     limit: int = 50,
     offset: int = 0,
+    ticker: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ) -> list[AlertResponse]:
-    """List all alerts."""
-    alerts = await alert_service.list_alerts(db, limit=limit, offset=offset)
+    """List all alerts, optionally filtered by ticker."""
+    alerts = await alert_service.list_alerts(db, limit=limit, offset=offset, ticker=ticker)
     return [AlertResponse.model_validate(a) for a in alerts]
 
 

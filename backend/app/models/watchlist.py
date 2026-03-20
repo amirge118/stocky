@@ -35,7 +35,7 @@ class WatchlistItem(BaseModel):
         ForeignKey("watchlist_lists.id", ondelete="CASCADE"),
         nullable=False,
     )
-    symbol: Mapped[str] = mapped_column(String(10), nullable=False)
+    symbol: Mapped[str] = mapped_column(String(15), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     exchange: Mapped[str] = mapped_column(String(50), nullable=False)
     sector: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)

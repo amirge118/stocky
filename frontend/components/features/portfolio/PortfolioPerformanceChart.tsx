@@ -19,12 +19,13 @@ const PERIODS = [
   { label: "1M", value: "1m" },
   { label: "6M", value: "6m" },
   { label: "1Y", value: "1y" },
+  { label: "ALL", value: "all" },
 ]
 
 function formatXAxis(ts: number, period: string): string {
   const d = new Date(ts)
   if (period === "1d") return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  if (period === "1w") return d.toLocaleDateString([], { month: "short", day: "numeric" })
+  if (period === "all") return d.toLocaleDateString([], { month: "short", year: "2-digit" })
   return d.toLocaleDateString([], { month: "short", day: "numeric" })
 }
 
@@ -51,7 +52,7 @@ export function PortfolioPerformanceChart({ enabled = true }: PortfolioPerforman
   const points = data?.data ?? []
   const isPositive =
     points.length >= 2 ? points[points.length - 1].value >= points[0].value : true
-  const color = isPositive ? "#22c55e" : "#ef4444"
+  const color = isPositive ? "#4ade80" : "#f87171"
   const gradientId = `portfolio-grad-${period}`
 
   if (!enabled) return null

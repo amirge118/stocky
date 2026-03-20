@@ -2,6 +2,77 @@
 
 This document tracks all ideas, features, and improvements for the Stock Insight App. Every request, feature idea, or improvement suggestion should be added here for future consideration.
 
+## Recently Implemented (2026-03-20)
+
+- [x] **Browser Push Notifications for Alerts** [HIGH] ✓
+  - `useAlertChecker` hook subscribes to WebSocket prices and fires `Notification` when condition met
+  - Auto-deactivates triggered alert via `updateAlert` + `invalidateQueries(["alerts"])`
+  - Mounted globally via `<AlertNotifier />` in `layout.tsx`
+
+- [x] **Portfolio ↔ Alerts Integration** [MEDIUM] ✓
+  - Bell icon badge on portfolio table rows for symbols with active alerts
+  - Click navigates to `/stocks/[symbol]?tab=alerts`
+
+- [x] **Sortable Portfolio Table** [MEDIUM] ✓
+  - All numeric and symbol columns clickable with ChevronUp/Down indicator
+  - Sort state persisted per session in component state
+
+- [x] **Error States** [MEDIUM] ✓
+  - Portfolio page: centered error card with retry button
+  - Watchlist page: error banner below sidebar
+  - WatchlistMainPanel: error message above stock list
+
+- [x] **Landing Page Live Market Data** [MEDIUM] ✓
+  - Market Indices bento cell and Sector Heatmap now powered by `/api/v1/market/overview`
+  - Falls back to static arrays if API is unavailable
+
+## Planned Next
+
+- [ ] **Email/Telegram Alert Delivery** [MEDIUM]
+  - Deliver triggered alerts via email or Telegram bot in addition to browser push
+  - Backend: new notification channel model + delivery service
+
+- [ ] **Alert History / Notification Log UI** [LOW]
+  - Show past triggered alerts with timestamp and price at trigger
+  - Accessible from Alerts page
+
+- [ ] **Keyboard Shortcuts** [LOW]
+  - ⌘K global search, P/W/M for Portfolio/Watchlist/Market navigation
+  - Display shortcut hints in Navbar
+
+- [ ] **Stock Screener with Multi-Filter UI** [MEDIUM]
+  - Filter stocks by sector, P/E range, market cap, dividend yield, analyst rating
+  - Save/share screener configurations
+
+- [ ] **Dividend Income Projection** [LOW]
+  - Per-holding and total annual dividend income on portfolio page
+  - Monthly income calendar view
+
+- [ ] **MACD Histogram Per-Bar Coloring** [LOW]
+  - Color bars individually (green above 0, red below 0) using Recharts `Cell`
+
+- [ ] **Portfolio Target / Goal Tracking** [LOW]
+  - Set a target value or allocation goal per symbol
+  - Visual indicator of progress toward goal
+
+- [ ] **Watchlist Price Alert Shortcut** [LOW]
+  - Set alert directly from watchlist row context menu
+  - Pre-fills ticker and current price in alert dialog
+
+---
+
+## UI/UX Design System
+
+### From UI Consistency Pass (2026-03-20)
+
+- [ ] Animate gain/loss color transitions on price updates (flash green→neutral / red→neutral) [MEDIUM]
+- [ ] Add gradient border variant for cards on hover (glow-blue on interactive cards) [LOW]
+- [ ] Skeleton shimmer improvements — use `skeleton-shimmer` CSS class consistently across all loading states instead of bare `animate-pulse` [LOW]
+- [ ] MACD histogram coloring — color bars individually (green above 0, red below 0) using Recharts Cell [MEDIUM]
+- [ ] Replace `text-[10px]` in `app/page.tsx` hero section (landing page bento mockup) with `text-xs` as part of a landing page polish pass [LOW]
+- [ ] Standardize `SectorBreakdownTable` and `StockSectorOverview` column headers to use `.section-label` utility class [LOW]
+- [ ] Add `.card-surface` utility class usage sweep across all feature panels for full card surface uniformity [LOW]
+
 ## Testing Improvements
 
 ### From Testing Summary
@@ -36,6 +107,10 @@ This document tracks all ideas, features, and improvements for the Stock Insight
 
 ### Database & Performance
 
+- [ ] **Supabase Row Level Security (RLS)** [MEDIUM]
+  - Enable RLS policies on all tables once user auth is added
+  - Restrict each user to their own holdings/watchlists/alerts
+  - Use `auth.uid()` in policy predicates; test via Supabase Dashboard → Auth Policies
 - [ ] Add database connection pooling optimization
 - [ ] Add database query optimization and indexing strategy review
 - [ ] Implement database read replicas for scaling

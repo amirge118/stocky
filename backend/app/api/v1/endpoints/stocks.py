@@ -14,6 +14,7 @@ from app.schemas.stock import (
     StockCreate,
     StockDataResponse,
     StockDividendsResponse,
+    StockEnrichedData,
     StockHistoryResponse,
     StockIndicatorsResponse,
     StockInfoResponse,
@@ -50,6 +51,18 @@ async def get_batch_stock_data(body: BatchStockDataRequest) -> dict[str, StockDa
 @router.options("/batch-data")
 async def options_batch_data() -> Response:
     """Handle OPTIONS preflight for batch-data."""
+    return Response(status_code=200)
+
+
+@router.post("/enriched-batch", summary="Fetch enriched data for multiple stocks")
+async def get_enriched_batch(body: BatchStockDataRequest) -> dict[str, StockEnrichedData]:
+    """Fetch 52W range, avg volume, and analyst rating for up to 50 symbols. Cached 1hr."""
+    return await stock_service.fetch_stock_enriched_batch(body.symbols)
+
+
+@router.options("/enriched-batch")
+async def options_enriched_batch() -> Response:
+    """Handle OPTIONS preflight for enriched-batch."""
     return Response(status_code=200)
 
 
@@ -105,15 +118,7 @@ async def search_stocks(
     """Search for stocks by ticker symbol or company name via yfinance."""
     if not q.isascii():
         return []
-    try:
-        return await stock_service.search_stocks_from_yfinance(q, limit=limit)
-    except Exception as exc:
-        if "rate" in str(exc).lower() or "429" in str(exc):
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Yahoo Finance rate limit reached. Please wait a moment and try again.",
-            )
-        raise
+    return await stock_service.search_stocks_from_yfinance(q, limit=limit)
 
 
 @router.get("/{symbol}/history", response_model=StockHistoryResponse, summary="Get stock price history")

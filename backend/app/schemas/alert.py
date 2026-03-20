@@ -8,7 +8,7 @@ from app.models.alert import ConditionType
 
 
 class AlertCreate(BaseModel):
-    ticker: str = Field(..., min_length=1, max_length=10)
+    ticker: str = Field(..., min_length=1, max_length=15)
     condition_type: ConditionType
     target_price: Decimal = Field(..., gt=0, le=1_000_000)
 

@@ -28,27 +28,36 @@ function relativeTime(isoString: string): string {
 
 interface AlertRowProps {
   alert: Alert
+  showTicker?: boolean
 }
 
-export function AlertRow({ alert }: AlertRowProps) {
+export function AlertRow({ alert, showTicker = true }: AlertRowProps) {
   const queryClient = useQueryClient()
 
   const toggleMutation = useMutation({
     mutationFn: () => updateAlert(alert.id, { is_active: !alert.is_active }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["alerts"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["alerts"] })
+      queryClient.invalidateQueries({ queryKey: ["alerts", alert.ticker] })
+    },
   })
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteAlert(alert.id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["alerts"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["alerts"] })
+      queryClient.invalidateQueries({ queryKey: ["alerts", alert.ticker] })
+    },
   })
 
   return (
     <div className="flex items-center gap-4 px-4 py-3 rounded-lg bg-zinc-900/50 hover:bg-zinc-800/60 transition-colors">
       {/* Ticker */}
-      <span className="font-mono font-semibold text-sm text-zinc-100 border border-zinc-700 rounded px-1.5 py-0.5 shrink-0">
-        {alert.ticker}
-      </span>
+      {showTicker && (
+        <span className="font-mono font-semibold text-sm text-zinc-100 border border-zinc-700 rounded px-1.5 py-0.5 shrink-0">
+          {alert.ticker}
+        </span>
+      )}
 
       {/* Condition chip */}
       <span

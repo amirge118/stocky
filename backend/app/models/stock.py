@@ -11,7 +11,7 @@ class Stock(BaseModel):
 
     __tablename__ = "stocks"
 
-    symbol: Mapped[str] = mapped_column(String(10), unique=True, nullable=False, index=True)
+    symbol: Mapped[str] = mapped_column(String(15), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     exchange: Mapped[str] = mapped_column(String(50), nullable=False)
     sector: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)

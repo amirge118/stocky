@@ -6,7 +6,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { StockComparisonChart } from "@/components/features/stocks/StockComparisonChart"
 
-const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6"]
+const COLORS = ["#4ade80", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6"]
 
 function CompareContent() {
   const searchParams = useSearchParams()

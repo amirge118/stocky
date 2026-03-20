@@ -1,5 +1,7 @@
 # Global Project Rules: Stock Insight App
 
+**AI rules hub (Cursor + Claude, canonical paths):** [`docs/ai/README.md`](../../docs/ai/README.md)
+
 ## Project Overview
 You are building a financial stock analysis platform. The goal is to provide daily, weekly, and monthly insights using AI.
 

@@ -1,11 +1,8 @@
 "use client"
 
-import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
-import { ArrowLeft, Bell, ExternalLink } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { AlertDialog } from "@/components/features/stocks/AlertDialog"
+import { ArrowLeft, ExternalLink } from "lucide-react"
 import { LivePriceBadge } from "@/components/features/stocks/LivePriceBadge"
 import { getStock, fetchStockData, getStockInfo } from "@/lib/api/stocks"
 import { ApiError } from "@/lib/api/client"
@@ -19,12 +16,12 @@ import { StockAIAnalysis } from "@/components/features/stocks/StockAIAnalysis"
 import { StockSectorOverview } from "@/components/features/stocks/StockSectorOverview"
 import { StockDeepDiveCard } from "@/components/features/agents/StockDeepDiveCard"
 import { StockDividends } from "@/components/features/stocks/StockDividends"
+import { StockAlertsSection } from "@/components/features/stocks/StockAlertsSection"
 
 export default function StockDetailPage() {
   const params = useParams()
   const symbol = params.symbol as string
   const router = useRouter()
-  const [alertDialogOpen, setAlertDialogOpen] = useState(false)
 
   const { data: stock, isPending: stockLoading } = useQuery({
     queryKey: ["stock", symbol],
@@ -48,8 +45,8 @@ export default function StockDetailPage() {
     <div className="min-h-screen bg-zinc-950 text-white">
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
 
-        {/* Back button + Alert */}
-        <div className="flex items-center justify-between">
+        {/* Back button */}
+        <div className="flex items-center">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-200 text-sm transition-colors"
@@ -57,15 +54,6 @@ export default function StockDetailPage() {
             <ArrowLeft size={15} />
             Back
           </button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setAlertDialogOpen(true)}
-            className="border-zinc-600 text-zinc-300 hover:bg-zinc-800"
-          >
-            <Bell size={14} className="mr-1.5" />
-            Price Alert
-          </Button>
         </div>
 
         {/* Data unavailable banner */}
@@ -135,6 +123,7 @@ export default function StockDetailPage() {
                     fallbackPrice={liveData?.current_price}
                     fallbackChange={liveData?.change}
                     fallbackChangePercent={liveData?.change_percent}
+                    currency={liveData?.currency}
                   />
                 )}
                 {stock?.exchange && (
@@ -156,7 +145,7 @@ export default function StockDetailPage() {
             ) : null}
 
             {/* Chart */}
-            <StockChart symbol={symbol} />
+            <StockChart symbol={symbol} currency={liveData?.currency} />
 
             {/* Technical Indicators */}
             <StockIndicators symbol={symbol} />
@@ -175,7 +164,7 @@ export default function StockDetailPage() {
                 </div>
               </div>
             ) : info ? (
-              <StockKeyStats info={info} compact />
+              <StockKeyStats info={info} compact currency={liveData?.currency} />
             ) : null}
 
             {/* Dividends */}
@@ -183,6 +172,8 @@ export default function StockDetailPage() {
           </div>
 
           <div className="lg:min-h-0 space-y-4">
+            {/* Alerts */}
+            <StockAlertsSection symbol={symbol} currentPrice={liveData?.current_price} />
             <StockNews symbol={symbol} />
             {info?.sector && <SectorNews sector={info.sector} />}
           </div>
@@ -203,11 +194,6 @@ export default function StockDetailPage() {
           />
         )}
 
-        <AlertDialog
-          open={alertDialogOpen}
-          onOpenChange={setAlertDialogOpen}
-          symbol={symbol}
-        />
       </div>
     </div>
   )

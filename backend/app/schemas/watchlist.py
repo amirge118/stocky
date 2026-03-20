@@ -46,7 +46,7 @@ class WatchlistListUpdate(BaseModel):
 
 
 class WatchlistItemAdd(BaseModel):
-    symbol: str = Field(..., max_length=10)
+    symbol: str = Field(..., max_length=15)
     name: str = Field(..., max_length=255)
     exchange: str = Field(..., max_length=50)
     sector: Optional[str] = Field(None, max_length=100)

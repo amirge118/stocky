@@ -1,14 +1,29 @@
 "use client"
 
+import { useState, useMemo } from "react"
 import { WatchlistStockRow } from "./WatchlistStockRow"
 import type { WatchlistItem } from "@/types/watchlist"
 import type { PriceUpdate } from "@/lib/hooks/useStockPrices"
+import type { StockData, StockEnrichedData } from "@/types/stock"
+
+type SortCol = "name" | "price" | "change" | "volume" | "mktcap"
+type SortDir = "asc" | "desc"
+type Period = "1d" | "1w" | "1m"
 
 interface WatchlistStockListProps {
   items: WatchlistItem[]
   listId: number
   priceMap: Record<string, PriceUpdate>
   sparklineMap: Record<string, number[]>
+  changePctMap: Record<string, number>
+  batchPrices: Record<string, StockData>
+  period: Period
+  enrichedMap: Record<string, StockEnrichedData>
+}
+
+function SortIcon({ col, active, dir }: { col: SortCol; active: SortCol; dir: SortDir }) {
+  if (col !== active) return <span className="text-zinc-700 ml-0.5">⇅</span>
+  return <span className="text-zinc-300 ml-0.5">{dir === "asc" ? "▲" : "▼"}</span>
 }
 
 export function WatchlistStockList({
@@ -16,7 +31,57 @@ export function WatchlistStockList({
   listId,
   priceMap,
   sparklineMap,
+  changePctMap,
+  batchPrices,
+  period,
+  enrichedMap,
 }: WatchlistStockListProps) {
+  const [sortCol, setSortCol] = useState<SortCol>("name")
+  const [sortDir, setSortDir] = useState<SortDir>("asc")
+
+  const handleSort = (col: SortCol) => {
+    if (sortCol === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortCol(col)
+      setSortDir(col === "name" ? "asc" : "desc")
+    }
+  }
+
+  const sorted = useMemo(() => {
+    return [...items].sort((a, b) => {
+      let aVal: number | string = 0
+      let bVal: number | string = 0
+      switch (sortCol) {
+        case "name":
+          aVal = a.name?.toLowerCase() ?? a.symbol.toLowerCase()
+          bVal = b.name?.toLowerCase() ?? b.symbol.toLowerCase()
+          break
+        case "price":
+          aVal = priceMap[a.symbol]?.price ?? -Infinity
+          bVal = priceMap[b.symbol]?.price ?? -Infinity
+          break
+        case "change":
+          aVal = changePctMap[a.symbol] ?? -Infinity
+          bVal = changePctMap[b.symbol] ?? -Infinity
+          break
+        case "volume":
+          aVal = batchPrices[a.symbol]?.volume ?? -Infinity
+          bVal = batchPrices[b.symbol]?.volume ?? -Infinity
+          break
+        case "mktcap":
+          aVal = batchPrices[a.symbol]?.market_cap ?? -Infinity
+          bVal = batchPrices[b.symbol]?.market_cap ?? -Infinity
+          break
+      }
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+      }
+      const n = (aVal as number) - (bVal as number)
+      return sortDir === "asc" ? n : -n
+    })
+  }, [items, sortCol, sortDir, priceMap, changePctMap, batchPrices])
+
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-zinc-600">
@@ -27,17 +92,64 @@ export function WatchlistStockList({
     )
   }
 
+  const periodLabel = period === "1d" ? "1D" : period === "1w" ? "1W" : "1M"
+
   return (
-    <div className="space-y-1">
-      {items.map((item) => (
-        <WatchlistStockRow
-          key={item.id}
-          item={item}
-          listId={listId}
-          price={priceMap[item.symbol]}
-          sparkline={sparklineMap[item.symbol]}
-        />
-      ))}
+    <div>
+      {/* Column headers */}
+      <div className="flex items-center gap-4 px-4 py-1.5 text-xs text-zinc-600 select-none mb-1">
+        <button
+          onClick={() => handleSort("name")}
+          className="flex-1 text-left flex items-center hover:text-zinc-400 transition-colors"
+        >
+          Name <SortIcon col="name" active={sortCol} dir={sortDir} />
+        </button>
+        <div className="shrink-0 w-20" /> {/* sparkline spacer */}
+        <div className="hidden sm:flex items-center gap-3 shrink-0">
+          <button
+            onClick={() => handleSort("change")}
+            className="w-14 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+          >
+            {periodLabel} <SortIcon col="change" active={sortCol} dir={sortDir} />
+          </button>
+          <button
+            onClick={() => handleSort("volume")}
+            className="w-16 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+          >
+            Vol <SortIcon col="volume" active={sortCol} dir={sortDir} />
+          </button>
+          <button
+            onClick={() => handleSort("mktcap")}
+            className="w-20 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+          >
+            Mkt Cap <SortIcon col="mktcap" active={sortCol} dir={sortDir} />
+          </button>
+        </div>
+        <button
+          onClick={() => handleSort("price")}
+          className="text-right shrink-0 w-20 flex items-center justify-end hover:text-zinc-400 transition-colors"
+        >
+          Price <SortIcon col="price" active={sortCol} dir={sortDir} />
+        </button>
+        <div className="shrink-0 w-10" /> {/* actions spacer */}
+      </div>
+
+      <div className="space-y-1">
+        {sorted.map((item) => (
+          <WatchlistStockRow
+            key={item.id}
+            item={item}
+            listId={listId}
+            price={priceMap[item.symbol]}
+            sparkline={sparklineMap[item.symbol]}
+            changePct={changePctMap[item.symbol]}
+            volume={batchPrices[item.symbol]?.volume ?? undefined}
+            marketCap={batchPrices[item.symbol]?.market_cap ?? undefined}
+            period={period}
+            enriched={enrichedMap[item.symbol]}
+          />
+        ))}
+      </div>
     </div>
   )
 }

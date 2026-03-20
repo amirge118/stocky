@@ -32,6 +32,10 @@
   }
 
   .dark {
+    /* Semantic chart colors */
+    --color-gain: #4ade80;  /* green-400 */
+    --color-loss: #f87171;  /* red-400 */
+
     /* Deep Charcoal base */
     --background:        221 35% 6%;
     --foreground:        210 40% 96%;
@@ -136,6 +140,12 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  /* Standard card shell */
+  .card-surface { @apply rounded-xl border border-zinc-800 bg-zinc-900; }
+
+  /* Section / column header */
+  .section-label { @apply text-xs font-semibold uppercase tracking-widest text-zinc-500; }
 
   /* Bento grid helper */
   .bento-grid {

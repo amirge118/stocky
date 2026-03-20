@@ -154,7 +154,7 @@ export default function AgentDetailPage() {
                   <span
                     className={`w-2 h-2 rounded-full shrink-0 ${
                       run.status === "completed"
-                        ? "bg-emerald-500"
+                        ? "bg-green-500"
                         : run.status === "failed"
                           ? "bg-red-500"
                           : "bg-zinc-500"
@@ -169,7 +169,7 @@ export default function AgentDetailPage() {
                   <span
                     className={
                       run.status === "completed"
-                        ? "text-emerald-400"
+                        ? "text-green-400"
                         : run.status === "failed"
                           ? "text-red-400"
                           : "text-zinc-500"

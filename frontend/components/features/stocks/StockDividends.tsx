@@ -40,7 +40,7 @@ export function StockDividends({ symbol }: StockDividendsProps) {
               labelStyle={{ color: "#a1a1aa" }}
               formatter={(v: number) => [`$${v.toFixed(4)}`, "Dividend"]}
             />
-            <Bar dataKey="amount" fill="#22c55e" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="amount" fill="#4ade80" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

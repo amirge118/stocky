@@ -9,6 +9,7 @@ from app.schemas.stock import (
     StockInfoResponse,
     StockSearchResult,
 )
+from app.core.fmp_client import FMPRateLimitError
 from app.services.stock_data import (
     fetch_stock_data_batch,
     fetch_stock_data_from_yfinance,
@@ -59,7 +60,20 @@ def _mock_fmp(**responses: object) -> MagicMock:
         if "dividends" in path:
             return responses.get("dividends", [])
         if "profile" in path:
-            return responses.get("profile", [])
+            profile_data = responses.get("profile", [])
+            if profile_data:
+                # Merge quote fields into profile so both price and info are available
+                # (real FMP /stable/profile returns combined data)
+                quote_for_sym = quotes_by_sym.get(sym) or (all_quotes[0] if all_quotes else None)
+                if quote_for_sym:
+                    merged = {**quote_for_sym, **profile_data[0]}
+                    return [merged]
+                return profile_data
+            # Fall back to quotes when no explicit profile data provided
+            # (/stable/profile is also used for live-quote lookups)
+            if sym and sym in quotes_by_sym:
+                return [quotes_by_sym[sym]]
+            return all_quotes
         if "historical-price-eod" in path or "intraday" in path:
             return responses.get("historical", [])
         if "search" in path:
@@ -127,6 +141,7 @@ async def test_fetch_stock_data_not_found_raises_404():
         patch("app.services.stock_data.cache_get", new_callable=AsyncMock, return_value=None),
         patch("app.services.stock_data.cache_set", new_callable=AsyncMock),
         patch("app.services.stock_data.get_fmp_client", return_value=mock_client),
+        patch("app.services.stock_data.yf_client.fetch_quote", new_callable=AsyncMock, return_value=None),
     ):
         with pytest.raises(HTTPException) as exc_info:
             await fetch_stock_data_from_yfinance("INVALID")
@@ -185,6 +200,7 @@ async def test_search_returns_results():
         patch("app.services.stock_data.cache_get", new_callable=AsyncMock, return_value=None),
         patch("app.services.stock_data.cache_set", new_callable=AsyncMock),
         patch("app.services.stock_data.get_fmp_client", return_value=mock_client),
+        patch("app.services.stock_data.yf_client.search_yf", new_callable=AsyncMock, return_value=[]),
     ):
         results = await search_stocks_from_yfinance("AAPL")
 
@@ -202,10 +218,86 @@ async def test_search_empty_query_returns_empty():
         patch("app.services.stock_data.cache_get", new_callable=AsyncMock, return_value=None),
         patch("app.services.stock_data.cache_set", new_callable=AsyncMock),
         patch("app.services.stock_data.get_fmp_client", return_value=mock_client),
+        patch("app.services.stock_data.yf_client.search_yf", new_callable=AsyncMock, return_value=[]),
     ):
         results = await search_stocks_from_yfinance("XYZNOTEXIST")
 
     assert results == []
+
+
+# ---------------------------------------------------------------------------
+# TASE routing tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetch_stock_data_tase_uses_yfinance():
+    """BEZQ.TA should call yf_client.fetch_quote, not FMP."""
+    yf_q = {
+        "symbol": "BEZQ.TA", "companyName": "Bezeq", "price": 6.5,
+        "previousClose": 6.3, "change": 0.2, "changePercentage": 3.17,
+        "volume": 1000000, "marketCap": None, "currency": "ILS",
+    }
+
+    with (
+        patch("app.services.stock_data.cache_get", new_callable=AsyncMock, return_value=None),
+        patch("app.services.stock_data.cache_set", new_callable=AsyncMock),
+        patch("app.services.stock_data.yf_client.fetch_quote", new_callable=AsyncMock, return_value=yf_q) as mock_yf,
+        patch("app.services.stock_data.get_fmp_client") as mock_fmp,
+    ):
+        result = await fetch_stock_data_from_yfinance("BEZQ.TA")
+
+    mock_yf.assert_called_once_with("BEZQ.TA")
+    mock_fmp.assert_not_called()
+    assert result.symbol == "BEZQ.TA"
+    assert result.current_price == 6.5
+
+
+@pytest.mark.asyncio
+async def test_fetch_history_tase_uses_yfinance():
+    """BEZQ.TA history should call yf_client.fetch_history, not FMP."""
+    rows = [
+        {"date": "2024-01-04", "open": 6.0, "high": 6.5, "low": 5.9, "close": 6.3, "volume": 500000},
+    ]
+
+    with (
+        patch("app.services.stock_data.cache_get", new_callable=AsyncMock, return_value=None),
+        patch("app.services.stock_data.cache_set", new_callable=AsyncMock),
+        patch("app.services.stock_data.yf_client.fetch_history", new_callable=AsyncMock, return_value=rows) as mock_hist,
+        patch("app.services.stock_data.get_fmp_client") as mock_fmp,
+    ):
+        result = await fetch_stock_history("BEZQ.TA", period="1m")
+
+    mock_hist.assert_called_once_with("BEZQ.TA", "1m")
+    mock_fmp.assert_not_called()
+    assert result.symbol == "BEZQ.TA"
+    assert len(result.data) == 1
+
+
+@pytest.mark.asyncio
+async def test_search_tase_symbol_appears_first():
+    """TASE results from search_tase should appear before FMP results."""
+    fmp_items = [
+        {"symbol": "TEVA", "name": "Teva Pharma US", "currency": "USD",
+         "stockExchange": "NYSE", "exchangeShortName": "NYSE"},
+    ]
+    tase_items = [
+        {"symbol": "TEVA.TA", "name": "Teva Pharmaceutical", "exchange": "TASE", "country": "IL"},
+    ]
+    mock_client = _mock_fmp(search=fmp_items, quote=[_fmp_quote("TEVA", 15.0)])
+
+    with (
+        patch("app.services.stock_data.cache_get", new_callable=AsyncMock, return_value=None),
+        patch("app.services.stock_data.cache_set", new_callable=AsyncMock),
+        patch("app.services.stock_data.get_fmp_client", return_value=mock_client),
+        patch("app.services.stock_data.yf_client.search_yf", new_callable=AsyncMock, return_value=[]),
+        patch("app.services.stock_data.yf_client.search_tase", return_value=tase_items),
+        patch("app.services.stock_data.yf_client.fetch_quote", new_callable=AsyncMock, return_value={"price": 6.5}),
+    ):
+        results = await search_stocks_from_yfinance("teva")
+
+    assert results[0].symbol == "TEVA.TA"
+    assert any(r.symbol == "TEVA" for r in results)
 
 
 # ---------------------------------------------------------------------------
@@ -338,3 +430,36 @@ async def test_fetch_news_empty_on_failure():
         result = await fetch_stock_news("AAPL")
 
     assert result == []
+
+
+# ---------------------------------------------------------------------------
+# search_stocks_from_yfinance — FMP rate-limit graceful degradation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_search_fmp_rate_limit_falls_back_to_yfinance():
+    """When FMP is rate-limited, search should return yfinance results instead of 503."""
+    mock_fmp_client = MagicMock()
+    mock_fmp_client.get = AsyncMock(side_effect=FMPRateLimitError("rate limit"))
+
+    hims_result = {
+        "symbol": "HIMS",
+        "shortname": "Hims & Hers Health",
+        "exchange": "NYSE",
+        "quoteType": "EQUITY",
+    }
+    mock_yf_client = MagicMock()
+    mock_yf_client.search_yf = AsyncMock(return_value=[hims_result])
+    mock_yf_client.search_tase = MagicMock(return_value=[])
+
+    with (
+        patch("app.services.stock_data.cache_get", new_callable=AsyncMock, return_value=None),
+        patch("app.services.stock_data.cache_set", new_callable=AsyncMock),
+        patch("app.services.stock_data.get_fmp_client", return_value=mock_fmp_client),
+        patch("app.services.stock_data.yf_client", mock_yf_client),
+    ):
+        results = await search_stocks_from_yfinance("HIMS")
+
+    symbols = [r.symbol for r in results]
+    assert "HIMS" in symbols

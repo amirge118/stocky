@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button"
 
 const TYPE_COLORS: Record<string, string> = {
   stock: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-  portfolio: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  portfolio: "bg-green-500/10 text-green-400 border-green-500/20",
   market: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   sector: "bg-violet-500/10 text-violet-400 border-violet-500/20",
 }
 
 const STATUS_ICON = {
-  completed: <CheckCircle size={13} className="text-emerald-400" />,
+  completed: <CheckCircle size={13} className="text-green-400" />,
   failed: <XCircle size={13} className="text-red-400" />,
   running: <Loader2 size={13} className="text-blue-400 animate-spin" />,
   pending: <Clock size={13} className="text-zinc-500" />,

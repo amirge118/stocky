@@ -3,12 +3,16 @@
 import { useState } from "react"
 import { useQuery, useQueries } from "@tanstack/react-query"
 import { getWatchlist, getWatchlists } from "@/lib/api/watchlists"
-import { fetchStockDataBatch, getStockHistory } from "@/lib/api/stocks"
+import { fetchStockDataBatch, getStockHistory, fetchStockEnrichedBatch } from "@/lib/api/stocks"
 import { useStockPrices } from "@/lib/hooks/useStockPrices"
 import { WatchlistStockList } from "./WatchlistStockList"
 import { WatchlistAddStockDialog } from "./WatchlistAddStockDialog"
+import { WatchlistSummaryStrip } from "./WatchlistSummaryStrip"
 import { Button } from "@/components/ui/button"
 import type { WatchlistItem } from "@/types/watchlist"
+import type { StockData, StockEnrichedData } from "@/types/stock"
+
+type Period = "1d" | "1w" | "1m"
 
 interface WatchlistMainPanelProps {
   activeListId: number | null
@@ -16,9 +20,10 @@ interface WatchlistMainPanelProps {
 
 export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
   const [addOpen, setAddOpen] = useState(false)
+  const [period, setPeriod] = useState<Period>("1w")
 
   // "All" view: fetch all lists, then each individual list
-  const { data: summaries } = useQuery({
+  const { data: summaries, isError: summariesError } = useQuery({
     queryKey: ["watchlists"],
     queryFn: getWatchlists,
   })
@@ -98,22 +103,48 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
     })
   ) as Record<string, import("@/lib/hooks/useStockPrices").PriceUpdate>
 
-  // Sparklines
+  // Sparklines — parameterised by period
   const sparklineQueries = useQueries({
     queries: symbols.map((sym) => ({
-      queryKey: ["stockHistory", sym, "1w"] as const,
-      queryFn: () => getStockHistory(sym, "1w"),
+      queryKey: ["stockHistory", sym, period] as const,
+      queryFn: () => getStockHistory(sym, period),
       staleTime: 5 * 60_000,
     })),
   })
 
   const sparklineMap: Record<string, number[]> = {}
+  const periodChangeMap: Record<string, number> = {}
+
   symbols.forEach((sym, idx) => {
     const history = sparklineQueries[idx]?.data
-    if (history?.data) {
-      sparklineMap[sym] = history.data.map((p) => p.c)
+    if (history?.data && history.data.length >= 2) {
+      const closes = history.data.map((p) => p.c)
+      sparklineMap[sym] = closes
+      if (period !== "1d") {
+        const first = closes[0]
+        const last = closes[closes.length - 1]
+        if (first > 0) periodChangeMap[sym] = ((last - first) / first) * 100
+      }
+    }
+    // For 1d, use batch price change_percent
+    if (period === "1d" && batchPrices?.[sym]?.change_percent != null) {
+      periodChangeMap[sym] = batchPrices[sym].change_percent
     }
   })
+
+  // Enriched data — slow-changing, cached 1hr
+  const { data: enrichedRaw } = useQuery({
+    queryKey: ["stockEnriched", symbols.join(",")],
+    queryFn: () => fetchStockEnrichedBatch(symbols),
+    enabled: symbols.length > 0,
+    staleTime: 3_600_000,
+  })
+  const enrichedMap: Record<string, StockEnrichedData> = enrichedRaw ?? {}
+
+  // Summary strip price map — uses batchPrices (StockData shape)
+  const summaryPrices: Record<string, StockData | undefined> = Object.fromEntries(
+    symbols.map((sym) => [sym, batchPrices?.[sym]])
+  )
 
   const isLoading =
     activeListId !== null
@@ -134,19 +165,49 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
             </span>
           </h1>
         </div>
-        {activeListId !== null && (
-          <Button
-            size="sm"
-            onClick={() => setAddOpen(true)}
-            className="bg-zinc-700 hover:bg-zinc-600 text-white border-0"
-          >
-            + Add Stock
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Period toggle */}
+          <div className="flex rounded-md border border-zinc-700 overflow-hidden text-xs">
+            {(["1d", "1w", "1m"] as Period[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-2.5 py-1 font-mono uppercase transition-colors ${
+                  period === p
+                    ? "bg-zinc-700 text-white"
+                    : "bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          {activeListId !== null && (
+            <Button
+              size="sm"
+              onClick={() => setAddOpen(true)}
+              className="bg-zinc-700 hover:bg-zinc-600 text-white border-0"
+            >
+              + Add Stock
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Divider */}
       <div className="border-t border-zinc-800 mb-4" />
+
+      {/* Summary strip */}
+      {!isLoading && symbols.length > 0 && (
+        <WatchlistSummaryStrip prices={summaryPrices} symbols={symbols} />
+      )}
+
+      {/* Error state */}
+      {summariesError && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4 text-sm text-zinc-400 mb-4">
+          Failed to load watchlist data. Check your connection.
+        </div>
+      )}
 
       {/* Stock list */}
       {isLoading ? (
@@ -161,6 +222,10 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
           listId={displayListId}
           priceMap={priceMap}
           sparklineMap={sparklineMap}
+          changePctMap={periodChangeMap}
+          batchPrices={batchPrices ?? {}}
+          period={period}
+          enrichedMap={enrichedMap}
         />
       )}
 

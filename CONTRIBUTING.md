@@ -103,6 +103,30 @@ docs: update CONTRIBUTING setup section
 
 PRs targeting `test` or `main` also require integration tests and Docker image build to pass.
 
+## AI agent rules
+
+See **[AGENTS.md](AGENTS.md)** and [docs/ai/README.md](docs/ai/README.md) for canonical frontend/backend rules (avoid duplicating long guides in chats).
+
+### UI/UX Pro Max (Cursor skill, optional)
+
+Install or refresh the [ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) integration for Cursor:
+
+```bash
+npx uipro-cli@latest init --ai cursor
+```
+
+Restart Cursor after install. Full usage, `search.py` paths, and how it relates to `frontend/.cursorrules`: **[docs/ai/ui-ux-pro-max.md](docs/ai/ui-ux-pro-max.md)**.
+
+### Superpowers (Cursor / Claude plugin, optional)
+
+[Superpowers](https://github.com/obra/superpowers) adds agent **workflow** skills (planning, TDD, debugging, code review). It is **not** copied into this repo — install from the IDE:
+
+```text
+/add-plugin superpowers
+```
+
+(or search the marketplace for “superpowers”). See **[docs/ai/superpowers.md](docs/ai/superpowers.md)**. Git branching and PR rules in this document still win if something conflicts.
+
 ## Project Structure
 
 ```

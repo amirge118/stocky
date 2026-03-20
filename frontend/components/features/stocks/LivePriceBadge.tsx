@@ -8,6 +8,7 @@ interface LivePriceBadgeProps {
   fallbackPrice?: number
   fallbackChange?: number
   fallbackChangePercent?: number
+  currency?: string
 }
 
 export function LivePriceBadge({
@@ -15,6 +16,7 @@ export function LivePriceBadge({
   fallbackPrice,
   fallbackChange,
   fallbackChangePercent,
+  currency = "USD",
 }: LivePriceBadgeProps) {
   const prices = useStockPrices([symbol])
   const live = prices[symbol]
@@ -33,7 +35,7 @@ export function LivePriceBadge({
       }`}
     >
       {isPositive ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-      ${price.toFixed(2)}
+      {currency === "ILS" ? "₪" : "$"}{price.toFixed(2)}
       <span className="opacity-80">
         ({isPositive ? "+" : ""}
         {change.toFixed(2)} / {isPositive ? "+" : ""}

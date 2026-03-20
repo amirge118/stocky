@@ -98,7 +98,7 @@ export function CompareFundamentalsTable({ symbols }: CompareFundamentalsTablePr
                     className={`px-5 py-2.5 text-right tabular-nums font-mono ${
                       label === "Day %" && datas[i]?.change_percent != null
                         ? datas[i]!.change_percent >= 0
-                          ? "text-emerald-400"
+                          ? "text-green-400"
                           : "text-red-400"
                         : "text-zinc-300"
                     }`}

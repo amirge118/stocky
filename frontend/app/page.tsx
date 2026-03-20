@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { getMarketOverview } from "@/lib/api/market"
 
 const TICKERS = [
   { symbol: "AAPL", price: "189.43", change: "+1.24%", up: true },
@@ -56,6 +58,25 @@ function TickerTape() {
 export default function HomePage() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
+
+  const { data: marketData } = useQuery({
+    queryKey: ["market-overview"],
+    queryFn: getMarketOverview,
+    staleTime: 5 * 60_000,
+  })
+
+  const displayIndices = marketData?.indices.slice(0, 4).map((idx) => ({
+    label: idx.name,
+    value: idx.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    change: `${idx.change_percent >= 0 ? "+" : ""}${idx.change_percent.toFixed(2)}%`,
+    up: idx.change_percent >= 0,
+  })) ?? INDICES
+
+  const displaySectors = marketData?.sectors.slice(0, 6).map((s) => ({
+    name: s.name,
+    change: `${s.change_percent >= 0 ? "+" : ""}${s.change_percent.toFixed(2)}%`,
+    up: s.change_percent >= 0,
+  })) ?? SECTORS
 
   return (
     <div className="min-h-screen bg-background text-white overflow-x-hidden">
@@ -168,7 +189,7 @@ export default function HomePage() {
             <p className="text-[11px] uppercase tracking-widest text-zinc-500 mb-1">Live</p>
             <h3 className="text-sm font-semibold text-white tracking-tight mb-3">Market Indices</h3>
             <div className="flex flex-col gap-2">
-              {INDICES.map((idx) => (
+              {displayIndices.map((idx) => (
                 <div key={idx.label} className="flex items-center justify-between">
                   <span className="text-xs text-zinc-400">{idx.label}</span>
                   <div className="text-right">
@@ -221,7 +242,7 @@ export default function HomePage() {
             <p className="text-[11px] uppercase tracking-widest text-zinc-500 mb-1">Heatmap</p>
             <h3 className="text-sm font-semibold text-white tracking-tight mb-3">Market Pulse</h3>
             <div className="grid grid-cols-3 gap-1.5">
-              {SECTORS.map((s) => (
+              {displaySectors.map((s) => (
                 <div
                   key={s.name}
                   className={`rounded-lg px-2 py-2 text-center ${

@@ -6,6 +6,45 @@ import pytest
 from app.services.price_service import get_prices
 
 
+# ---------------------------------------------------------------------------
+# TASE price path
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_tase_price_uses_yfinance():
+    """TASE symbols should use yfinance fast_info, not FMP."""
+    mock_fmp = _mock_fmp([])
+
+    with (
+        patch("app.services.price_service.cache_get", new_callable=AsyncMock, return_value=None),
+        patch("app.services.price_service.cache_set", new_callable=AsyncMock),
+        patch("app.services.price_service.get_fmp_client", return_value=mock_fmp),
+        patch("app.services.price_service.asyncio.to_thread", new_callable=AsyncMock, return_value=6.5),
+    ):
+        result = await get_prices(["BEZQ.TA"])
+
+    assert result == {"BEZQ.TA": 6.5}
+    # FMP client was never called for TASE symbol
+    assert mock_fmp._call_log == []
+
+
+@pytest.mark.asyncio
+async def test_non_tase_yf_fallback_when_fmp_missing():
+    """Non-TASE symbol: when FMP returns no data, fall back to yfinance."""
+    mock_fmp = _mock_fmp([])  # PGY not in FMP
+
+    with (
+        patch("app.services.price_service.cache_get", new_callable=AsyncMock, return_value=None),
+        patch("app.services.price_service.cache_set", new_callable=AsyncMock),
+        patch("app.services.price_service.get_fmp_client", return_value=mock_fmp),
+        patch("app.services.price_service.asyncio.to_thread", new_callable=AsyncMock, return_value=12.34),
+    ):
+        result = await get_prices(["PGY"])
+
+    assert result == {"PGY": 12.34}
+
+
 def _quote(symbol: str, price: float) -> dict:
     return {"symbol": symbol, "price": price}
 

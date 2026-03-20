@@ -1,5 +1,7 @@
 """Pydantic schemas for market overview data."""
 
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -14,8 +16,8 @@ class IndexData(BaseModel):
 
 class SectorNewsItem(BaseModel):
     title: str
-    url: str | None = None
-    publisher: str | None = None
+    url: Optional[str] = None
+    publisher: Optional[str] = None
 
 
 class SectorData(BaseModel):

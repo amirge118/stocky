@@ -123,3 +123,11 @@ export interface StockIndicatorsResponse {
   macd: MacdPoint[]
   bollinger: BollingerPoint[]
 }
+
+export interface StockEnrichedData {
+  symbol: string
+  fifty_two_week_high: number | null
+  fifty_two_week_low: number | null
+  avg_volume: number | null
+  analyst_rating: string | null  // "buy" | "hold" | "sell" | "strong_buy" | "underperform"
+}

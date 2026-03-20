@@ -7,7 +7,6 @@ import { GlobalStockSearch } from "@/components/GlobalStockSearch"
 const NAV_LINKS = [
   { href: "/portfolio", label: "Portfolio" },
   { href: "/watchlist", label: "Watchlist" },
-  { href: "/alerts",    label: "Alerts" },
   { href: "/market",    label: "Market" },
   { href: "/agents",    label: "Agents" },
 ]
@@ -17,9 +16,8 @@ export function Navbar() {
 
   const isActive = (href: string) =>
     pathname === href ||
-    (href !== "/portfolio" && href !== "/watchlist" && href !== "/agents" && href !== "/alerts" && pathname.startsWith(href + "/")) ||
-    (href === "/watchlist" && pathname.startsWith("/watchlist")) ||
-    (href === "/alerts" && pathname.startsWith("/alerts"))
+    (href !== "/portfolio" && href !== "/watchlist" && href !== "/agents" && pathname.startsWith(href + "/")) ||
+    (href === "/watchlist" && pathname.startsWith("/watchlist"))
 
   return (
     <nav className="glass-heavy border-b border-white/[0.06] sticky top-0 z-50">

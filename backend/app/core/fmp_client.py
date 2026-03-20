@@ -80,8 +80,10 @@ class FMPClient:
 
         try:
             data = response.json()
-        except Exception as e:
-            raise FMPError(f"FMP returned invalid JSON for {path}: {e}") from e
+        except Exception:
+            # Non-JSON response (e.g. "Premium Query Parameter: ..." plain text)
+            logger.debug("FMP non-JSON response for %s: %s", path, response.text[:120])
+            return []
 
         # FMP returns {"Error Message": "..."} or {"message": "..."} on errors/limits
         if isinstance(data, dict):

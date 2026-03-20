@@ -20,7 +20,7 @@ class Alert(BaseModel):
 
     __tablename__ = "alerts"
 
-    ticker: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
+    ticker: Mapped[str] = mapped_column(String(15), nullable=False, index=True)
     condition_type: Mapped[ConditionType] = mapped_column(
         Enum(ConditionType, name="conditiontype"), nullable=False
     )

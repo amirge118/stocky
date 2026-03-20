@@ -86,7 +86,9 @@ export function GlobalStockSearch() {
               <span className="font-mono text-xs font-semibold text-white w-14 shrink-0">{r.symbol}</span>
               <span className="text-xs text-zinc-400 truncate flex-1">{r.name}</span>
               {r.current_price != null && (
-                <span className="text-xs font-mono text-zinc-300 shrink-0">${r.current_price.toFixed(2)}</span>
+                <span className="text-xs font-mono text-zinc-300 shrink-0">
+                  {r.currency === "ILS" ? "₪" : "$"}{r.current_price.toFixed(2)}
+                </span>
               )}
             </button>
           ))}

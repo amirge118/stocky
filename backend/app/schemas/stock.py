@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 class StockBase(BaseModel):
     """Base stock schema with common fields."""
-    symbol: str = Field(..., min_length=1, max_length=10, description="Stock ticker symbol")
+    symbol: str = Field(..., min_length=1, max_length=15, description="Stock ticker symbol")
     name: str = Field(..., min_length=1, max_length=255, description="Company name")
     exchange: str = Field(..., min_length=1, max_length=50, description="Stock exchange")
     sector: Optional[str] = Field(None, max_length=100, description="Industry sector")
@@ -184,3 +184,12 @@ class StockDividendsResponse(BaseModel):
     currency: str = "USD"
     dividends: list[DividendPoint]
     annual_yield: Optional[float] = None  # trailing 12-month yield (%)
+
+
+class StockEnrichedData(BaseModel):
+    """Slow-changing enrichment data: 52W range, avg volume, analyst rating."""
+    symbol: str
+    fifty_two_week_high: Optional[float] = None
+    fifty_two_week_low: Optional[float] = None
+    avg_volume: Optional[int] = None          # averageDailyVolume10Day
+    analyst_rating: Optional[str] = None      # recommendationKey: "buy"|"hold"|"sell"|"strong_buy"|"underperform"

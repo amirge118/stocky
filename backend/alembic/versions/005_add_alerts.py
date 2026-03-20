@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column("ticker", sa.String(10), nullable=False),
         sa.Column(
             "condition_type",
-            sa.Enum("ABOVE", "BELOW", "EQUAL", name="conditiontype"),
+            sa.Enum("ABOVE", "BELOW", "EQUAL", name="conditiontype", create_type=False),
             nullable=False,
         ),
         sa.Column("target_price", sa.Numeric(12, 4), nullable=False),

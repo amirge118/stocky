@@ -1,8 +1,9 @@
 import type { Alert, AlertCreate, AlertUpdate } from "@/types/alerts"
 import { del, get, patch, post } from "./client"
 
-export function fetchAlerts(limit = 50, offset = 0): Promise<Alert[]> {
-  return get<Alert[]>(`/api/v1/alerts?limit=${limit}&offset=${offset}`)
+export function fetchAlerts(limit = 50, offset = 0, ticker?: string): Promise<Alert[]> {
+  const url = `/api/v1/alerts?limit=${limit}&offset=${offset}${ticker ? `&ticker=${encodeURIComponent(ticker)}` : ""}`
+  return get<Alert[]>(url)
 }
 
 export function createAlert(data: AlertCreate): Promise<Alert> {

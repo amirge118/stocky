@@ -40,9 +40,11 @@ function formatTooltipDate(ts: number, period: string): string {
 function CandlestickChart({
   points,
   period,
+  currency = "USD",
 }: {
   points: StockHistoryPoint[]
   period: string
+  currency?: string
 }) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [svgW, setSvgW] = useState(0)
@@ -105,7 +107,7 @@ function CandlestickChart({
           {/* Candles */}
           {points.map((p, i) => {
             const bullish = p.c >= p.o
-            const color = bullish ? "#22c55e" : "#ef4444"
+            const color = bullish ? "#4ade80" : "#f87171"
             const x = px(i)
             const bodyTop = py(Math.max(p.o, p.c))
             const bodyBot = py(Math.min(p.o, p.c))
@@ -139,7 +141,7 @@ function CandlestickChart({
               fontSize={9}
               fontFamily="system-ui, sans-serif"
             >
-              ${t.price.toFixed(0)}
+              {currency === "ILS" ? "₪" : "$"}{t.price.toFixed(0)}
             </text>
           ))}
 
@@ -179,9 +181,10 @@ function CandlestickChart({
 
 interface StockChartProps {
   symbol: string
+  currency?: string
 }
 
-export function StockChart({ symbol }: StockChartProps) {
+export function StockChart({ symbol, currency = "USD" }: StockChartProps) {
   const [period, setPeriod] = useState("1m")
   const [chartType, setChartType] = useState<"area" | "candle">("area")
   const [mounted, setMounted] = useState(false)
@@ -196,7 +199,7 @@ export function StockChart({ symbol }: StockChartProps) {
   const points = data?.data ?? []
   const isPositive =
     points.length >= 2 ? points[points.length - 1].c >= points[0].c : true
-  const color = isPositive ? "#22c55e" : "#ef4444"
+  const color = isPositive ? "#4ade80" : "#f87171"
   const gradientId = `grad-${symbol}-${period}`
 
   return (
@@ -274,7 +277,7 @@ export function StockChart({ symbol }: StockChartProps) {
                 tick={{ fill: "#71717a", fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v: number) => `$${v.toFixed(0)}`}
+                tickFormatter={(v: number) => `${currency === "ILS" ? "₪" : "$"}${v.toFixed(0)}`}
                 width={46}
               />
               <Tooltip
@@ -287,7 +290,7 @@ export function StockChart({ symbol }: StockChartProps) {
                 labelStyle={{ color: "#a1a1aa" }}
                 itemStyle={{ color: "#e4e4e7" }}
                 labelFormatter={(v) => formatTooltipDate(v as number, period)}
-                formatter={(v) => [`$${(v as number).toFixed(2)}`, "Price"]}
+                formatter={(v) => [`${currency === "ILS" ? "₪" : "$"}${(v as number).toFixed(2)}`, "Price"]}
               />
               <Area
                 type="monotone"
@@ -303,7 +306,7 @@ export function StockChart({ symbol }: StockChartProps) {
         </div>
       ) : (
         <div className="h-28 w-full">
-          <CandlestickChart points={points} period={period} />
+          <CandlestickChart points={points} period={period} currency={currency} />
         </div>
       )}
     </div>

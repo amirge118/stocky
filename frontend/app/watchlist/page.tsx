@@ -13,7 +13,7 @@ function WatchlistContent() {
   const listParam = searchParams.get("list")
   const activeListId = listParam ? parseInt(listParam, 10) : null
 
-  const { data: lists = [] } = useQuery({
+  const { data: lists = [], isError: listsError } = useQuery({
     queryKey: ["watchlists"],
     queryFn: getWatchlists,
   })
@@ -33,7 +33,14 @@ function WatchlistContent() {
         activeListId={activeListId}
         onSelect={setActiveListId}
       />
-      <WatchlistMainPanel activeListId={activeListId} />
+      <div className="flex-1 flex flex-col min-w-0">
+        {listsError && (
+          <div className="m-6 rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-4 text-sm text-zinc-400">
+            Failed to load watchlists. Check your connection and refresh the page.
+          </div>
+        )}
+        <WatchlistMainPanel activeListId={activeListId} />
+      </div>
     </div>
   )
 }

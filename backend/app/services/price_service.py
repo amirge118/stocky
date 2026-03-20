@@ -4,6 +4,8 @@ import asyncio
 import logging
 from typing import List
 
+import yfinance as yf
+
 from app.core.cache import cache_get, cache_set
 from app.core.fmp_client import FMPRateLimitError, get_fmp_client
 
@@ -57,15 +59,45 @@ async def get_prices(tickers: List[str]) -> dict[str, float]:
     if not missing:
         return result
 
-    # Step C — individual concurrent fetches from FMP for all misses
+    # Step C — concurrent fetches: TASE → yfinance, others → FMP
+    tase_missing = [t for t in missing if t.endswith(".TA")]
+    fmp_missing = [t for t in missing if not t.endswith(".TA")]
+
     client = get_fmp_client()
     try:
-        async def _get_price(sym: str):
-            raw = await client.get("/stable/quote", {"symbol": sym})
-            items = raw if isinstance(raw, list) else []
-            return sym, items[0] if items else None
+        async def _get_price_yf(sym: str):
+            def _sync():
+                try:
+                    return yf.Ticker(sym).fast_info.last_price
+                except Exception:
+                    return None
+            price = await asyncio.to_thread(_sync)
+            return sym, {"price": price} if price is not None else None
 
-        price_results = await asyncio.gather(*[_get_price(sym) for sym in missing])
+        async def _get_price(sym: str):
+            # Check shared quote cache first to avoid duplicate FMP calls
+            cached_q = await cache_get(f"quote:{sym}")
+            if cached_q is not None:
+                return sym, cached_q
+            raw = await client.get("/stable/profile", {"symbol": sym})
+            items = raw if isinstance(raw, list) else []
+            q = items[0] if items and items[0].get("price") else None
+            if q is not None:
+                await cache_set(f"quote:{sym}", q, ttl=_FRESH_TTL)
+                return sym, q
+            # FMP has no price → fallback to yfinance
+            def _sync_yf():
+                try:
+                    return yf.Ticker(sym).fast_info.last_price
+                except Exception:
+                    return None
+            price = await asyncio.to_thread(_sync_yf)
+            return sym, {"price": price} if price else None
+
+        price_results = await asyncio.gather(
+            *[_get_price(sym) for sym in fmp_missing],
+            *[_get_price_yf(sym) for sym in tase_missing],
+        )
 
         fetched: dict[str, float] = {}
         for sym, q in price_results:

@@ -22,11 +22,13 @@ async def create_alert(db: AsyncSession, data: AlertCreate) -> Alert:
 
 
 async def list_alerts(
-    db: AsyncSession, limit: int = 50, offset: int = 0
+    db: AsyncSession, limit: int = 50, offset: int = 0, ticker: Optional[str] = None
 ) -> list[Alert]:
-    result = await db.execute(
-        select(Alert).order_by(Alert.created_at.desc()).limit(limit).offset(offset)
-    )
+    query = select(Alert)
+    if ticker is not None:
+        query = query.where(Alert.ticker == ticker.upper())
+    query = query.order_by(Alert.created_at.desc()).limit(limit).offset(offset)
+    result = await db.execute(query)
     return list(result.scalars().all())
 
 

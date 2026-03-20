@@ -1,65 +1,37 @@
-# Cursor Rules Documentation
+# Cursor rules — Stocky
 
-This directory contains comprehensive rules and guidelines for the Stock Insight App project.
+Rules under `.cursor/rules/` supplement **canonical** per-app guides. Prefer editing those guides first, then topic files below.
 
-## Rules File Organization
+## Canonical (single source)
 
-### Core Architecture
-- **[architecture.md](./architecture.md)** - High-level architecture overview for both frontend and backend
-- **[project-overview.md](./project-overview.md)** - Project overview and communication protocol
+| What | Where |
+|------|--------|
+| Frontend (including UI + React Query rules) | [`frontend/.cursorrules`](../../frontend/.cursorrules) |
+| Backend | [`backend/.cursorrules`](../../backend/.cursorrules) |
+| Project-wide + `FUTURE_IMPROVEMENTS.md` workflow | [`project-overview.md`](./project-overview.md) |
+| Stack versions | [`tech-stack-versions.md`](./tech-stack-versions.md) |
 
-### Technology Stack
-- **[tech-stack-versions.md](./tech-stack-versions.md)** - Complete tech stack with versions, compatibility matrix, and best practices
-- **[tech-preferences.md](./tech-preferences.md)** - Quick reference (references tech-stack-versions.md for details)
+**Cursor + Claude index:** [`docs/ai/README.md`](../../docs/ai/README.md)
 
-### Frontend Rules
-- **[frontend/.cursorrules](../../frontend/.cursorrules)** - Comprehensive frontend architecture, project structure, and patterns
-- **[frontend-nextjs-rules.md](./frontend-nextjs-rules.md)** - Detailed Next.js and React patterns (references frontend/.cursorrules)
+## Topic files (use when relevant)
 
-### Backend Rules
-- **[backend/.cursorrules](../../backend/.cursorrules)** - Comprehensive backend architecture, project structure, and patterns
-- **[python-fastapi-best-practices.md](./python-fastapi-best-practices.md)** - Python/FastAPI best practices (references backend/.cursorrules)
+- **Architecture (short)** — [`architecture.md`](./architecture.md)
+- **Coding style (short)** — [`coding-standards.md`](./coding-standards.md) · [`tech-preferences.md`](./tech-preferences.md)
+- **API** — [`api-design-rules.md`](./api-design-rules.md)
+- **Database** — [`database-rules.md`](./database-rules.md)
+- **Errors** — [`error-handling-rules.md`](./error-handling-rules.md)
+- **Security** — [`security-rules.md`](./security-rules.md)
+- **Testing** — [`testing-rules.md`](./testing-rules.md)
+- **Docs / design docs** — [`documentation-rules.md`](./documentation-rules.md) · [`design-docs-guide.md`](./design-docs-guide.md)
+- **Workflow** — [`docker-dev-workflow.md`](./docker-dev-workflow.md) · [`git-workflow-rules.md`](./git-workflow-rules.md) · [`pr-review.md`](./pr-review.md)
 
-### Standards & Guidelines
-- **[coding-standards.md](./coding-standards.md)** - General coding standards for frontend and backend
-- **[api-design-rules.md](./api-design-rules.md)** - REST API design conventions
-- **[database-rules.md](./database-rules.md)** - Database design and query patterns
-- **[error-handling-rules.md](./error-handling-rules.md)** - Error handling patterns
-- **[security-rules.md](./security-rules.md)** - Security best practices
-- **[testing-rules.md](./testing-rules.md)** - Testing strategies and patterns
-- **[documentation-rules.md](./documentation-rules.md)** - Code documentation standards
+## Thin stubs (pointers only)
 
-### Workflow
-- **[docker-dev-workflow.md](./docker-dev-workflow.md)** - Docker + npm scripts for dev; add new services to Docker
-- **[git-workflow-rules.md](./git-workflow-rules.md)** - Git workflow and commit conventions
-- **[pr-review.md](./pr-review.md)** - Pull request review guidelines
+- [`frontend-nextjs-rules.md`](./frontend-nextjs-rules.md) → `frontend/.cursorrules`
+- [`python-fastapi-best-practices.md`](./python-fastapi-best-practices.md) → `backend/.cursorrules` + API/DB rules
 
-## File Relationships
+## How to use
 
-### Primary Architecture Files
-- `frontend/.cursorrules` - **Primary** frontend architecture reference
-- `backend/.cursorrules` - **Primary** backend architecture reference
-- `architecture.md` - High-level overview of both
-
-### Supporting Files
-- `frontend-nextjs-rules.md` - Detailed patterns (supplements frontend/.cursorrules)
-- `python-fastapi-best-practices.md` - Quick reference (references backend/.cursorrules)
-- `tech-stack-versions.md` - **Primary** tech stack reference
-- `tech-preferences.md` - Quick reference (references tech-stack-versions.md)
-
-## How to Use
-
-1. **Starting a new feature**: Read `architecture.md` for overview, then refer to specific `frontend/.cursorrules` or `backend/.cursorrules`
-2. **Choosing technologies**: See `tech-stack-versions.md` for versions and compatibility
-3. **API design**: Follow `api-design-rules.md`
-4. **Database work**: Follow `database-rules.md`
-5. **Code review**: Use `pr-review.md` and `coding-standards.md`
-
-## Notes on Duplication
-
-Some files contain overlapping content by design:
-- **Architecture files** (`frontend/.cursorrules`, `backend/.cursorrules`) contain comprehensive, detailed information
-- **Pattern files** (`frontend-nextjs-rules.md`, `python-fastapi-best-practices.md`) provide quick reference and specific patterns
-- **Overview files** (`architecture.md`, `tech-preferences.md`) provide high-level summaries
-
-Files reference each other to avoid duplication while maintaining comprehensive coverage.
+1. New feature: `architecture.md` or `docs/ai/README.md` for orientation, then `frontend/.cursorrules` or `backend/.cursorrules`.
+2. API/DB/security/tests: open the matching topic file above.
+3. Avoid copying the same paragraphs into multiple files — link instead.

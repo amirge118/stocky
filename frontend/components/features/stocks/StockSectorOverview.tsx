@@ -101,7 +101,7 @@ export function StockSectorOverview({ symbol, sector, industry }: StockSectorOve
                     className={`py-2.5 text-right tabular-nums text-xs font-medium ${
                       peer.day_change_percent != null
                         ? peer.day_change_percent >= 0
-                          ? "text-emerald-400"
+                          ? "text-green-400"
                           : "text-red-400"
                         : "text-zinc-500"
                     }`}

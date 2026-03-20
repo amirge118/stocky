@@ -88,8 +88,8 @@ function RsiChart({ data, period }: RsiChartProps) {
             labelFormatter={(v) => formatXAxis(v as number)}
             formatter={(v: number) => [v.toFixed(2), "RSI"]}
           />
-          <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="4 2" strokeWidth={1} />
-          <ReferenceLine y={30} stroke="#22c55e" strokeDasharray="4 2" strokeWidth={1} />
+          <ReferenceLine y={70} stroke="#f87171" strokeDasharray="4 2" strokeWidth={1} />
+          <ReferenceLine y={30} stroke="#4ade80" strokeDasharray="4 2" strokeWidth={1} />
           <Line
             type="monotone"
             dataKey="v"
@@ -143,7 +143,7 @@ function MacdChart({ data, period }: MacdChartProps) {
           <Bar
             dataKey="hist"
             name="Histogram"
-            fill="#22c55e"
+            fill="#4ade80"
             radius={[1, 1, 0, 0]}
             // Color bars individually via a custom cell approach isn't needed —
             // we'll use a fixed color and rely on the sign being visible from the chart shape
