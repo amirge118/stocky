@@ -6,7 +6,7 @@ python-multipart==0.0.6
 # Database
 sqlalchemy==2.0.25
 asyncpg==0.29.0
-alembic==1.13.1
+alembic==1.18.4
 greenlet>=3.0.0  # Required for SQLAlchemy async operations
 
 # Validation & Serialization
