@@ -3,13 +3,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.core.fmp_client import FMPRateLimitError
 from app.schemas.stock import (
     StockDataResponse,
     StockHistoryResponse,
     StockInfoResponse,
-    StockSearchResult,
 )
-from app.core.fmp_client import FMPRateLimitError
 from app.services.stock_data import (
     fetch_stock_data_batch,
     fetch_stock_data_from_yfinance,
@@ -113,7 +112,6 @@ async def test_fetch_stock_data_returns_data():
 
 @pytest.mark.asyncio
 async def test_fetch_stock_data_cache_hit():
-    cached = _fmp_quote()
     cached_response = StockDataResponse(
         symbol="AAPL", name="Apple Inc.", current_price=155.0,
         previous_close=150.0, change=5.0, change_percent=3.33,

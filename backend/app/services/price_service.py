@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-from typing import List
 
 import yfinance as yf
 
@@ -23,7 +22,7 @@ def _stale_key(ticker: str) -> str:
     return f"price_stale:{ticker}"
 
 
-async def get_prices(tickers: List[str]) -> dict[str, float]:
+async def get_prices(tickers: list[str]) -> dict[str, float]:
     """Return latest prices for *tickers*, using Redis cache with stale fallback.
 
     Cache strategy:

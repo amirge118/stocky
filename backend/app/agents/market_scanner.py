@@ -1,6 +1,5 @@
 import asyncio
 import time
-from typing import Optional
 
 from app.agents.base import AgentResult, AgentStatus, BaseAgent
 from app.core.ai_client import call_claude_json

@@ -1,8 +1,9 @@
 import asyncio
 from datetime import datetime
+
 from fastapi import APIRouter
-from app.schemas.common import HealthResponse, HealthCheck
-from app.core.config import settings
+
+from app.schemas.common import HealthCheck, HealthResponse
 
 router = APIRouter()
 

@@ -274,6 +274,7 @@ async def test_search_stocks_empty(client: TestClient):
 async def test_get_stock_data_success(client: TestClient):
     """Test fetching live stock data via FMP."""
     from unittest.mock import AsyncMock as AM
+
     from app.schemas.stock import StockDataResponse
 
     mock_response = StockDataResponse(

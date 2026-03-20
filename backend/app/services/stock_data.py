@@ -11,8 +11,6 @@ import logging
 from datetime import date, datetime, timedelta
 from typing import Any, Optional
 
-logger = logging.getLogger(__name__)
-
 from fastapi import HTTPException, status
 
 from app.core import yf_client
@@ -29,6 +27,8 @@ from app.schemas.stock import (
     StockNewsItem,
     StockSearchResult,
 )
+
+logger = logging.getLogger(__name__)
 
 _CACHE_TTL = 600          # 10 minutes
 _INFO_CACHE_TTL = 1800    # 30 minutes

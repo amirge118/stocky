@@ -1,12 +1,12 @@
 """Unit tests for agent_service."""
 from datetime import datetime, timezone
+from typing import Optional
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.base import AgentResult, AgentStatus
-from app.models.agent_report import AgentReport  # registers table with Base.metadata
 from app.services import agent_service
 
 
@@ -14,7 +14,7 @@ def _result(
     agent_name: str = "stock_deep_dive",
     agent_type: str = "stock",
     status: AgentStatus = AgentStatus.COMPLETED,
-    symbol: str | None = "AAPL",
+    symbol: Optional[str] = "AAPL",
 ) -> AgentResult:
     return AgentResult(
         agent_name=agent_name,
@@ -27,7 +27,7 @@ def _result(
     )
 
 
-def _cached_report(agent_name: str = "stock_deep_dive", symbol: str | None = "AAPL") -> dict:
+def _cached_report(agent_name: str = "stock_deep_dive", symbol: Optional[str] = "AAPL") -> dict:
     return {
         "id": 99,
         "agent_name": agent_name,

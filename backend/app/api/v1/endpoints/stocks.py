@@ -25,6 +25,7 @@ from app.schemas.stock import (
     StockUpdate,
 )
 from app.services import stock_service
+from app.services.indicators_service import compute_indicators
 
 router = APIRouter()
 
@@ -174,8 +175,6 @@ async def get_stock(
         )
     return StockResponse.model_validate(stock)
 
-
-from app.services.indicators_service import compute_indicators
 
 @router.get("/{symbol}/indicators", response_model=StockIndicatorsResponse, summary="Get technical indicators")
 async def get_stock_indicators(

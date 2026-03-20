@@ -1,16 +1,13 @@
 """Unit tests for rate limiting configuration and enforcement."""
-from unittest.mock import patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from slowapi import Limiter
-from slowapi import _rate_limit_exceeded_handler
+from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.core.limiter import limiter
-
 
 # ---------------------------------------------------------------------------
 # 1. Limiter configuration tests

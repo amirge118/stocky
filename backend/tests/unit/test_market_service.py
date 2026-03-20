@@ -4,8 +4,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.schemas.market import IndexData, MarketOverviewResponse, MoverData, SectorData
-from app.services.market_service import INDICES, SECTORS, TOP_MOVERS_UNIVERSE, get_market_overview
-
+from app.services.market_service import (
+    INDICES,
+    SECTORS,
+    TOP_MOVERS_UNIVERSE,
+    get_market_overview,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
