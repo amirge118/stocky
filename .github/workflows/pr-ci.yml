@@ -107,11 +107,7 @@ jobs:
         run: npm ci 2>/dev/null || npm install
 
       - name: Install Playwright browsers
-        run: |
-          # Ubuntu 24.04: pre-install libasound2t64 (provides virtual libasound2)
-          # so Playwright's --with-deps apt step finds the dependency satisfied
-          sudo apt-get update -qq && sudo apt-get install -y libasound2t64
-          npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
         run: npm run test:e2e
