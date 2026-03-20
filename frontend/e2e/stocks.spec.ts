@@ -107,9 +107,9 @@ test.describe("Stocks Feature", () => {
       })
     })
 
-    // Fire navigation without awaiting so we can assert the spinner while the API is delayed
+    // Fire navigation without awaiting so we can assert the skeleton while the API is delayed
     const gotoPromise = page.goto("/stocks")
-    await expect(page.locator('[role="status"]')).toBeVisible({ timeout: 5000 })
+    await expect(page.locator("div.animate-pulse").first()).toBeVisible({ timeout: 5000 })
     await gotoPromise
   })
 
@@ -130,6 +130,6 @@ test.describe("Stocks Feature", () => {
     await page.goto("/stocks")
 
     // Should show error alert (TanStack Query retries once before showing error, allow ~10s)
-    await expect(page.locator('[class*="border-destructive"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[role="alert"]')).toBeVisible({ timeout: 10000 })
   })
 })
