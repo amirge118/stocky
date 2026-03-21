@@ -4,13 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.core.fmp_client import FMPNotFoundError, FMPRateLimitError
+from app.core.fmp_client import FMPRateLimitError
 from app.schemas.stock import (
-    StockDataResponse,
     StockDividendsResponse,
     StockEnrichedData,
     StockHistoryResponse,
-    StockInfoResponse,
 )
 from app.services.stock_data import (
     _fetch_enriched_single,
@@ -27,7 +25,6 @@ from app.services.stock_data import (
     fetch_stock_news,
     search_stocks_from_yfinance,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

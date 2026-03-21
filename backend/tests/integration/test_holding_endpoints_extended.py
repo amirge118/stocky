@@ -9,7 +9,6 @@ from app.schemas.holding import (
     PortfolioHistoryResponse,
     PortfolioPosition,
     PortfolioSummary,
-    PortfolioSummaryWithSector,
 )
 from app.schemas.stock import PortfolioNewsItem
 
