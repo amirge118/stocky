@@ -25,15 +25,19 @@ import {
 } from "@/components/ui/select"
 import { updateStock } from "@/lib/api/stocks"
 import { useToast } from "@/hooks/use-toast"
-import type { Stock, StockUpdate } from "@/types/stock"
+import type { Stock } from "@/types/stock"
 
 const stockUpdateSchema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name must be 255 characters or less"),
-  exchange: z.enum(["NASDAQ", "NYSE", "AMEX", "OTC"], {
-    required_error: "Please select an exchange",
-  }),
+  exchange: z.enum(["NASDAQ", "NYSE", "AMEX", "OTC"], "Please select an exchange"),
   sector: z.string().max(100, "Sector must be 100 characters or less").optional().nullable(),
 })
+
+type StockUpdateForm = {
+  name: string
+  exchange: "NASDAQ" | "NYSE" | "AMEX" | "OTC"
+  sector?: string | null
+}
 
 export interface EditStockDialogProps {
   open: boolean
@@ -59,11 +63,11 @@ export function EditStockDialog({
     reset,
     setValue,
     watch,
-  } = useForm<StockUpdate>({
+  } = useForm({
     resolver: zodResolver(stockUpdateSchema),
     defaultValues: {
       name: stock.name,
-      exchange: stock.exchange as StockUpdate["exchange"],
+      exchange: stock.exchange as StockUpdateForm["exchange"],
       sector: stock.sector,
     },
   })
@@ -75,14 +79,14 @@ export function EditStockDialog({
     if (open && stock) {
       reset({
         name: stock.name,
-        exchange: stock.exchange as StockUpdate["exchange"],
+        exchange: stock.exchange as StockUpdateForm["exchange"],
         sector: stock.sector,
       })
     }
   }, [stock, open, reset])
 
   const mutation = useMutation({
-    mutationFn: (data: StockUpdate) => updateStock(stock.symbol, data),
+    mutationFn: (data: StockUpdateForm) => updateStock(stock.symbol, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stocks"] })
       toast({
@@ -103,7 +107,7 @@ export function EditStockDialog({
     },
   })
 
-  const onSubmit = async (data: StockUpdate) => {
+  const onSubmit = async (data: StockUpdateForm) => {
     setIsSubmitting(true)
     mutation.mutate(data)
   }
@@ -156,7 +160,7 @@ export function EditStockDialog({
               </Label>
               <Select
                 value={exchangeValue}
-                onValueChange={(value) => setValue("exchange", value as StockUpdate["exchange"])}
+                onValueChange={(value) => setValue("exchange", value as StockUpdateForm["exchange"])}
               >
                 <SelectTrigger
                   id="exchange"

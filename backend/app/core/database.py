@@ -8,6 +8,7 @@ import socket
 import ssl
 from collections.abc import AsyncGenerator
 from pathlib import Path
+from typing import cast
 from urllib.parse import urlparse
 
 from sqlalchemy.engine.url import make_url
@@ -56,7 +57,8 @@ def _resolve_first_ipv4(host: str, port: int) -> str | None:
         return None
     if not infos:
         return None
-    return infos[0][4][0]
+    # sockaddr for AF_INET is (host: str, port: int); typeshed still widens [0] to str | int
+    return cast(str, infos[0][4][0])
 
 
 def _should_rewrite_database_url_to_ipv4(url: str) -> bool:

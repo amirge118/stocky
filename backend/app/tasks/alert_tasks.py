@@ -76,7 +76,7 @@ async def _check_alerts_async() -> dict:
         return {"checked": len(alerts), "triggered": triggered, "failed": failed}
 
 
-@celery_app.task(name="app.tasks.alert_tasks.check_alerts", bind=True, max_retries=0)  # type: ignore[misc]
+@celery_app.task(name="app.tasks.alert_tasks.check_alerts", bind=True, max_retries=0)  # type: ignore[untyped-decorator]
 def check_alerts(self: object) -> dict:
     """Celery task: check all active alerts and fire notifications."""
     return asyncio.run(_check_alerts_async())
