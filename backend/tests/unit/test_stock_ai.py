@@ -20,7 +20,6 @@ from app.schemas.stock import (
     StockInfoResponse,
 )
 
-
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 

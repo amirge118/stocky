@@ -10,8 +10,11 @@ import pytest
 from fastapi import FastAPI
 from starlette.testclient import TestClient
 
-from app.middleware.request_logging import RequestLoggingMiddleware, _redact, _safe_payload
-
+from app.middleware.request_logging import (
+    RequestLoggingMiddleware,
+    _redact,
+    _safe_payload,
+)
 
 # ---------------------------------------------------------------------------
 # _redact

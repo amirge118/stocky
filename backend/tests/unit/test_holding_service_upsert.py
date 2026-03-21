@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.holding import HoldingResponse
 from app.services.holding_service import delete_holding, upsert_holding
 
-
 # ── upsert_holding (add_holding) ─────────────────────────────────────────────
 
 

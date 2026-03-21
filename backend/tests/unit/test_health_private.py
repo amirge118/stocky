@@ -1,11 +1,11 @@
 """Unit tests for private helper functions in health.py."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.api.v1.endpoints.health import _check_database, _check_redis
 from app.schemas.common import HealthCheck
-
 
 # ── _check_database ───────────────────────────────────────────────────────────
 

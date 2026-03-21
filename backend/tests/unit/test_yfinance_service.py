@@ -11,7 +11,6 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-
 # ── fetch_history_daily ───────────────────────────────────────────────────────
 
 

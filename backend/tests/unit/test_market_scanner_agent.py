@@ -1,19 +1,16 @@
 """Unit tests for MarketScannerAgent."""
-from typing import Dict, List, Optional
+from typing import Optional
 from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
 
 from app.agents.base import AgentStatus
 from app.agents.market_scanner import MarketScannerAgent
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _make_db(symbols: Optional[List[str]] = None) -> AsyncMock:
+def _make_db(symbols: Optional[list[str]] = None) -> AsyncMock:
     """Return an AsyncMock DB session whose execute().fetchall() yields rows."""
     db = AsyncMock()
     rows = [(sym,) for sym in (symbols or [])]
@@ -23,7 +20,7 @@ def _make_db(symbols: Optional[List[str]] = None) -> AsyncMock:
     return db
 
 
-def _make_fmp_client(quotes: Optional[List[Dict]] = None) -> MagicMock:
+def _make_fmp_client(quotes: Optional[list[dict]] = None) -> MagicMock:
     fmp = MagicMock()
     fmp.get = AsyncMock(return_value=quotes if quotes is not None else [])
     return fmp

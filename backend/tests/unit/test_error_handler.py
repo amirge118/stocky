@@ -3,14 +3,14 @@
 All four async handlers are called directly — no TestClient required.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
 from fastapi import status
 from fastapi.exceptions import RequestValidationError
-from starlette.requests import Request
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.requests import Request
 
 from app.middleware.error_handler import (
     general_exception_handler,
@@ -18,7 +18,6 @@ from app.middleware.error_handler import (
     sqlalchemy_exception_handler,
     validation_exception_handler,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -6,7 +6,6 @@ import pytest
 from app.agents.base import AgentStatus
 from app.agents.portfolio_health import PortfolioHealthAgent
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

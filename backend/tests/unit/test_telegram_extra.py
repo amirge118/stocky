@@ -7,7 +7,6 @@ import pytest
 
 from app.models.alert import ConditionType
 
-
 # ── send_alert_message: generic exception path (lines 70-72) ──────────────────
 
 
