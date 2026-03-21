@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
@@ -15,6 +16,7 @@ from app.schemas.agent import (
 from app.services import agent_service
 
 router = APIRouter()
+_logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=AgentListResponse)
@@ -41,21 +43,25 @@ async def _run_agent_task(agent_name: str, context: dict) -> None:
 
     agent = AgentRegistry.get(agent_name)
     start = time.time()
-    async with AsyncSessionLocal() as db:
-        # Replace DB in context with fresh session
-        context = {**context, "db": db}
-        try:
-            result = await agent.run(context)
-        except Exception as e:
-            result = AgentResult(
-                agent_name=agent_name,
-                agent_type=agent.agent_type,
-                status=AgentStatus.FAILED,
-                error_message=str(e),
-                target_symbol=context.get("symbol"),
-                run_duration_ms=int((time.time() - start) * 1000),
-            )
-        await agent_service.save_agent_report(db, result)
+    try:
+        async with AsyncSessionLocal() as db:
+            # Replace DB in context with fresh session
+            context = {**context, "db": db}
+            try:
+                result = await agent.run(context)
+            except Exception as e:
+                result = AgentResult(
+                    agent_name=agent_name,
+                    agent_type=agent.agent_type,
+                    status=AgentStatus.FAILED,
+                    error_message=str(e),
+                    target_symbol=context.get("symbol"),
+                    run_duration_ms=int((time.time() - start) * 1000),
+                )
+            await agent_service.save_agent_report(db, result)
+    except Exception:
+        # After the HTTP response is sent, a raised exception becomes a noisy ASGI error.
+        _logger.exception("Background agent task failed for %r", agent_name)
 
 
 @router.post("/{agent_name}/trigger", response_model=TriggerResponse)
