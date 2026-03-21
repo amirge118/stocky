@@ -101,6 +101,7 @@ Card pattern: `rounded-xl border border-zinc-800 bg-zinc-900`
 - Frontend: Jest + React Testing Library, test loading/error/success states. Playwright for E2E.
 - Pyramid: 70% unit / 20% integration / 10% E2E.
 - Never mark a feature complete without tests.
+- Every new file under `backend/app/` MUST have a corresponding test file before the PR is merged. Coverage must remain ≥ 80% (enforced by `--cov-fail-under=80`).
 
 ## Commit Format
 
