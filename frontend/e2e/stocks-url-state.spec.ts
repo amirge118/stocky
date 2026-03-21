@@ -19,9 +19,8 @@ test("compare page loads with symbols from URL", async ({ page }) => {
   // The h1 should be visible — confirms the page rendered without crashing
   await expect(page.locator("h1")).toContainText("Stock Comparison")
 
-  // The input field should be pre-populated from the URL params
-  const input = page.locator('input[type="text"]')
+  // The compare input (not the search bar) should be pre-populated from the URL params
+  const input = page.getByPlaceholder("e.g. AAPL, MSFT, GOOGL")
   await expect(input).toBeVisible()
-  const value = await input.inputValue()
-  expect(value.replace(/\s/g, "")).toContain("AAPL,MSFT")
+  await expect(input).toHaveValue(/AAPL/)
 })

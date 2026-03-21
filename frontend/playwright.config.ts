@@ -10,6 +10,15 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "off",
   },
+  webServer: {
+    command: "npm run build && npm start",
+    url: "http://localhost:3000",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120000,
+    env: {
+      NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000",
+    },
+  },
   projects: [
     {
       name: "chromium",

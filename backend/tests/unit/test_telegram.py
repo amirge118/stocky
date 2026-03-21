@@ -7,7 +7,6 @@ import pytest
 
 from app.models.alert import ConditionType
 
-
 # ── send_alert_message ────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio

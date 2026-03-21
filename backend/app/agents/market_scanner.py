@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import Optional
+from typing import Any
 
 from app.agents.base import AgentResult, AgentStatus, BaseAgent
 from app.core.ai_client import call_claude_json
@@ -53,7 +53,7 @@ class MarketScannerAgent(BaseAgent):
         # Fetch all symbols individually via FMP (concurrent)
         client = get_fmp_client()
 
-        async def _get_quote(sym: str):
+        async def _get_quote(sym: str) -> Any:
             try:
                 raw = await client.get("/stable/quote", {"symbol": sym})
                 items = raw if isinstance(raw, list) else []

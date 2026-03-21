@@ -1,9 +1,15 @@
 """Technical indicator calculations (RSI, MACD, SMA, Bollinger)."""
 import math
 from typing import Optional
+
 from app.schemas.stock import (
-    IndicatorPoint, BollingerPoint, MacdPoint, StockIndicatorsResponse, StockHistoryPoint
+    BollingerPoint,
+    IndicatorPoint,
+    MacdPoint,
+    StockHistoryPoint,
+    StockIndicatorsResponse,
 )
+
 
 def _sma(closes: list[float], period: int) -> list[Optional[float]]:
     result: list[Optional[float]] = [None] * len(closes)

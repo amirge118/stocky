@@ -15,14 +15,14 @@ class NotificationSettings(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
     telegram_enabled: Mapped[bool] = mapped_column(
-        Boolean, server_default="false", nullable=False
+        Boolean, default=False, server_default="false", nullable=False
     )
     telegram_chat_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     browser_push_enabled: Mapped[bool] = mapped_column(
-        Boolean, server_default="true", nullable=False
+        Boolean, default=True, server_default="true", nullable=False
     )
     whatsapp_enabled: Mapped[bool] = mapped_column(
-        Boolean, server_default="false", nullable=False
+        Boolean, default=False, server_default="false", nullable=False
     )
     whatsapp_phone: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

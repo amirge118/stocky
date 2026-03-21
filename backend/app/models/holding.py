@@ -15,4 +15,6 @@ class Holding(BaseModel):
     shares: Mapped[float] = mapped_column(Float, nullable=False)
     avg_cost: Mapped[float] = mapped_column(Float, nullable=False)
     total_cost: Mapped[float] = mapped_column(Float, nullable=False)
-    purchase_date: Mapped[date] = mapped_column(sa.Date, nullable=False)
+    purchase_date: Mapped[date] = mapped_column(
+        sa.Date, nullable=False, server_default=sa.func.current_date()
+    )

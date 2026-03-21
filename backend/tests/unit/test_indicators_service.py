@@ -1,5 +1,4 @@
 """Unit tests for indicators_service — pure numeric functions."""
-import math
 
 import pytest
 

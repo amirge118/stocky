@@ -3,7 +3,6 @@
 import pytest
 from fastapi.testclient import TestClient
 
-
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 def _create_list(client: TestClient, name: str = "Test List") -> dict:

@@ -9,7 +9,6 @@ from app.models.alert import Alert, ConditionType
 from app.schemas.alert import AlertCreate, AlertUpdate
 from app.services import alert_service
 
-
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 async def _make_alert(
@@ -98,12 +97,14 @@ async def test_list_alerts_respects_offset(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_list_alerts_ordered_newest_first(db_session: AsyncSession):
     """list_alerts returns alerts ordered newest-first by created_at (desc)."""
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
+
     from sqlalchemy import update
+
     from app.models.alert import Alert
 
     a1 = await _make_alert(db_session, "AAPL")
-    a2 = await _make_alert(db_session, "MSFT")
+    _a2 = await _make_alert(db_session, "MSFT")
 
     # Force a1 to be 1 hour older so ordering is deterministic
     await db_session.execute(

@@ -6,7 +6,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.agents.registry import AgentRegistry
-from app.models.agent_report import AgentReport  # registers table with Base.metadata
 from app.schemas.agent import AgentReportResponse
 
 

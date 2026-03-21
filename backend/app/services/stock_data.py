@@ -9,9 +9,7 @@ Routing rules:
 import asyncio
 import logging
 from datetime import date, datetime, timedelta
-from typing import Any, Optional
-
-logger = logging.getLogger(__name__)
+from typing import Any, Optional, cast
 
 from fastapi import HTTPException, status
 
@@ -29,6 +27,8 @@ from app.schemas.stock import (
     StockNewsItem,
     StockSearchResult,
 )
+
+logger = logging.getLogger(__name__)
 
 _CACHE_TTL = 600          # 10 minutes
 _INFO_CACHE_TTL = 1800    # 30 minutes
@@ -117,21 +117,21 @@ def _yf_quote_to_response(sym: str, q: dict) -> StockDataResponse:
 async def _fetch_single_quote(client: object, sym: str) -> Optional[dict]:
     """Fetch a single quote dict from FMP profile endpoint, yfinance fallback on failure."""
     try:
-        raw = await client.get("/stable/profile", {"symbol": sym})  # type: ignore[union-attr]
+        raw = await client.get("/stable/profile", {"symbol": sym})  # type: ignore[attr-defined]
         items = raw if isinstance(raw, list) else []
         if items:
-            return items[0]
+            return cast(dict[Any, Any], items[0])
     except Exception:
         pass
     # FMP unavailable / rate-limited → yfinance fallback
-    return await yf_client.fetch_quote(sym)
+    return cast(dict[Any, Any], await yf_client.fetch_quote(sym))
 
 
 async def _get_cached_quote(client: object, sym: str) -> Optional[dict]:
     """Fetch a single quote dict, shared across all services via quote:{sym} cache key."""
     cached = await cache_get(f"quote:{sym}")
     if cached is not None:
-        return cached
+        return cast(dict[Any, Any], cached)
     q = await _fetch_single_quote(client, sym)
     if q is not None:
         await cache_set(f"quote:{sym}", q, ttl=_QUOTE_CACHE_TTL)
@@ -604,7 +604,7 @@ async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
     # TASE: go directly to yfinance
     if _is_tase(sym):
         news_raw = await yf_client.fetch_news(sym, limit)
-        items = [
+        items: list[StockNewsItem] = [
             StockNewsItem(
                 title=n["title"],
                 publisher=n.get("publisher"),
@@ -624,7 +624,7 @@ async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
     except Exception:
         raw = []
 
-    items: list[StockNewsItem] = []
+    items = []
     for article in (raw if isinstance(raw, list) else []):
         title = article.get("title", "")
         if not title:
@@ -737,11 +737,11 @@ async def fetch_stock_dividends(symbol: str, years: int = 5) -> StockDividendsRe
 
     # Fallback to yfinance if FMP returned no dividend history
     if not historical:
-        price: Optional[float] = None
+        fallback_price: Optional[float] = None
         if isinstance(quote_raw, dict):
-            price = _safe_float(quote_raw.get("price"))
+            fallback_price = _safe_float(quote_raw.get("price"))
         rows = await yf_client.fetch_dividends(sym, years)
-        result = _process_yf_dividends(rows, price)
+        result = _process_yf_dividends(rows, fallback_price)
         await cache_set(cache_key, result.model_dump(mode="json"), ttl=_DIVIDENDS_CACHE_TTL)
         return result
 

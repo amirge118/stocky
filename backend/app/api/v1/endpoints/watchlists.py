@@ -121,7 +121,7 @@ async def add_item(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"{data.symbol.upper()} is already in this watchlist",
-        )
+        ) from None
     return WatchlistItemResponse.model_validate(item)
 
 

@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from app.agents.base import AgentResult, AgentStatus, BaseAgent
 from app.core.ai_client import call_claude_json
@@ -20,6 +20,9 @@ def _sf(x: object) -> Optional[float]:
 async def _fetch_fundamentals(symbol: str) -> dict:
     """Fetch fundamentals from FMP using concurrent requests."""
     client = get_fmp_client()
+    quote_raw: Any
+    profile_raw: Any
+    news_raw: Any
     quote_raw, profile_raw, news_raw = await asyncio.gather(
         client.get(f"/v3/quote/{symbol}"),
         client.get(f"/v3/profile/{symbol}"),

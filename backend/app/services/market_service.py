@@ -56,7 +56,7 @@ async def get_market_overview() -> MarketOverviewResponse:
         list(INDICES.values()) + list(SECTORS.values()) + TOP_MOVERS_UNIVERSE
     ))
 
-    async def _get_quote(sym: str):
+    async def _get_quote(sym: str) -> tuple:
         try:
             raw = await client.get("/stable/profile", {"symbol": sym})
             items = raw if isinstance(raw, list) else []

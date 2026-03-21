@@ -93,7 +93,7 @@ function StocksContent() {
     [searchQuery, exchangeFilter, sectorFilter, updateUrl]
   )
 
-  const { data, isPending } = useQuery({
+  const { data, isPending, isError, error } = useQuery({
     queryKey: ["stocks", 1, 500],
     queryFn: () => getStocks({ page: 1, limit: 500 }),
   })
@@ -179,7 +179,14 @@ function StocksContent() {
             />
 
             {/* Stock Table */}
-            {isPending ? (
+            {isError ? (
+              <div
+                role="alert"
+                className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive"
+              >
+                {error instanceof Error ? error.message : "Failed to load stocks. Please try again."}
+              </div>
+            ) : isPending ? (
               <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
                 <div className="divide-y divide-zinc-800">
                   {Array.from({ length: 8 }).map((_, i) => (

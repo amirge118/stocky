@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-from typing import List
 
 import yfinance as yf
 
@@ -23,7 +22,7 @@ def _stale_key(ticker: str) -> str:
     return f"price_stale:{ticker}"
 
 
-async def get_prices(tickers: List[str]) -> dict[str, float]:
+async def get_prices(tickers: list[str]) -> dict[str, float]:
     """Return latest prices for *tickers*, using Redis cache with stale fallback.
 
     Cache strategy:
@@ -65,8 +64,8 @@ async def get_prices(tickers: List[str]) -> dict[str, float]:
 
     client = get_fmp_client()
     try:
-        async def _get_price_yf(sym: str):
-            def _sync():
+        async def _get_price_yf(sym: str) -> tuple:
+            def _sync() -> object:
                 try:
                     return yf.Ticker(sym).fast_info.last_price
                 except Exception:
@@ -74,7 +73,7 @@ async def get_prices(tickers: List[str]) -> dict[str, float]:
             price = await asyncio.to_thread(_sync)
             return sym, {"price": price} if price is not None else None
 
-        async def _get_price(sym: str):
+        async def _get_price(sym: str) -> tuple:
             # Check shared quote cache first to avoid duplicate FMP calls
             cached_q = await cache_get(f"quote:{sym}")
             if cached_q is not None:
@@ -86,7 +85,7 @@ async def get_prices(tickers: List[str]) -> dict[str, float]:
                 await cache_set(f"quote:{sym}", q, ttl=_FRESH_TTL)
                 return sym, q
             # FMP has no price → fallback to yfinance
-            def _sync_yf():
+            def _sync_yf() -> object:
                 try:
                     return yf.Ticker(sym).fast_info.last_price
                 except Exception:

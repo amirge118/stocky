@@ -4,8 +4,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.schemas.market import IndexData, MarketOverviewResponse, MoverData, SectorData
-from app.services.market_service import INDICES, SECTORS, TOP_MOVERS_UNIVERSE, get_market_overview
-
+from app.services.market_service import (
+    INDICES,
+    SECTORS,
+    TOP_MOVERS_UNIVERSE,
+    get_market_overview,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -135,6 +139,7 @@ async def test_empty_responses_yield_empty_lists():
         patch("app.services.market_service.cache_get", new_callable=AsyncMock, return_value=None),
         patch("app.services.market_service.cache_set", new_callable=AsyncMock),
         patch("app.services.market_service.get_fmp_client", return_value=mock_client),
+        patch("app.services.market_service.yf_client.fetch_quote", new_callable=AsyncMock, return_value=None),
     ):
         result = await get_market_overview()
 

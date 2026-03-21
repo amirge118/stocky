@@ -1,16 +1,13 @@
 """Unit tests for rate limiting configuration and enforcement."""
-from unittest.mock import patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from slowapi import Limiter
-from slowapi import _rate_limit_exceeded_handler
+from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.core.limiter import limiter
-
 
 # ---------------------------------------------------------------------------
 # 1. Limiter configuration tests
@@ -18,8 +15,15 @@ from app.core.limiter import limiter
 
 
 def test_limiter_uses_get_remote_address_as_key_func():
-    """The shared limiter must use get_remote_address as its key function."""
-    assert limiter._key_func is get_remote_address
+    """The shared limiter must use a key function that falls back to get_remote_address.
+
+    The production limiter uses _get_user_or_ip which provides per-user rate limiting
+    when an Authorization Bearer token is present, and falls back to IP-based limiting
+    otherwise — a superset of the get_remote_address behaviour.
+    """
+    from app.core.limiter import _get_user_or_ip
+
+    assert limiter._key_func is _get_user_or_ip
 
 
 def test_limiter_is_slowapi_limiter_instance():

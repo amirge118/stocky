@@ -38,8 +38,9 @@ async def test_get_all_lists_with_item_count(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_get_list_returns_items(db_session: AsyncSession):
     """add_item stores items associated with the correct list."""
-    from app.models.watchlist import WatchlistItem
     from sqlalchemy import select
+
+    from app.models.watchlist import WatchlistItem
 
     wl = await watchlist_service.create_list(db_session, "Test")
     await watchlist_service.add_item(db_session, wl.id, "NVDA", "Nvidia", "NASDAQ", None)

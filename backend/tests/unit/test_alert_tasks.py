@@ -1,5 +1,7 @@
 """Unit tests for alert Celery task logic."""
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -8,7 +10,6 @@ import pytest
 
 from app.models.alert import Alert, ConditionType
 from app.tasks.alert_tasks import _check_alerts_async, _condition_met
-
 
 # ── _condition_met ────────────────────────────────────────────────────────────
 
@@ -164,7 +165,7 @@ async def test_check_alerts_skips_within_cooldown():
         patch("app.tasks.alert_tasks.get_active_alerts", new_callable=AsyncMock) as mock_get,
         patch("app.tasks.alert_tasks.fetch_stock_data_batch", new_callable=AsyncMock) as mock_fetch,
         patch("app.tasks.alert_tasks.mark_triggered", new_callable=AsyncMock) as mock_mark,
-        patch("app.tasks.alert_tasks.send_alert_message", new_callable=AsyncMock) as mock_send,
+        patch("app.tasks.alert_tasks.send_alert_message", new_callable=AsyncMock) as _mock_send,
     ):
         mock_session = AsyncMock()
         mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
@@ -188,7 +189,7 @@ async def test_check_alerts_fires_after_cooldown_expires():
         patch("app.tasks.alert_tasks.get_active_alerts", new_callable=AsyncMock) as mock_get,
         patch("app.tasks.alert_tasks.fetch_stock_data_batch", new_callable=AsyncMock) as mock_fetch,
         patch("app.tasks.alert_tasks.mark_triggered", new_callable=AsyncMock) as mock_mark,
-        patch("app.tasks.alert_tasks.send_alert_message", new_callable=AsyncMock) as mock_send,
+        patch("app.tasks.alert_tasks.send_alert_message", new_callable=AsyncMock) as _mock_send,
     ):
         mock_session = AsyncMock()
         mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
