@@ -1,10 +1,10 @@
-# PR CI: Fast checks for all pull requests (dev, test, main)
+# PR CI: Fast checks for all pull requests (dev → main)
 # Lint, type-check, unit/component tests, coverage gates
 name: PR CI
 
 on:
   pull_request:
-    branches: [dev, test, main]
+    branches: [dev, main]
 
 jobs:
   backend-test:
@@ -46,11 +46,11 @@ jobs:
           OPENAI_API_KEY: sk-test
           ANTHROPIC_API_KEY: sk-ant-test
         run: |
-          if [ "${{ github.base_ref }}" = "main" ] || [ "${{ github.base_ref }}" = "test" ]; then
-            COV=55
+          if [ "${{ github.base_ref }}" = "main" ]; then
+            COV=80
             TEST_PATH="tests"
           else
-            COV=55
+            COV=70
             TEST_PATH="tests/unit"
           fi
           pytest $TEST_PATH -v --tb=short --cov=app --cov-report=xml --cov-fail-under=$COV
@@ -82,14 +82,13 @@ jobs:
 
       - name: Run tests with coverage
         env:
-          STRICT_COVERAGE: ${{ github.base_ref == 'test' || github.base_ref == 'main' && 'true' || '' }}
+          STRICT_COVERAGE: ${{ github.base_ref == 'main' && 'true' || '' }}
         run: npm run test:coverage -- --ci --coverageReporters=text-summary --coverageReporters=lcov
 
   e2e-tests:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
-    # Requires running stack — enable once staging env is available
-    if: github.base_ref == 'test' || github.base_ref == 'main'
+    if: github.base_ref == 'main'
     defaults:
       run:
         working-directory: frontend
@@ -115,7 +114,7 @@ jobs:
   build-images:
     name: Build Images
     runs-on: ubuntu-latest
-    if: github.base_ref == 'test' || github.base_ref == 'main'
+    if: github.base_ref == 'main'
     steps:
       - uses: actions/checkout@v4
 

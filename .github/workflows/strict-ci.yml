@@ -1,10 +1,10 @@
-# Strict CI: Full suite on push to test and main
+# Strict CI: Full suite on push to main
 # Integration tests, E2E smoke, build verification, security scans
 name: Strict CI
 
 on:
   push:
-    branches: [test, main]
+    branches: [main]
 
 jobs:
   backend-integration:
@@ -112,7 +112,6 @@ jobs:
           tags: |
             type=sha,prefix=
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/test' }}
             type=raw,value=${{ github.run_number }},enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push
