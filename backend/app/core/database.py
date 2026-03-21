@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import ipaddress
-from typing import cast
 import logging
 import socket
 import ssl
 from collections.abc import AsyncGenerator
 from pathlib import Path
+from typing import cast
 from urllib.parse import urlparse
 
 from sqlalchemy.engine.url import make_url
