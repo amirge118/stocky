@@ -1,10 +1,10 @@
-# PR CI: Fast checks for all pull requests (dev, test, main)
+# PR CI: Fast checks for all pull requests (dev → main)
 # Lint, type-check, unit/component tests, coverage gates
 name: PR CI
 
 on:
   pull_request:
-    branches: [dev, test, main]
+    branches: [dev, main]
 
 jobs:
   backend-test:
@@ -15,15 +15,15 @@ jobs:
         working-directory: backend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
       - name: Cache pip
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements*.txt') }}
@@ -46,11 +46,11 @@ jobs:
           OPENAI_API_KEY: sk-test
           ANTHROPIC_API_KEY: sk-ant-test
         run: |
-          if [ "${{ github.base_ref }}" = "main" ] || [ "${{ github.base_ref }}" = "test" ]; then
-            COV=55
+          if [ "${{ github.base_ref }}" = "main" ]; then
+            COV=80
             TEST_PATH="tests"
           else
-            COV=55
+            COV=70
             TEST_PATH="tests/unit"
           fi
           pytest $TEST_PATH -v --tb=short --cov=app --cov-report=xml --cov-fail-under=$COV
@@ -63,10 +63,10 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
@@ -82,23 +82,22 @@ jobs:
 
       - name: Run tests with coverage
         env:
-          STRICT_COVERAGE: ${{ github.base_ref == 'test' || github.base_ref == 'main' && 'true' || '' }}
+          STRICT_COVERAGE: ${{ github.base_ref == 'main' && 'true' || '' }}
         run: npm run test:coverage -- --ci --coverageReporters=text-summary --coverageReporters=lcov
 
   e2e-tests:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
-    # Requires running stack — enable once staging env is available
-    if: github.base_ref == 'test' || github.base_ref == 'main'
+    if: github.base_ref == 'main'
     defaults:
       run:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
@@ -115,15 +114,15 @@ jobs:
   build-images:
     name: Build Images
     runs-on: ubuntu-latest
-    if: github.base_ref == 'test' || github.base_ref == 'main'
+    if: github.base_ref == 'main'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build backend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: backend/Dockerfile
@@ -134,7 +133,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build frontend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: frontend/Dockerfile
