@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -16,7 +15,7 @@ router = APIRouter()
 
 # symbol -> set of WebSocket connections
 _subscribers: dict[str, set[WebSocket]] = {}
-_poll_task: Optional[asyncio.Task] = None
+_poll_task: asyncio.Task | None = None
 _POLL_INTERVAL = 30  # seconds
 
 
