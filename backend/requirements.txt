@@ -20,7 +20,7 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.1.2
 
 # HTTP & External APIs
-httpx==0.26.0
+httpx==0.28.1
 tenacity>=8.2.0
 yfinance>=1.0.0
 
