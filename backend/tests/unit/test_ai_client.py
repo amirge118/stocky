@@ -1,8 +1,6 @@
 """Unit tests for app/core/ai_client.py."""
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 def test_parse_json_response_plain():
     from app.core.ai_client import _parse_json_response

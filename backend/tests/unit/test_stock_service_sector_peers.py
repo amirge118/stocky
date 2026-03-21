@@ -3,7 +3,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.schemas.stock import SectorPeerResponse, StockCreate, StockDataResponse, StockInfoResponse
+from app.schemas.stock import (
+    StockCreate,
+    StockDataResponse,
+    StockInfoResponse,
+)
 
 
 @pytest.mark.asyncio

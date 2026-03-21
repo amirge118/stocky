@@ -18,7 +18,6 @@ from app.schemas.stock import (
     StockSearchResult,
 )
 
-
 # ── OPTIONS preflight ────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
