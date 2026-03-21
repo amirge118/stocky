@@ -29,9 +29,7 @@ import type { Stock, StockUpdate } from "@/types/stock"
 
 const stockUpdateSchema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name must be 255 characters or less"),
-  exchange: z.enum(["NASDAQ", "NYSE", "AMEX", "OTC"], {
-    required_error: "Please select an exchange",
-  }),
+  exchange: z.enum(["NASDAQ", "NYSE", "AMEX", "OTC"], "Please select an exchange"),
   sector: z.string().max(100, "Sector must be 100 characters or less").optional().nullable(),
 })
 
