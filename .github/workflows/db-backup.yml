@@ -15,7 +15,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install postgresql-client
         run: sudo apt-get install -y --no-install-recommends postgresql-client
@@ -33,7 +33,7 @@ jobs:
           # Optional: aws s3 cp ./backups/ s3://your-bucket/stocky-backups/ --recursive
 
       - name: Upload backup artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: db-backup-${{ github.run_id }}
           path: backups/*.sql.gz
