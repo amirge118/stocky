@@ -77,12 +77,12 @@ export function PortfolioSummaryCard({ summary, isPending }: Props) {
   if (isPending) {
     return (
       <div className="p-px rounded-2xl bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900">
-        <div className="rounded-2xl bg-zinc-950 p-6 animate-pulse">
+        <div className="rounded-2xl bg-zinc-950 p-6">
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="space-y-2">
-                <div className="h-2.5 w-16 rounded-full bg-zinc-800" />
-                <div className="h-7 w-28 rounded bg-zinc-800" />
+                <div className="h-2.5 w-16 rounded-full bg-zinc-800 skeleton-shimmer" />
+                <div className="h-7 w-28 rounded bg-zinc-800 skeleton-shimmer" />
               </div>
             ))}
           </div>

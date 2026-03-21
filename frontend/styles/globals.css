@@ -176,3 +176,21 @@
 .animate-ticker {
   animation: ticker 28s linear infinite;
 }
+
+/* Price flash animations for live WebSocket updates */
+@keyframes flash-green {
+  0%   { background-color: rgba(74, 222, 128, 0.2); }
+  100% { background-color: transparent; }
+}
+@keyframes flash-red {
+  0%   { background-color: rgba(248, 113, 113, 0.2); }
+  100% { background-color: transparent; }
+}
+.price-flash-green {
+  animation: flash-green 0.8s ease-out;
+  border-radius: 4px;
+}
+.price-flash-red {
+  animation: flash-red 0.8s ease-out;
+  border-radius: 4px;
+}

@@ -24,6 +24,7 @@ from app.schemas.stock import (
     StockSearchResult,
     StockUpdate,
 )
+from app.core.cache import cache_get, cache_set
 from app.services import stock_service
 from app.services.indicators_service import compute_indicators
 
@@ -133,8 +134,14 @@ async def get_stock_history(
 
 @router.get("/{symbol}/info", response_model=StockInfoResponse, summary="Get detailed company info")
 async def get_stock_info(symbol: str) -> StockInfoResponse:
-    """Fetch detailed company information from yfinance."""
-    return await stock_service.fetch_stock_info(symbol)
+    """Fetch detailed company information from yfinance. Cached 5 minutes."""
+    cache_key = f"stock:info:{symbol.upper()}"
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return StockInfoResponse(**cached)
+    result = await stock_service.fetch_stock_info(symbol)
+    await cache_set(cache_key, result.model_dump(), ttl=300)
+    return result
 
 
 @router.get("/{symbol}/news", response_model=list[StockNewsItem], summary="Get stock news")
@@ -142,8 +149,14 @@ async def get_stock_news(
     symbol: str,
     limit: int = Query(8, ge=1, le=20, description="Max news items to return"),
 ) -> list[StockNewsItem]:
-    """Fetch recent news articles for a stock."""
-    return await stock_service.fetch_stock_news(symbol, limit=limit)
+    """Fetch recent news articles for a stock. Cached 2 minutes."""
+    cache_key = f"stock:news:{symbol.upper()}:{limit}"
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return [StockNewsItem(**item) for item in cached]
+    result = await stock_service.fetch_stock_news(symbol, limit=limit)
+    await cache_set(cache_key, [item.model_dump() for item in result], ttl=120)
+    return result
 
 
 @router.get("/{symbol}/analysis", response_model=StockAIAnalysisResponse, summary="Get AI stock analysis")
@@ -182,7 +195,6 @@ async def get_stock_indicators(
     period: str = Query("6m", description="Period: 1m | 6m | 1y | 2y | 5y"),
 ) -> StockIndicatorsResponse:
     """Compute RSI, MACD, SMA20, SMA50, and Bollinger Bands from historical price data."""
-    from app.core.cache import cache_get, cache_set
     sym = symbol.upper()
     cache_key = f"indicators:{sym}:{period}"
     cached = await cache_get(cache_key)

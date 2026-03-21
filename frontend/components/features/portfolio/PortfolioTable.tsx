@@ -203,16 +203,16 @@ export function PortfolioTable({ positions, isPending }: Props) {
     return (
       <div className="rounded-2xl border border-zinc-800 overflow-hidden">
         <div className="bg-zinc-900/50 px-5 py-3 border-b border-zinc-800">
-          <div className="h-3 w-20 rounded-full bg-zinc-800 animate-pulse" />
+          <div className="h-3 w-20 rounded-full bg-zinc-800 skeleton-shimmer" />
         </div>
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="flex items-center gap-4 px-5 py-4 border-b border-zinc-800/60 animate-pulse"
+            className="flex items-center gap-4 px-5 py-4 border-b border-zinc-800/60"
           >
-            <div className="h-4 w-12 rounded bg-zinc-800" />
-            <div className="h-3 w-32 rounded bg-zinc-800" />
-            <div className="ml-auto h-4 w-20 rounded bg-zinc-800" />
+            <div className="h-4 w-12 rounded bg-zinc-800 skeleton-shimmer" />
+            <div className="h-3 w-32 rounded bg-zinc-800 skeleton-shimmer" />
+            <div className="ml-auto h-4 w-20 rounded bg-zinc-800 skeleton-shimmer" />
           </div>
         ))}
       </div>

@@ -1,6 +1,28 @@
+import * as Sentry from "@sentry/nextjs"
 import type { ApiErrorResponse } from "@/types"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+
+function reportError(error: {
+  name: string
+  status?: number
+  code?: string
+  message: string
+  endpoint: string
+}) {
+  Sentry.captureException(new Error(error.message), {
+    tags: { endpoint: error.endpoint, code: error.code ?? "unknown" },
+    extra: { status: error.status },
+  })
+  // Fire-and-forget: never awaited, never throws
+  fetch("/api/errors/log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(error),
+  }).catch(() => {
+    /* silently ignore reporting failures */
+  })
+}
 
 export class ApiError extends Error {
   constructor(
@@ -36,12 +58,13 @@ export async function apiRequest<T>(
 
     if (!response.ok) {
       const errorData = (await response.json().catch(() => ({}))) as ApiErrorResponse
-      throw new ApiError(
-        response.status,
-        errorData.error?.code || "UNKNOWN_ERROR",
-        errorData.error?.message || (errorData as unknown as { detail?: string }).detail || "An error occurred",
-        errorData.error?.details
-      )
+      const code = errorData.error?.code || "UNKNOWN_ERROR"
+      const message =
+        errorData.error?.message ||
+        (errorData as unknown as { detail?: string }).detail ||
+        "An error occurred"
+      reportError({ name: "ApiError", status: response.status, code, message, endpoint })
+      throw new ApiError(response.status, code, message, errorData.error?.details)
     }
 
     if (response.status === 204 || response.headers.get("content-length") === "0") {
@@ -56,13 +79,14 @@ export async function apiRequest<T>(
     }
     // Network error or fetch failure
     if (error instanceof TypeError && error.message.includes("fetch")) {
-      throw new NetworkError(
+      const message =
         "Unable to connect to the server. Please check your internet connection and ensure the backend is running."
-      )
+      reportError({ name: "NetworkError", message, endpoint })
+      throw new NetworkError(message)
     }
-    throw new NetworkError(
-      error instanceof Error ? error.message : "Failed to connect to server"
-    )
+    const message = error instanceof Error ? error.message : "Failed to connect to server"
+    reportError({ name: "NetworkError", message, endpoint })
+    throw new NetworkError(message)
   }
 }
 

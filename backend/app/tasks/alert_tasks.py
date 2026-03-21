@@ -3,10 +3,14 @@ import logging
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
+from sqlalchemy import select
+
 from app.celery_app import celery_app
 from app.core.database import AsyncSessionLocal
 from app.core.telegram import send_alert_message
+from app.core.whatsapp import send_whatsapp_message
 from app.models.alert import Alert, ConditionType
+from app.models.notification_settings import NotificationSettings
 from app.services.alert_service import get_active_alerts, mark_triggered
 from app.services.stock_data import fetch_stock_data_batch
 
@@ -29,6 +33,12 @@ def _condition_met(alert: Alert, current_price: float) -> bool:
 
 async def _check_alerts_async() -> dict:
     async with AsyncSessionLocal() as db:
+        # Load notification settings (singleton row id=1)
+        settings_result = await db.execute(
+            select(NotificationSettings).where(NotificationSettings.id == 1)
+        )
+        notif_settings = settings_result.scalars().first()
+
         alerts = await get_active_alerts(db)
         if not alerts:
             logger.info("check_alerts: no active alerts")
@@ -68,6 +78,22 @@ async def _check_alerts_async() -> dict:
                 )
             except Exception as exc:
                 logger.error("Failed to send Telegram alert for %s: %s", alert.ticker, exc)
+
+            try:
+                if (
+                    notif_settings
+                    and notif_settings.whatsapp_enabled
+                    and notif_settings.whatsapp_phone
+                ):
+                    await send_whatsapp_message(
+                        ticker=alert.ticker,
+                        condition_type=alert.condition_type,
+                        target_price=Decimal(str(alert.target_price)),
+                        current_price=stock.current_price,
+                        phone=notif_settings.whatsapp_phone,
+                    )
+            except Exception as exc:
+                logger.error("Failed to send WhatsApp alert for %s: %s", alert.ticker, exc)
 
         logger.info(
             "check_alerts: checked %d, triggered %d, failed %d",

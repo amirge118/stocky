@@ -1,12 +1,16 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
+import { Bell } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { removeItemFromWatchlist } from "@/lib/api/watchlists"
 import { Sparkline } from "@/components/features/stocks/Sparkline"
+import { AlertDialog } from "@/components/features/stocks/AlertDialog"
 import type { WatchlistItem, WatchlistListResponse, WatchlistListSummary } from "@/types/watchlist"
 import type { PriceUpdate } from "@/lib/hooks/useStockPrices"
 import type { StockEnrichedData } from "@/types/stock"
+import { usePriceFlash } from "@/lib/hooks/usePriceFlash"
 
 type Period = "1d" | "1w" | "1m"
 
@@ -123,6 +127,7 @@ export function WatchlistStockRow({
   enriched,
 }: WatchlistStockRowProps) {
   const queryClient = useQueryClient()
+  const [alertOpen, setAlertOpen] = useState(false)
 
   const removeMutation = useMutation({
     mutationFn: () => removeItemFromWatchlist(listId, item.symbol),
@@ -150,6 +155,7 @@ export function WatchlistStockRow({
   })
 
   const displayPrice = price?.price
+  const flashClass = usePriceFlash(displayPrice)
   const isUp = changePct !== undefined ? changePct >= 0 : true
   const periodLabel = period === "1d" ? "1D" : period === "1w" ? "1W" : "1M"
 
@@ -177,7 +183,7 @@ export function WatchlistStockRow({
         {sparkline && sparkline.length >= 2 ? (
           <Sparkline data={sparkline} width={80} height={28} />
         ) : (
-          <div className="w-20 h-7 bg-zinc-800/50 rounded animate-pulse" />
+          <div className="w-20 h-7 bg-zinc-800/50 rounded skeleton-shimmer" />
         )}
       </div>
 
@@ -222,7 +228,7 @@ export function WatchlistStockRow({
       <div className="text-right shrink-0 w-20">
         {displayPrice != null ? (
           <>
-            <div className="font-mono tabular-nums text-sm text-white font-medium">
+            <div className={`font-mono tabular-nums text-sm text-white font-medium ${flashClass}`}>
               ${displayPrice.toFixed(2)}
             </div>
             <FiftyTwoWeekBar
@@ -238,6 +244,13 @@ export function WatchlistStockRow({
 
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
+        <button
+          onClick={() => setAlertOpen(true)}
+          className="p-1.5 rounded text-zinc-600 hover:text-amber-400 hover:bg-zinc-700 transition-colors"
+          title={`Set price alert for ${item.symbol}`}
+        >
+          <Bell size={13} />
+        </button>
         <Link
           href={`/stocks/${item.symbol}`}
           className="p-1.5 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition-colors text-xs"
@@ -254,6 +267,12 @@ export function WatchlistStockRow({
           ✕
         </button>
       </div>
+      <AlertDialog
+        open={alertOpen}
+        onOpenChange={setAlertOpen}
+        symbol={item.symbol}
+        currentPrice={displayPrice}
+      />
     </div>
   )
 }

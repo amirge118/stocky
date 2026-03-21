@@ -225,6 +225,14 @@ if [ $FRONTEND_READY -eq 0 ]; then
     echo -e "${YELLOW}⚠️  Frontend may still be starting up${NC}"
 else
     echo -e "${GREEN}✅ Frontend is ready${NC}"
+
+    # Run error scanner once
+    echo ""
+    echo -e "${BLUE}🔍 Running error scanner...${NC}"
+    cd "$PROJECT_ROOT/frontend"
+    npm run scan:errors
+    echo -e "${GREEN}✅ Scan complete. Report: frontend/error-scan-report.json${NC}"
+    cd "$PROJECT_ROOT"
 fi
 
 # Save PIDs to combined file for stop.sh
@@ -249,5 +257,6 @@ echo ""
 echo "To start individually, run:"
 echo "  ./scripts/start-backend.sh  # Start backend only"
 echo "  ./scripts/start-frontend.sh # Start frontend only"
+echo "  ./scripts/start-celery.sh   # Start alert cron (Telegram/WhatsApp)"
 echo ""
 echo "PIDs saved to: $PID_FILE"
