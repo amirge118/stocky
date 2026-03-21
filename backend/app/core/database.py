@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
+from typing import cast
 import logging
 import socket
 import ssl
@@ -56,7 +57,8 @@ def _resolve_first_ipv4(host: str, port: int) -> str | None:
         return None
     if not infos:
         return None
-    return str(infos[0][4][0])
+    # sockaddr for AF_INET is (host: str, port: int); typeshed still widens [0] to str | int
+    return cast(str, infos[0][4][0])
 
 
 def _should_rewrite_database_url_to_ipv4(url: str) -> bool:
