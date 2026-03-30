@@ -56,13 +56,13 @@
     "@types/node": "^25.5.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "^15.3.8",
+    "eslint": "^10.1.0",
+    "eslint-config-next": "^16.2.1",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.2"
   },
   "engines": {
     "node": ">=18.0.0",
