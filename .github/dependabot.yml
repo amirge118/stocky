@@ -28,6 +28,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    # ESLint 10 breaks eslint-plugin-react with eslint-config-next until upstream supports it (see FUTURE_IMPROVEMENTS.md)
+    ignore:
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
     groups:
       radix-ui:
         patterns:
