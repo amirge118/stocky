@@ -9,6 +9,7 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 ### Frontend
 
+- [ ] **ESLint 10 upgrade** [LOW] — Blocked: `eslint-plugin-react` + flat config hit `context.getFilename` errors under ESLint 10; retry when `eslint-config-next` / plugins declare support
 - [ ] **Tighten React Compiler ESLint rules** [LOW] — Re-enable `react-hooks/set-state-in-effect` / `immutability` after refactors (currently off for pragmatic CI)
 - [ ] **Code splitting and lazy loading** [HIGH] — Route-level `next/dynamic` for heavy pages (Compare, Indicators)
 - [ ] **Virtual scrolling for large lists** [MEDIUM] — Virtualize portfolio/watchlist rows (react-virtual) when count > 100

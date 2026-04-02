@@ -104,3 +104,28 @@ def test_call_claude_json_round_trip_with_fenced_response():
 
     assert data == {"answer": True}
     assert tokens == 10
+
+
+def test_assistant_message_text_from_text_block():
+    from app.core.ai_client import assistant_message_text
+
+    m = MagicMock()
+    m.content = [MagicMock(text="hello")]
+    assert assistant_message_text(m) == "hello"
+    assert assistant_message_text(m, default="x") == "hello"
+
+
+def test_assistant_message_text_non_text_block_uses_default():
+    from app.core.ai_client import assistant_message_text
+
+    m = MagicMock()
+    m.content = [object()]
+    assert assistant_message_text(m, default="fallback") == "fallback"
+
+
+def test_assistant_message_text_empty_content():
+    from app.core.ai_client import assistant_message_text
+
+    m = MagicMock()
+    m.content = []
+    assert assistant_message_text(m, default="{}") == "{}"

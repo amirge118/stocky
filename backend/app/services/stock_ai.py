@@ -6,6 +6,7 @@ from typing import Optional
 import anthropic
 from fastapi import HTTPException, status
 
+from app.core.ai_client import assistant_message_text
 from app.core.cache import cache_get, cache_set
 from app.core.config import settings
 from app.schemas.stock import (
@@ -69,7 +70,9 @@ async def generate_ai_analysis(symbol: str) -> StockAIAnalysisResponse:
             max_tokens=300,
             messages=[{"role": "user", "content": prompt}],
         )
-        analysis_text = message.content[0].text if message.content else "Analysis unavailable."
+        analysis_text = assistant_message_text(
+            message, default="Analysis unavailable."
+        )
         result = StockAIAnalysisResponse(symbol=sym, analysis=analysis_text)
         await cache_set(cache_key, result.model_dump(mode="json"), ttl=_ANALYSIS_CACHE_TTL)
         return result
@@ -128,7 +131,7 @@ async def generate_compare_summary(symbols: list[str]) -> CompareSummaryResponse
             max_tokens=200,
             messages=[{"role": "user", "content": prompt}],
         )
-        summary = message.content[0].text if message.content else "Comparison unavailable."
+        summary = assistant_message_text(message, default="Comparison unavailable.")
         result = CompareSummaryResponse(symbols=syms, summary=summary)
         await cache_set(cache_key, result.model_dump(mode="json"), ttl=_ANALYSIS_CACHE_TTL)
         return result

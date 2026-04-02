@@ -8,6 +8,16 @@ import anthropic
 from app.core.config import settings
 
 
+def assistant_message_text(message: object, *, default: str = "") -> str:
+    """First assistant content block text (Anthropic returns a union of block types)."""
+    blocks = getattr(message, "content", None)
+    if not blocks:
+        return default
+    block = blocks[0]
+    text = getattr(block, "text", None)
+    return text if isinstance(text, str) else default
+
+
 def _parse_json_response(raw: str) -> dict:
     """Parse JSON that may be wrapped in markdown code fences."""
     raw = raw.strip()
@@ -30,7 +40,7 @@ def call_claude(
         max_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}],
     )
-    raw = message.content[0].text if message.content else "{}"
+    raw = assistant_message_text(message, default="{}")
     tokens = (
         message.usage.input_tokens + message.usage.output_tokens
         if message.usage
