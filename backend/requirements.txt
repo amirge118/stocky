@@ -26,7 +26,7 @@ yfinance>=1.0.0
 
 # AI/ML Services
 openai==1.10.0
-anthropic==0.86.0
+anthropic==0.88.0
 
 # Caching & Performance (Optional)
 redis==6.4.0
