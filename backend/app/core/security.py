@@ -8,15 +8,23 @@ from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# bcrypt rejects passwords longer than 72 UTF-8 bytes (bcrypt 4+); normalize like legacy truncation.
+_BCRYPT_MAX_PASSWORD_BYTES = 72
+
+
+def _plain_password_for_bcrypt(password: str) -> str:
+    raw = password.encode("utf-8")[:_BCRYPT_MAX_PASSWORD_BYTES]
+    return raw.decode("utf-8", errors="ignore")
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_context.verify(_plain_password_for_bcrypt(plain_password), hashed_password)
 
 
 def get_password_hash(password: str) -> str:
     """Hash a password."""
-    return pwd_context.hash(password)
+    return pwd_context.hash(_plain_password_for_bcrypt(password))
 
 
 def create_access_token(data: dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:

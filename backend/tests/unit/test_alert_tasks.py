@@ -11,6 +11,26 @@ import pytest
 from app.models.alert import Alert, ConditionType
 from app.tasks.alert_tasks import _check_alerts_async, _condition_met
 
+
+def _execute_result_with_scalar_first(first_value):
+    """AsyncMock breaks SQLAlchemy's sync result.scalars().first(); return a plain MagicMock chain."""
+    result = MagicMock()
+    scalars_rv = MagicMock()
+    scalars_rv.first.return_value = first_value
+    result.scalars.return_value = scalars_rv
+    return result
+
+
+def _patch_async_session_local(mock_session_cls, *, notification_settings_row=None):
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(
+        return_value=_execute_result_with_scalar_first(notification_settings_row)
+    )
+    mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+    return mock_session
+
+
 # ── _condition_met ────────────────────────────────────────────────────────────
 
 def _alert(condition: ConditionType, target: float) -> Alert:
@@ -96,9 +116,7 @@ async def test_check_alerts_no_active_alerts():
         patch("app.tasks.alert_tasks.AsyncSessionLocal") as mock_session_cls,
         patch("app.tasks.alert_tasks.get_active_alerts", new_callable=AsyncMock) as mock_get,
     ):
-        mock_session = AsyncMock()
-        mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        _patch_async_session_local(mock_session_cls)
         mock_get.return_value = []
 
         result = await _check_alerts_async()
@@ -117,9 +135,7 @@ async def test_check_alerts_triggers_when_condition_met():
         patch("app.tasks.alert_tasks.mark_triggered", new_callable=AsyncMock) as mock_mark,
         patch("app.tasks.alert_tasks.send_alert_message", new_callable=AsyncMock) as mock_send,
     ):
-        mock_session = AsyncMock()
-        mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_session = _patch_async_session_local(mock_session_cls)
         mock_get.return_value = [alert]
         mock_fetch.return_value = {"AAPL": _make_stock(150.0)}
 
@@ -142,9 +158,7 @@ async def test_check_alerts_skips_when_condition_not_met():
         patch("app.tasks.alert_tasks.mark_triggered", new_callable=AsyncMock) as mock_mark,
         patch("app.tasks.alert_tasks.send_alert_message", new_callable=AsyncMock) as mock_send,
     ):
-        mock_session = AsyncMock()
-        mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        _patch_async_session_local(mock_session_cls)
         mock_get.return_value = [alert]
         mock_fetch.return_value = {"AAPL": _make_stock(150.0)}  # below 200 target
 
@@ -167,9 +181,7 @@ async def test_check_alerts_skips_within_cooldown():
         patch("app.tasks.alert_tasks.mark_triggered", new_callable=AsyncMock) as mock_mark,
         patch("app.tasks.alert_tasks.send_alert_message", new_callable=AsyncMock) as _mock_send,
     ):
-        mock_session = AsyncMock()
-        mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        _patch_async_session_local(mock_session_cls)
         mock_get.return_value = [alert]
         mock_fetch.return_value = {"AAPL": _make_stock(150.0)}
 
@@ -191,9 +203,7 @@ async def test_check_alerts_fires_after_cooldown_expires():
         patch("app.tasks.alert_tasks.mark_triggered", new_callable=AsyncMock) as mock_mark,
         patch("app.tasks.alert_tasks.send_alert_message", new_callable=AsyncMock) as _mock_send,
     ):
-        mock_session = AsyncMock()
-        mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        _patch_async_session_local(mock_session_cls)
         mock_get.return_value = [alert]
         mock_fetch.return_value = {"AAPL": _make_stock(150.0)}
 
@@ -213,9 +223,7 @@ async def test_check_alerts_failed_when_ticker_not_in_price_map():
         patch("app.tasks.alert_tasks.fetch_stock_data_batch", new_callable=AsyncMock) as mock_fetch,
         patch("app.tasks.alert_tasks.mark_triggered", new_callable=AsyncMock) as mock_mark,
     ):
-        mock_session = AsyncMock()
-        mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        _patch_async_session_local(mock_session_cls)
         mock_get.return_value = [alert]
         mock_fetch.return_value = {}  # no prices returned
 
@@ -245,9 +253,7 @@ async def test_check_alerts_db_written_before_telegram():
         patch("app.tasks.alert_tasks.mark_triggered", side_effect=fake_mark),
         patch("app.tasks.alert_tasks.send_alert_message", side_effect=fake_send),
     ):
-        mock_session = AsyncMock()
-        mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        _patch_async_session_local(mock_session_cls)
         mock_get.return_value = [alert]
         mock_fetch.return_value = {"AAPL": _make_stock(150.0)}
 
@@ -268,9 +274,7 @@ async def test_check_alerts_telegram_failure_does_not_raise():
         patch("app.tasks.alert_tasks.mark_triggered", new_callable=AsyncMock),
         patch("app.tasks.alert_tasks.send_alert_message", side_effect=Exception("Telegram down")),
     ):
-        mock_session = AsyncMock()
-        mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        _patch_async_session_local(mock_session_cls)
         mock_get.return_value = [alert]
         mock_fetch.return_value = {"AAPL": _make_stock(150.0)}
 
@@ -295,9 +299,7 @@ async def test_check_alerts_deduplicates_tickers_for_batch_fetch():
         patch("app.tasks.alert_tasks.mark_triggered", new_callable=AsyncMock),
         patch("app.tasks.alert_tasks.send_alert_message", new_callable=AsyncMock),
     ):
-        mock_session = AsyncMock()
-        mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        _patch_async_session_local(mock_session_cls)
         mock_get.return_value = alerts
         mock_fetch.return_value = {"AAPL": _make_stock(150.0)}
 

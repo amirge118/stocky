@@ -12,13 +12,20 @@ from app.schemas.error import ErrorDetail, ErrorResponse
 
 _logger = logging.getLogger(__name__)
 
+# Starlette/FastAPI: prefer UNPROCESSABLE_CONTENT (RFC 9110); keep fallback for older pins.
+_HTTP_422_VALIDATION = getattr(
+    status,
+    "HTTP_422_UNPROCESSABLE_CONTENT",
+    status.HTTP_422_UNPROCESSABLE_ENTITY,
+)
+
 
 async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     """Handle validation errors."""
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=_HTTP_422_VALIDATION,
         content=jsonable_encoder(
             ErrorResponse(
                 error=ErrorDetail(

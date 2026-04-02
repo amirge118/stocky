@@ -28,6 +28,14 @@ def test_verify_password_wrong_returns_false():
     assert verify_password("wrong-password", hashed) is False
 
 
+def test_password_over_72_utf8_bytes_hashes_and_verifies():
+    """bcrypt 4+ rejects >72 UTF-8 bytes; we truncate consistently on hash and verify."""
+    # 50 × 2-byte UTF-8 chars → 100 bytes (exceeds bcrypt limit)
+    pw = "й" * 50
+    hashed = get_password_hash(pw)
+    assert verify_password(pw, hashed) is True
+
+
 # ── JWT creation ──────────────────────────────────────────────────────────────
 
 

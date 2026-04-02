@@ -19,6 +19,12 @@ from app.middleware.error_handler import (
     validation_exception_handler,
 )
 
+_HTTP_422_VALIDATION = getattr(
+    status,
+    "HTTP_422_UNPROCESSABLE_CONTENT",
+    status.HTTP_422_UNPROCESSABLE_ENTITY,
+)
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -42,7 +48,7 @@ async def test_validation_exception_handler_returns_422():
 
     response = await validation_exception_handler(request, exc)
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == _HTTP_422_VALIDATION
     body = response.body
     import json
     data = json.loads(body)

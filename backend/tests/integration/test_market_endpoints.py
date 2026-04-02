@@ -84,10 +84,18 @@ async def test_market_overview_movers_shape(client: TestClient):
 
 @pytest.mark.asyncio
 async def test_market_overview_service_error_returns_500(client: TestClient):
-    with patch(
-        "app.api.v1.endpoints.market.market_service.get_market_overview",
-        new_callable=AsyncMock,
-        side_effect=RuntimeError("yfinance offline"),
+    """Bypass cache so the service layer runs and errors map to HTTP 500."""
+    with (
+        patch(
+            "app.api.v1.endpoints.market.cache_get",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+        patch(
+            "app.api.v1.endpoints.market.market_service.get_market_overview",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("yfinance offline"),
+        ),
     ):
         response = client.get("/api/v1/market/overview")
 
