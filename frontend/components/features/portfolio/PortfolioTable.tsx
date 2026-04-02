@@ -194,7 +194,6 @@ export function PortfolioTable({ positions, isPending }: Props) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
-      queryClient.invalidateQueries({ queryKey: ["portfolio-history"] })
       queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
     },
   })

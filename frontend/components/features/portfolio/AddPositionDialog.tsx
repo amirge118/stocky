@@ -160,7 +160,6 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
-      queryClient.invalidateQueries({ queryKey: ["portfolio-history"] })
       queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
     },
   })

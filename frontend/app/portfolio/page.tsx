@@ -12,7 +12,6 @@ import { SectorAllocationChart } from "@/components/features/portfolio/SectorAll
 import { SectorBreakdownTable } from "@/components/features/portfolio/SectorBreakdownTable"
 import { SectorTrendCard } from "@/components/features/portfolio/SectorTrendCard"
 import { PortfolioNewsFeed } from "@/components/features/portfolio/PortfolioNewsFeed"
-import { PortfolioPerformanceChart } from "@/components/features/portfolio/PortfolioPerformanceChart"
 
 export default function PortfolioPage() {
   const [mounted, setMounted] = useState(false)
@@ -143,11 +142,6 @@ export default function PortfolioPage() {
         {/* ── Summary card ─────────────────────────────────────────────────── */}
         <PortfolioSummaryCard summary={data} isPending={isPending} />
 
-        {/* ── Portfolio Performance Chart ───────────────────────────────────── */}
-        {data && data.positions.length > 0 && (
-          <PortfolioPerformanceChart enabled={data.positions.length > 0} />
-        )}
-
         {/* ── Holdings table ───────────────────────────────────────────────── */}
         <PortfolioTable positions={data?.positions ?? []} isPending={isPending} />
 
@@ -178,7 +172,6 @@ export default function PortfolioPage() {
           onOpenChange={setDialogOpen}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
-            queryClient.invalidateQueries({ queryKey: ["portfolio-history"] })
             queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
           }}
         />

@@ -45,13 +45,3 @@ export interface PortfolioNewsItem {
   link: string | null
   published_at: number | null
 }
-
-export interface PortfolioHistoryPoint {
-  t: number
-  value: number
-}
-
-export interface PortfolioHistoryResponse {
-  period: string
-  data: PortfolioHistoryPoint[]
-}

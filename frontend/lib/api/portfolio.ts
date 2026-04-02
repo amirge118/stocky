@@ -1,7 +1,6 @@
 import { get, post, del } from "./client"
 import type {
   AddHoldingRequest,
-  PortfolioHistoryResponse,
   PortfolioNewsItem,
   PortfolioPosition,
   PortfolioSummary,
@@ -18,12 +17,6 @@ export async function getPortfolioSummary(): Promise<PortfolioSummaryWithSector>
 
 export async function getPortfolioNews(limit = 20): Promise<PortfolioNewsItem[]> {
   return get<PortfolioNewsItem[]>(`/api/v1/portfolio/news?limit=${limit}`)
-}
-
-export async function getPortfolioHistory(
-  period = "1m"
-): Promise<PortfolioHistoryResponse> {
-  return get<PortfolioHistoryResponse>(`/api/v1/portfolio/history?period=${period}`)
 }
 
 export async function addHolding(data: AddHoldingRequest): Promise<PortfolioPosition> {
