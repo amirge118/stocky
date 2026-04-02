@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const path = require('path')
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 })
@@ -6,6 +7,11 @@ const { withSentryConfig } = require('@sentry/nextjs')
 
 const nextConfig = {
   output: 'standalone',
+  // Monorepo: trace files from repo root so Docker/Vercel standalone builds resolve correctly
+  outputFileTracingRoot: path.join(__dirname, '..'),
+  turbopack: {
+    root: path.join(__dirname, '..'),
+  },
   reactStrictMode: true,
   async headers() {
     return [

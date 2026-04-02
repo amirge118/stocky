@@ -9,6 +9,7 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 ### Frontend
 
+- [ ] **Tighten React Compiler ESLint rules** [LOW] — Re-enable `react-hooks/set-state-in-effect` / `immutability` after refactors (currently off for pragmatic CI)
 - [ ] **Code splitting and lazy loading** [HIGH] — Route-level `next/dynamic` for heavy pages (Compare, Indicators)
 - [ ] **Virtual scrolling for large lists** [MEDIUM] — Virtualize portfolio/watchlist rows (react-virtual) when count > 100
 - [ ] **Bundle size optimization** [MEDIUM] — Analyze with `@next/bundle-analyzer`; tree-shake unused Recharts/Radix primitives

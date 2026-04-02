@@ -5,6 +5,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import cache_get, cache_set
 from app.core.dependencies import get_db_session
 from app.core.limiter import limiter
 from app.schemas.stock import (
@@ -24,7 +25,6 @@ from app.schemas.stock import (
     StockSearchResult,
     StockUpdate,
 )
-from app.core.cache import cache_get, cache_set
 from app.services import stock_service
 from app.services.indicators_service import compute_indicators
 
