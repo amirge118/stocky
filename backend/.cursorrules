@@ -68,7 +68,7 @@ Document every feature idea in **`FUTURE_IMPROVEMENTS.md`** (repo root). Full wo
 - **Validation**: Pydantic 2.5.3
 - **Migrations**: Alembic 1.13.1
 - **Authentication**: python-jose[cryptography] 3.3.0
-- **Password Hashing**: passlib[bcrypt] 1.7.4
+- **Password Hashing**: bcrypt 5.x (direct `bcrypt` module; no passlib)
 - **HTTP Client**: httpx 0.26.0 (for external APIs)
 - **Stock Data**: yfinance 0.2.33
 - **AI/ML**: openai 1.10.0, anthropic 0.18.1
@@ -212,7 +212,7 @@ Database/External APIs
 
 ### Authentication & Security
 - `python-jose[cryptography]@3.3.0` - JWT handling
-- `passlib[bcrypt]@1.7.4` - Password hashing
+- `bcrypt@5.x` - Password hashing
 - `python-multipart@0.0.6` - Form parsing
 - `bcrypt@4.1.2` - Password hashing algorithm
 
