@@ -35,9 +35,11 @@ from app.models.holding import Holding  # noqa: F401
 from app.models.notification_settings import NotificationSettings  # noqa: F401
 from app.models.stock import Stock  # noqa: F401
 
-if settings.sentry_dsn:
+# Placeholder or empty SENTRY_DSN in .env must not crash startup (BadDsn).
+_sentry_dsn = (settings.sentry_dsn or "").strip()
+if _sentry_dsn.startswith("https://"):
     sentry_sdk.init(
-        dsn=settings.sentry_dsn,
+        dsn=_sentry_dsn,
         traces_sample_rate=0.1,
         profiles_sample_rate=0.1,
         environment=settings.environment,
@@ -89,10 +91,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 application.add_middleware(SecurityHeadersMiddleware)
 application.add_middleware(RequestLoggingMiddleware)
 
-# CORS middleware
+# CORS middleware — regex covers localhost vs 127.0.0.1 and alternate dev ports when .env lists only one
+_LOCAL_DEV_ORIGIN_REGEX = r"https?://(localhost|127\.0\.0\.1)(:\d+)?$"
 application.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
+    allow_origin_regex=_LOCAL_DEV_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],

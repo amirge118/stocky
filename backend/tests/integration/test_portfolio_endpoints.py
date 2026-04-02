@@ -8,6 +8,22 @@ from app.models.holding import Holding
 
 
 @pytest.mark.asyncio
+async def test_options_portfolio_summary_preflight_localhost_origins(client: TestClient):
+    """Browser preflight from Next dev (localhost or 127.0.0.1) must succeed with CORS headers."""
+    for origin in ("http://localhost:3000", "http://127.0.0.1:3000"):
+        r = client.options(
+            "/api/v1/portfolio/summary",
+            headers={
+                "Origin": origin,
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert r.status_code == 200, origin
+        assert r.headers.get("access-control-allow-origin") == origin
+
+
+@pytest.mark.asyncio
 @patch("app.services.holding_service.fetch_stock_data_from_yfinance")
 async def test_get_portfolio_empty(mock_fetch, client: TestClient):
     """Test GET /portfolio when no holdings."""

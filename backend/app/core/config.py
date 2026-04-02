@@ -60,8 +60,8 @@ class Settings(BaseSettings):
     # Financial Data
     fmp_api_key: str = ""
 
-    # CORS
-    cors_origins: str = "http://localhost:3000"
+    # CORS (comma-separated; localhost/127.0.0.1:any port also allowed via regex in main.py)
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     # Telegram notifications
     telegram_token: str = ""
@@ -86,8 +86,8 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        """Parse CORS origins string into list."""
-        return [origin.strip() for origin in self.cors_origins.split(",")]
+        """Parse CORS origins string into list (skip empties)."""
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     class Config:
         env_file = ".env"
