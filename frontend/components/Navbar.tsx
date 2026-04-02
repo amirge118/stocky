@@ -3,17 +3,19 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { GlobalStockSearch } from "@/components/GlobalStockSearch"
+import { useKeyboardNav } from "@/lib/hooks/useKeyboardNav"
 
 const NAV_LINKS = [
-  { href: "/portfolio", label: "Portfolio" },
-  { href: "/watchlist", label: "Watchlist" },
-  { href: "/market",    label: "Market" },
-  { href: "/agents",    label: "Agents" },
-  { href: "/settings",  label: "Settings" },
+  { href: "/portfolio", label: "Portfolio", shortcut: "P" },
+  { href: "/watchlist", label: "Watchlist", shortcut: "W" },
+  { href: "/market",    label: "Market",    shortcut: "M" },
+  { href: "/agents",    label: "Agents",    shortcut: null },
+  { href: "/settings",  label: "Settings",  shortcut: null },
 ]
 
 export function Navbar() {
   const pathname = usePathname()
+  useKeyboardNav()
 
   const isActive = (href: string) =>
     pathname === href ||
@@ -36,14 +38,16 @@ export function Navbar() {
 
         {/* Links */}
         <div className="flex items-center gap-1">
-          {NAV_LINKS.map(({ href, label }) => {
+          {NAV_LINKS.map(({ href, label, shortcut }) => {
             const active = isActive(href)
             return (
               <Link
                 key={href}
                 href={href}
+                title={shortcut ? `${label} (${shortcut})` : label}
                 className={`
                   relative px-3 py-1.5 rounded-md text-sm font-medium transition-colors
+                  flex items-center gap-1.5
                   ${active
                     ? "text-electric-400 bg-electric-500/10 border border-electric-500/20 rounded-lg"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
@@ -51,13 +55,21 @@ export function Navbar() {
                 `}
               >
                 {label}
+                {shortcut && (
+                  <span className="hidden lg:inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold text-zinc-600 bg-zinc-800 border border-zinc-700">
+                    {shortcut}
+                  </span>
+                )}
               </Link>
             )
           })}
         </div>
 
         {/* Global Search */}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <kbd className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 bg-zinc-800 border border-zinc-700 rounded">
+            <span className="text-[11px]">⌘</span>K
+          </kbd>
           <GlobalStockSearch />
         </div>
       </div>

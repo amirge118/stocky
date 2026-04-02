@@ -13,6 +13,7 @@ import {
   ReferenceLine,
   ComposedChart,
   Bar,
+  Cell,
   AreaChart,
   Area,
 } from "recharts"
@@ -149,11 +150,16 @@ function MacdChart({ data }: MacdChartProps) {
           <Bar
             dataKey="hist"
             name="Histogram"
-            fill="#4ade80"
             radius={[1, 1, 0, 0]}
-            // Color bars individually via a custom cell approach isn't needed —
-            // we'll use a fixed color and rely on the sign being visible from the chart shape
-          />
+          >
+            {filtered.map((entry, index) => (
+              <Cell
+                key={`hist-${index}`}
+                fill={(entry.hist ?? 0) >= 0 ? "#4ade80" : "#f87171"}
+                fillOpacity={0.8}
+              />
+            ))}
+          </Bar>
           <Line
             type="monotone"
             dataKey="macd"

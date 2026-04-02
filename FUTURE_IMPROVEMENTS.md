@@ -1,375 +1,262 @@
 # Future Improvements
 
-This document tracks all ideas, features, and improvements for the Stock Insight App. Every request, feature idea, or improvement suggestion should be added here for future consideration.
+Ideas, features, and improvements for the Stocky Stock Insight App.
+Every request, feature idea, or improvement suggestion should be added here.
 
-## Recently Implemented (2026-03-20)
+---
 
-- [x] **Browser Push Notifications for Alerts** [HIGH] ✓
-  - `useAlertChecker` hook subscribes to WebSocket prices and fires `Notification` when condition met
-  - Auto-deactivates triggered alert via `updateAlert` + `invalidateQueries(["alerts"])`
-  - Mounted globally via `<AlertNotifier />` in `layout.tsx`
+## Performance
 
-- [x] **Portfolio ↔ Alerts Integration** [MEDIUM] ✓
-  - Bell icon badge on portfolio table rows for symbols with active alerts
-  - Click navigates to `/stocks/[symbol]?tab=alerts`
+### Frontend
 
-- [x] **Sortable Portfolio Table** [MEDIUM] ✓
-  - All numeric and symbol columns clickable with ChevronUp/Down indicator
-  - Sort state persisted per session in component state
+- [ ] **Code splitting and lazy loading** [HIGH] — Route-level `next/dynamic` for heavy pages (Compare, Indicators)
+- [ ] **Virtual scrolling for large lists** [MEDIUM] — Virtualize portfolio/watchlist rows (react-virtual) when count > 100
+- [ ] **Bundle size optimization** [MEDIUM] — Analyze with `@next/bundle-analyzer`; tree-shake unused Recharts/Radix primitives
+- [ ] **Request deduplication** [MEDIUM] — Deduplicate concurrent TanStack Query fetches for the same symbol
+- [ ] **Request caching strategies** [MEDIUM] — Set appropriate `staleTime` / `gcTime` per query type (prices: 30s, fundamentals: 5m, news: 2m)
+- [ ] **Image optimization and lazy loading** [LOW] — Use `next/image` for all logo/chart images
+- [ ] **SSR improvements** [LOW] — Pre-render market overview and landing page data at build time via `generateStaticParams`
+- [ ] **Optimistic UI updates** [MEDIUM] — Instant feedback on add/remove holding and watchlist mutations before server confirms
 
-- [x] **Error States** [MEDIUM] ✓
-  - Portfolio page: centered error card with retry button
-  - Watchlist page: error banner below sidebar
-  - WatchlistMainPanel: error message above stock list
+### Backend
 
-- [x] **Landing Page Live Market Data** [MEDIUM] ✓
-  - Market Indices bento cell and Sector Heatmap now powered by `/api/v1/market/overview`
-  - Falls back to static arrays if API is unavailable
+- [ ] **Database connection pooling optimization** [HIGH] — Tune SQLAlchemy async pool size; add pool pre-ping; expose pool stats
+- [ ] **Database query optimization and indexing** [HIGH] — Add composite indexes on `(user_id, symbol)` for holdings and watchlists; profile slow queries with `EXPLAIN ANALYZE`
+- [ ] **Redis response caching for yfinance** [HIGH] — Cache `GET /api/v1/stocks/{symbol}` and market overview responses in Redis with TTL 60s; avoid repeated yfinance fetches on bursty loads
+- [ ] **Database read replicas** [LOW] — Route read-heavy queries (holdings list, news) to read replica
+- [ ] **Database migration rollback strategies** [LOW] — Document and test `alembic downgrade` paths for every migration
 
-## Planned Next
+---
 
-- [x] **Telegram & WhatsApp Alert Delivery** [MEDIUM] ✓
-  - Notification settings singleton with per-channel toggles (Telegram, WhatsApp, browser push)
-  - `/settings` page with Chat ID / phone number inputs, save, and test connection per channel
-  - `POST /api/v1/alerts/{id}/trigger` fires Telegram + WhatsApp server-side on alert trigger
-  - `useAlertChecker` calls trigger endpoint instead of updateAlert
-  - WhatsApp uses Meta Cloud API (`WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` env vars)
+## UX / UI
 
-- [ ] **Backend-Driven Alert Checker Cron Job** [MEDIUM]
-  - Fire Telegram alerts even when browser is closed (no frontend needed)
-  - Scheduled job polls active alerts and compares against live prices
+### Interactions & Animations
 
-- [ ] **Per-Alert Notification Channel Override** [LOW]
-  - Choose Telegram-only, browser-only, or both on a per-alert basis
+- [ ] **Animate gain/loss color transitions on price updates** [HIGH] — Flash green→neutral / red→neutral on live price changes; use CSS transition on `color` + brief `background-color` highlight
+- [ ] **MACD histogram per-bar coloring** [MEDIUM] — Color bars individually (green above 0, red below 0) using Recharts `<Cell>`
+- [ ] **Skeleton shimmer consistency** [MEDIUM] — Replace bare `animate-pulse` with `skeleton-shimmer` CSS class across all loading states (portfolio, watchlist, stock detail, sector)
+- [ ] **Gradient border hover variant for cards** [LOW] — Glow-blue border on hover for interactive cards (stock rows, comparison card)
 
-- [ ] **Telegram Bot Webhook with `/start` Auto-Reply** [LOW]
-  - Bot auto-replies to `/start` with the user's Chat ID to simplify onboarding
+### Navigation & Accessibility
 
-- [ ] **Alert History / Notification Log UI** [LOW]
-  - Show past triggered alerts with timestamp and price at trigger
-  - Accessible from Alerts page
+- [ ] **Keyboard Shortcuts** [HIGH] — `⌘K` global search, `P` / `W` / `M` for Portfolio / Watchlist / Market navigation; shortcut hints in Navbar tooltip
+- [ ] **Keyboard navigation support** [MEDIUM] — Full tab-key flow through tables, modals, and forms; visible focus ring in zinc-400
+- [ ] **Accessibility improvements (WCAG 2.1 AA)** [MEDIUM] — Audit with axe-core; fix missing `aria-label` on icon buttons; ensure 4.5:1 contrast on zinc-400 text
+- [ ] **Responsive design improvements** [MEDIUM] — Portfolio table horizontal scroll on mobile; sidebar collapses to bottom nav on small screens
+- [ ] **Dark/light mode toggle** [LOW] — User preference persisted to localStorage; CSS variable swap; respect `prefers-color-scheme` default
 
-- [ ] **Keyboard Shortcuts** [LOW]
-  - ⌘K global search, P/W/M for Portfolio/Watchlist/Market navigation
-  - Display shortcut hints in Navbar
+### Polish
+
+- [ ] **Replace `text-[10px]` in landing hero** [LOW] — Use `text-xs` as part of a landing page polish pass
+- [ ] **Standardize SectorBreakdownTable + StockSectorOverview column headers** [LOW] — Use `.section-label` utility class uniformly
+- [ ] **`.card-surface` utility class sweep** [LOW] — Ensure all feature panels use `rounded-xl border border-zinc-800 bg-zinc-900` via a shared utility
+
+---
+
+## Deployment & Infrastructure
+
+### Deployment Strategy
+
+- [ ] **Kubernetes deployment configurations** [MEDIUM] — Helm chart for backend + frontend + Celery worker; HPA based on CPU
+- [ ] **Blue-green deployment strategy** [MEDIUM] — Zero-downtime deploys via two identical production slots
+- [ ] **Canary releases** [LOW] — Route 5% of traffic to new version; auto-rollback on error rate spike
+- [ ] **Automated rollback procedures** [LOW] — GitHub Actions `workflow_dispatch` to redeploy previous Docker image
+
+### Environment & Secrets
+
+- [ ] **Feature flags system** [MEDIUM] — Simple DB-backed or env-var feature flags to gate unreleased features per environment
+- [ ] **Secrets management** [MEDIUM] — Move API keys to AWS Secrets Manager / Vault; never hardcode in `.env`
+- [ ] **Environment-specific configurations** [LOW] — Separate `settings_dev / settings_staging / settings_prod` Pydantic config classes
+
+### Monitoring & Observability
+
+- [ ] **Error tracking with Sentry** [HIGH] — Integrate `sentry-sdk` in FastAPI + Sentry browser SDK in Next.js; capture unhandled exceptions with stack traces
+- [ ] **Application performance monitoring (APM)** [MEDIUM] — Track p50/p95/p99 latency per endpoint; alert on regression
+- [ ] **Metrics collection with Prometheus** [MEDIUM] — Expose `/metrics` via `prometheus-fastapi-instrumentator`; Grafana dashboard for request rate, error rate, DB pool usage
+- [ ] **Structured logging with correlation IDs** [MEDIUM] — Inject `X-Request-ID` header; include in all log lines; propagate to Celery tasks
+- [ ] **Health check improvements** [MEDIUM] — Add `/health/detailed` that checks DB, Redis, and yfinance reachability
+- [ ] **Uptime monitoring** [LOW] — Ping `/health` every 60s from an external monitor (Better Uptime, UptimeRobot)
+- [ ] **Centralized logging** [LOW] — Ship structured logs to ELK stack or CloudWatch Logs
+- [ ] **Distributed tracing** [LOW] — OpenTelemetry spans across FastAPI → Celery → yfinance calls
+
+---
+
+## New Features
+
+### HIGH Priority
+
+- [ ] **Earnings Calendar** [HIGH]
+  - Dedicated `/earnings` page + upcoming-earnings widget on portfolio page
+  - Show date, EPS estimate, previous EPS, expected move % for all portfolio + watchlist symbols
+  - Backend: `yfinance` `Ticker.calendar` + `earnings_dates` → new `earnings_service.py`
+  - New endpoint: `GET /api/v1/stocks/{symbol}/earnings`
+  - Frontend: timeline/table view, color-coded by days until earnings
+
+- [ ] **AI Portfolio Health Coach** [HIGH]
+  - Claude AI analyzes entire portfolio: concentration risk, sector imbalance, correlation, overweight positions
+  - Actionable plain-language recommendations ("Your portfolio is 60% tech — consider diversifying")
+  - Backend: `POST /api/v1/portfolio/ai-analysis` using `anthropic` SDK (same pattern as existing agent report)
+  - Frontend: "AI Coach" card/tab on portfolio page with streaming output
+
+- [ ] **Backend-Driven Alert Checker Cron Job** [HIGH]
+  - Fire Telegram/WhatsApp alerts even when browser is closed
+  - Celery Beat scheduled task polls active alerts vs live yfinance prices every 60s
+  - Already has infrastructure: `backend/app/celery_app.py`, `backend/app/tasks/alert_tasks.py`
+
+### MEDIUM Priority
+
+- [ ] **Price Target Consensus Panel** [MEDIUM]
+  - On stock detail: analyst buy / hold / sell count + average price target vs current price
+  - Upside/downside % with color-coded progress bar
+  - `yfinance`: `Ticker.analyst_price_targets`, `recommendations_summary`
+  - New "Analyst Consensus" tab in StockDetail
+
+- [ ] **Portfolio Rebalancing Wizard** [MEDIUM]
+  - Set target allocation % per symbol; app shows current vs target drift
+  - "Generate Rebalance Plan" produces a buy/sell trade list to return to targets
+  - Backend: `GET /api/v1/portfolio/rebalancing-plan?targets=AAPL:0.20,NVDA:0.15,...`
+  - Frontend: allocation sliders + trade preview table in a modal
+
+- [ ] **Options Chain Viewer** [MEDIUM]
+  - Calls and puts for any symbol with expiration date selector
+  - Columns: Strike, Last, Bid, Ask, IV, Open Interest, Volume, Delta; highlight ITM rows
+  - `yfinance`: `Ticker.option_chain(date)`
+  - New endpoint: `GET /api/v1/stocks/{symbol}/options?expiry=YYYY-MM-DD`
+
+- [ ] **Economic Calendar** [MEDIUM]
+  - Macro events timeline: FOMC, CPI, PCE, NFP, GDP; expected vs actual (color-coded surprise)
+  - Backend: integrate free public macro calendar API or curated static schedule
+  - Frontend: `/market/calendar` page + widget on market overview
 
 - [ ] **Stock Screener with Multi-Filter UI** [MEDIUM]
-  - Filter stocks by sector, P/E range, market cap, dividend yield, analyst rating
-  - Save/share screener configurations
+  - Filter by sector, P/E range, market cap, dividend yield, analyst rating, 52W performance
+  - Save / share screener configurations via URL params
+
+### LOW Priority
+
+- [ ] **News Sentiment Score** [LOW]
+  - AI-powered "Bullish / Neutral / Bearish" badge per stock based on recent headlines
+  - Uses existing news feed + Claude API; cached per symbol per hour
+
+- [ ] **Stock Heatmap by Sector** [LOW]
+  - Treemap of S&P 500 colored by day % change, sized by market cap
+  - Click cell to open stock detail
+
+- [ ] **Portfolio Transaction History + Tax Lots** [LOW]
+  - Track individual buy/sell events, not just current holdings
+  - FIFO/LIFO cost basis; realized vs unrealized capital gains report
+
+- [ ] **Custom Watchlist Groups** [LOW]
+  - Multiple named watchlists ("Tech Picks", "Dividend Stocks")
+  - Drag-drop symbols between groups
 
 - [ ] **Dividend Income Projection** [LOW]
   - Per-holding and total annual dividend income on portfolio page
   - Monthly income calendar view
 
-- [ ] **MACD Histogram Per-Bar Coloring** [LOW]
-  - Color bars individually (green above 0, red below 0) using Recharts `Cell`
+- [ ] **Per-Alert Notification Channel Override** [LOW]
+  - Choose Telegram-only, browser-only, or both on a per-alert basis
 
-- [ ] **Portfolio Target / Goal Tracking** [LOW]
-  - Set a target value or allocation goal per symbol
-  - Visual indicator of progress toward goal
+- [ ] **Alert History / Notification Log UI** [LOW]
+  - Past triggered alerts with timestamp and price at trigger; accessible from Alerts page
+
+- [ ] **Telegram Bot Webhook with `/start` Auto-Reply** [LOW]
+  - Bot auto-replies to `/start` with the user's Chat ID to simplify onboarding
 
 - [ ] **Watchlist Price Alert Shortcut** [LOW]
-  - Set alert directly from watchlist row context menu
-  - Pre-fills ticker and current price in alert dialog
+  - Set alert directly from watchlist row context menu; pre-fills ticker + current price
+
+- [ ] **Portfolio Target / Goal Tracking** [LOW]
+  - Set a target portfolio value or per-symbol allocation goal
+  - Visual progress indicator toward goal
+
+- [ ] **Infinite Scroll for Stock List** [LOW]
+  - Replace pagination with infinite scroll + virtual list for smooth browsing
+
+- [ ] **Drag-and-Drop Portfolio Reordering** [LOW]
+  - Let users reorder holdings; persist order preference
+
+- [ ] **Agent Report Favorites** [LOW]
+  - Pin favorite AI agent reports to dashboard; quick access to frequently referenced analyses
 
 ---
 
-## UI/UX Design System
+## Testing
 
-### From UI Consistency Pass (2026-03-20)
+- [ ] **Snapshot Testing for UI** [LOW] — Jest snapshot tests for shared components; catch unintended UI changes in PRs
+- [ ] **Mutation Testing** [LOW] — Use `mutmut` to verify test quality; identify tests that don't actually assert behavior
+- [ ] **Automated Test Generation** [LOW] — Generate test templates and mock data factories for common CRUD patterns
 
-- [ ] Animate gain/loss color transitions on price updates (flash green→neutral / red→neutral) [MEDIUM]
-- [ ] Add gradient border variant for cards on hover (glow-blue on interactive cards) [LOW]
-- [ ] Skeleton shimmer improvements — use `skeleton-shimmer` CSS class consistently across all loading states instead of bare `animate-pulse` [LOW]
-- [ ] MACD histogram coloring — color bars individually (green above 0, red below 0) using Recharts Cell [MEDIUM]
-- [ ] Replace `text-[10px]` in `app/page.tsx` hero section (landing page bento mockup) with `text-xs` as part of a landing page polish pass [LOW]
-- [ ] Standardize `SectorBreakdownTable` and `StockSectorOverview` column headers to use `.section-label` utility class [LOW]
-- [ ] Add `.card-surface` utility class usage sweep across all feature panels for full card surface uniformity [LOW]
+---
 
-## Testing Improvements
-
-### From Testing Summary
-
-- [x] **CI/CD Pipeline** [HIGH] ✓
-  - Set up CI/CD pipeline to enforce test coverage
-  - Block merges if tests fail or coverage is below threshold
-  - Automated deployment on successful test runs
-
-- [ ] **Automated Test Generation** [LOW]
-  - Generate test templates for common patterns
-  - Create test scaffolding tools
-  - Auto-generate tests for CRUD operations
-  - Generate mock data factories
-
-### רעיונות חדשים
-
-- [x] **E2E Tests with Playwright** [MEDIUM] ✓
-  - Add end-to-end tests for critical user flows (login, add stock, portfolio)
-  - Run E2E in CI on every PR
-  - Visual regression testing for key pages
-
-- [ ] **Snapshot Testing for UI** [LOW]
-  - Add Jest snapshot tests for shared components
-  - Catch unintended UI changes in PRs
-
-- [ ] **Mutation Testing** [LOW]
-  - Use mutmut or similar to verify test quality
-  - Identify tests that don't actually assert behavior
-
-## Backend Improvements
-
-### Database & Performance
-
-- [ ] **Supabase Row Level Security (RLS)** [MEDIUM]
-  - Enable RLS policies on all tables once user auth is added
-  - Restrict each user to their own holdings/watchlists/alerts
-  - Use `auth.uid()` in policy predicates; test via Supabase Dashboard → Auth Policies
-- [ ] Add database connection pooling optimization
-- [ ] Add database query optimization and indexing strategy review
-- [ ] Implement database read replicas for scaling
-- [ ] Add database migration rollback strategies
-- [ ] Implement database backup and recovery procedures
-
-### API Enhancements
-
-- [ ] Add API rate limiting per user/IP
-- [ ] Implement API versioning strategy (v2, v3)
-- [ ] Add GraphQL endpoint as alternative to REST
-- [ ] Implement API analytics and usage tracking
-- [ ] Add API documentation improvements (more examples)
-- [ ] Implement API deprecation warnings
+## Backend
 
 ### Authentication & Security
 
-- [ ] Implement OAuth2 authentication (Google, GitHub)
-- [ ] Add two-factor authentication (2FA)
-- [ ] Implement role-based access control (RBAC)
-- [ ] Add API key management for third-party integrations
-- [ ] Implement session management and refresh tokens
-- [ ] Add security audit logging
-- [ ] Implement rate limiting per authenticated user
-- [ ] Add IP whitelisting for admin endpoints
+- [ ] **OAuth2 authentication** [HIGH] — Google + GitHub sign-in via `authlib`
+- [ ] **Supabase Row Level Security (RLS)** [MEDIUM] — Enable RLS on all tables once auth lands; restrict each user to their own holdings/watchlists/alerts using `auth.uid()`
+- [ ] **Two-factor authentication (2FA)** [MEDIUM]
+- [ ] **Role-based access control (RBAC)** [MEDIUM]
+- [ ] **Session management and refresh tokens** [MEDIUM]
+- [ ] **Security audit logging** [LOW]
+- [ ] **API key management for third-party integrations** [LOW]
 
-### Features
+### API Enhancements
 
-- [x] **Portfolio Day P&L + Today's Movers** [DONE]
-  - Day change ($ and %) in portfolio summary
-  - Today's leaders/losers strip with links to stock detail
-- [x] **Portfolio News Feed** [DONE]
-  - Unified news for all holdings at /portfolio
-  - Breaking badge for news < 3h old
-- [x] **Sector Overview Upgrade** [DONE]
-  - Sector peers with price, day %, P/E, market cap
-  - Compare All button to /stocks/compare
-- [x] **Portfolio Performance Chart** [DONE]
-  - Historical portfolio value (1M, 6M, 1Y) computed from holdings
-- [x] **Compare Fundamentals + AI Summary** [DONE]
-  - Metrics table (P/E, market cap, dividend, beta, 52W range)
-  - AI comparison summary for 2–5 stocks
-- [x] **Sector News Tab** [DONE]
-  - Sector-level news via sector ETF (XLK, XLV, etc.) on stock detail
-- [x] **Sector Trend Card** [DONE]
-  - Sector performance % (day change) on portfolio page
-- [x] **Portfolio & Stock Tests** [DONE]
-  - Unit: holding_service (day P&L, news, history), stock_service (sector filter)
-  - Integration: portfolio endpoints (GET, news, history, add)
-  - Frontend: PortfolioSummaryCard, PortfolioNewsFeed (requires @testing-library/dom)
-- [ ] Add historical stock data analysis (multi-year charts, dividends)
-- [ ] Add social features (share insights, comments)
-- [ ] Add technical indicators calculation (RSI, MACD, moving averages)
-- [ ] Implement backtesting capabilities
-
-### רעיונות חדשים
-
-### Monitoring & Observability
-
-- [ ] Add application performance monitoring (APM)
-- [ ] Implement structured logging with correlation IDs
-- [ ] Add error tracking and alerting (Sentry)
-- [ ] Implement health check improvements (database, Redis, external APIs)
-- [ ] Add metrics collection (Prometheus)
-- [ ] Implement distributed tracing
-- [ ] Add log aggregation and analysis
-
-## Frontend Improvements
-
-### Dependencies & Compatibility
-
-- [ ] **Update Radix UI packages for React 19 compatibility** [MEDIUM]
-  - Current: React 19 ref deprecation warnings from `@radix-ui/react-slot` and other Radix UI components
-  - Issue: "Accessing element.ref was removed in React 19" console warnings
-  - Solution: Update all `@radix-ui/*` packages to latest versions that support React 19
-  - Status: Waiting for Radix UI to release React 19-compatible versions
-  - Note: Warning is harmless and doesn't affect functionality
-
-### User Experience
-
-- [ ] Add dark/light mode toggle (user preference persisted)
-- [ ] Implement responsive design improvements
-- [ ] Add keyboard navigation support
-- [ ] Implement accessibility improvements (WCAG 2.1 AA)
-- [ ] Add loading skeletons instead of spinners
-- [ ] Implement optimistic UI updates
-- [ ] Add offline support with service workers
-- [ ] Implement progressive web app (PWA) features
-
-### Performance
-
-- [ ] Implement code splitting and lazy loading
-- [ ] Add image optimization and lazy loading
-- [ ] Implement virtual scrolling for large lists
-- [ ] Add request deduplication
-- [ ] Implement request caching strategies
-- [ ] Add bundle size optimization
-- [ ] Implement server-side rendering (SSR) improvements
-
-### Features
-
-- [ ] Add stock search with autocomplete (dropdown suggestions while typing)
-- [ ] Implement advanced filtering and sorting
-- [ ] Add export functionality (CSV, PDF)
-- [ ] Implement data visualization improvements
-
-### רעיונות חדשים
-
-- [x] **Shareable Stock URLs** [MEDIUM] ✓
-  - Encode selected symbols in URL (e.g. /stocks?symbols=AAPL,MSFT)
-  - Allow sharing comparison or watchlist views
-
-- [ ] **Infinite Scroll for Stock List** [LOW]
-  - Replace pagination with infinite scroll for smoother browsing
-  - Virtualize list for performance
-
-- [ ] **Drag-and-Drop Portfolio Reordering** [LOW]
-  - Let users reorder holdings by drag-and-drop
-  - Persist order preference
-
-- [ ] **Agent Report Favorites** [LOW]
-  - Pin favorite agent reports to dashboard
-  - Quick access to frequently referenced analyses
-
-### State Management
-
-- [ ] Consider Zustand for global state management
-- [ ] Implement optimistic updates for mutations
-- [ ] Add offline state synchronization
-- [ ] Implement state persistence (localStorage)
-- [ ] Add state debugging tools
-
-## Infrastructure & DevOps
-
-### Deployment
-
-- [ ] Add Kubernetes deployment configurations
-- [ ] Implement blue-green deployment strategy
-- [ ] Add canary releases
-- [ ] Implement automated rollback procedures
-
-### רעיונות חדשים
-
-- [x] **GitHub Actions CI** [HIGH] ✓
-  - Run tests, lint, type-check on every push/PR
-  - Build Docker images on main branch
-  - Optional: deploy to staging on merge
-
-- [x] **Staging Environment** [MEDIUM] ✓
-  - Dedicated staging URL for pre-production testing
-  - Seed data for demo/testing
-
-- [x] **Database Backup Automation** [MEDIUM] ✓
-  - Scheduled pg_dump to object storage (S3, etc.)
-  - Point-in-time recovery capability
-
-### Environment Management
-
-- [ ] Add environment-specific configurations
-- [ ] Implement feature flags system
-- [ ] Add secrets management (Vault, AWS Secrets Manager)
-- [ ] Implement configuration management improvements
-
-### Monitoring & Logging
-
-- [ ] Set up centralized logging (ELK stack, CloudWatch)
-- [ ] Implement log retention policies
-- [ ] Add alerting for critical errors
-- [ ] Implement uptime monitoring
-- [ ] Add performance monitoring dashboards
-
-## Documentation
-
-- [ ] Add API documentation improvements (OpenAPI/Swagger)
-- [ ] Create developer onboarding guide
-- [ ] Add architecture decision records (ADRs)
-- [ ] Implement inline code documentation improvements
-- [ ] Add user documentation and guides
-- [ ] Create troubleshooting guides
-- [ ] Add deployment runbooks
-
-### רעיונות חדשים
-
-- [x] **CONTRIBUTING.md** [MEDIUM] ✓
-  - How to set up dev environment, run tests, submit PRs
-  - Code style and commit message conventions
-
-- [ ] **API Changelog** [LOW]
-  - Document breaking changes and new endpoints per version
-  - Keep in sync with API versioning
-
-## Code Quality
-
-- [ ] Implement stricter TypeScript configurations (frontend)
-- [ ] Add code review guidelines
-- [ ] Implement automated code quality checks
-- [ ] Add dependency vulnerability scanning
-- [ ] Implement license compliance checking
-
-### רעיונות חדשים
-
-- [x] **Dependabot / Renovate** [MEDIUM] ✓
-  - Automated PRs for dependency updates
-  - Keep security patches applied quickly
-
-- [ ] **SonarQube or CodeClimate** [LOW]
-  - Code quality and security analysis
-  - Technical debt visibility
-
-## Security
-
-- [ ] Add security headers (CSP, HSTS, etc.)
-- [ ] Implement input sanitization improvements
-- [ ] Add SQL injection prevention review
-- [ ] Implement XSS prevention improvements
-- [ ] Add CSRF protection
-- [ ] Implement security audit automation
-
-### רעיונות חדשים
-
-- [x] **Rate Limiting on Auth Endpoints** [HIGH] ✓
-  - Throttle login/register to prevent brute force
-  - Per-IP and per-user limits
-
-- [ ] **CORS Validation** [LOW]
-  - Strict allowlist of origins in production
-  - Reject unexpected preflight requests
-
-## How to Add Ideas
-
-When suggesting or implementing features:
-
-1. **Add to this file** - Every idea should be documented here
-2. **Categorize** - Place ideas in appropriate sections
-3. **Prioritize** - Mark high-priority items with [HIGH]
-4. **Link to issues** - Reference GitHub issues or tickets if applicable
-5. **Add context** - Include why this improvement is valuable
-
-## Priority Legend
-
-- `[HIGH]` - High priority, should be implemented soon
-- `[MEDIUM]` - Medium priority, nice to have
-- `[LOW]` - Low priority, future consideration
-- `[BLOCKED]` - Blocked by other dependencies
+- [ ] **API rate limiting per user/IP** [MEDIUM] — Endpoint-level throttling (not just external API calls)
+- [ ] **CORS Validation** [MEDIUM] — Strict allowlist of origins in production; reject unexpected preflight requests
+- [ ] **API versioning strategy** [LOW] — Define v2 migration path
+- [ ] **API analytics and usage tracking** [LOW]
+- [ ] **GraphQL endpoint** [LOW] — Alternative to REST for flexible client queries
 
 ---
 
-**Last Updated**: 2026-03-14
-**Total Ideas**: ~90
+## Security
+
+- [ ] **Security headers (CSP, HSTS, X-Frame-Options)** [HIGH] — Add via Next.js `headers()` config + FastAPI middleware
+- [ ] **CSRF protection** [MEDIUM] — Double-submit cookie pattern for state-mutating endpoints
+- [ ] **Input sanitization improvements** [MEDIUM]
+- [ ] **XSS prevention improvements** [MEDIUM]
+- [ ] **Security audit automation** [LOW] — `bandit` for Python, `npm audit` in CI
+- [ ] **SQL injection prevention review** [LOW]
+
+---
+
+## Code Quality
+
+- [ ] **Stricter TypeScript configurations** [MEDIUM] — Enable `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`
+- [ ] **SonarQube or CodeClimate** [LOW] — Code quality and technical debt visibility
+- [ ] **Automated code quality checks** [LOW]
+- [ ] **Dependency vulnerability scanning** [LOW]
+
+---
+
+## Documentation
+
+- [ ] **API Changelog** [MEDIUM] — Document breaking changes and new endpoints per version; keep in sync with API versioning
+- [ ] **Architecture Decision Records (ADRs)** [LOW] — Document key design decisions (DB choice, async pattern, auth approach)
+- [ ] **API documentation improvements (more examples)** [LOW]
+- [ ] **Developer onboarding guide** [LOW]
+- [ ] **Troubleshooting guides** [LOW]
+- [ ] **Deployment runbooks** [LOW]
+
+---
+
+## How to Add Ideas
+
+1. **Add to this file** — Every idea should be documented here
+2. **Categorize** — Place in the appropriate section
+3. **Prioritize** — Mark with `[HIGH]`, `[MEDIUM]`, or `[LOW]`
+4. **Add context** — Include a one-line description of why it's valuable
+
+## Priority Legend
+
+- `[HIGH]` — High impact, should be implemented soon
+- `[MEDIUM]` — Medium priority, clear value but not urgent
+- `[LOW]` — Future consideration
+- `[BLOCKED]` — Blocked by another dependency
+
+---
+
+**Last Updated**: 2026-03-21
+**Open Items**: ~75
