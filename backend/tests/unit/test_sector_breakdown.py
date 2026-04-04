@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.schemas.sector_breakdown import SectorBreakdownResponse
 from app.schemas.holding import PortfolioPosition, PortfolioSummary
+from app.schemas.sector_breakdown import SectorBreakdownResponse
 from app.schemas.stock import StockInfoResponse
 
 
