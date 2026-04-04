@@ -11,7 +11,6 @@ import { AddPositionDialog } from "@/components/features/portfolio/AddPositionDi
 import { SectorAllocationChart } from "@/components/features/portfolio/SectorAllocationChart"
 import { SectorBreakdownTable } from "@/components/features/portfolio/SectorBreakdownTable"
 import { SectorTrendCard } from "@/components/features/portfolio/SectorTrendCard"
-import { PortfolioNewsFeed } from "@/components/features/portfolio/PortfolioNewsFeed"
 
 export default function PortfolioPage() {
   const [mounted, setMounted] = useState(false)
@@ -185,7 +184,7 @@ export default function PortfolioPage() {
           onOpenChange={setDialogOpen}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
-            queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
+            queryClient.invalidateQueries({ queryKey: ["portfolio-history"] })
           }}
         />
       </div>
