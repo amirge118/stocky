@@ -14,6 +14,7 @@ Every request, feature idea, or improvement suggestion should be added here.
 - [ ] **Code splitting and lazy loading** [HIGH] — Route-level `next/dynamic` for heavy pages (Compare, Indicators)
 - [ ] **Virtual scrolling for large lists** [MEDIUM] — Virtualize portfolio/watchlist rows (react-virtual) when count > 100
 - [ ] **Bundle size optimization** [MEDIUM] — Analyze with `@next/bundle-analyzer`; tree-shake unused Recharts/Radix primitives
+- [ ] **Recharts 3.x upgrade** [LOW] — Pinned to `recharts@2.15.x` because `recharts@3` + `es-toolkit@1.45.x` breaks Next/Webpack (`es-toolkit/compat/range` resolves to a missing `.js` file). Revisit when es-toolkit publish is fixed or Recharts documents a supported pairing
 - [ ] **Request deduplication** [MEDIUM] — Deduplicate concurrent TanStack Query fetches for the same symbol
 - [ ] **Request caching strategies** [MEDIUM] — Set appropriate `staleTime` / `gcTime` per query type (prices: 30s, fundamentals: 5m, news: 2m)
 - [ ] **Image optimization and lazy loading** [LOW] — Use `next/image` for all logo/chart images

@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services import watchlist_service
 
-
 # ── compute_momentum_signals ─────────────────────────────────────────────────
 
 def _make_history(n: int, noise: float = 0.005, spike: float = 0.0) -> dict[date, float]:

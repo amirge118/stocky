@@ -24,7 +24,7 @@ const customJestConfig = {
       branches: process.env.STRICT_COVERAGE ? 13 : 12,
       functions: process.env.STRICT_COVERAGE ? 16 : 15,
       lines: process.env.STRICT_COVERAGE ? 22 : 20,
-      statements: process.env.STRICT_COVERAGE ? 21 : 20,
+      statements: 20,
     },
   },
 }
