@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation"
 
 /**
  * Single-key navigation shortcuts (only fires when no input/textarea/select is focused).
- * p → /portfolio  |  w → /watchlist  |  m → /market
+ * p → /portfolio  |  w → /watchlist  |  m → / (home)
  */
 export function useKeyboardNav() {
   const router = useRouter()
@@ -28,7 +28,7 @@ export function useKeyboardNav() {
           break
         case "m":
           e.preventDefault()
-          router.push("/market")
+          router.push("/")
           break
       }
     }

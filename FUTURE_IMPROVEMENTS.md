@@ -132,7 +132,9 @@ Every request, feature idea, or improvement suggestion should be added here.
 - [ ] **Economic Calendar** [MEDIUM]
   - Macro events timeline: FOMC, CPI, PCE, NFP, GDP; expected vs actual (color-coded surprise)
   - Backend: integrate free public macro calendar API or curated static schedule
-  - Frontend: `/market/calendar` page + widget on market overview
+  - Frontend: `/calendar` route or home-page widget (market overview lives on `/`)
+
+- [ ] **VIX / volatility on home snapshot** [LOW] — Add VIX (or similar) to `MarketSnapshotBar` when backend market overview includes it; keep copy aligned with `MarketContextPanel`.
 
 - [ ] **Stock Screener with Multi-Filter UI** [MEDIUM]
   - Filter by sector, P/E range, market cap, dividend yield, analyst rating, 52W performance

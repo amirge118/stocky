@@ -6,7 +6,6 @@ const PAGES = [
   { name: "Home/Portfolio redirect", path: "/" },
   { name: "Stocks", path: "/stocks" },
   { name: "Stock Compare", path: "/stocks/compare" },
-  { name: "Market", path: "/market" },
   { name: "Portfolio", path: "/portfolio" },
   { name: "Watchlist", path: "/watchlist" },
   { name: "Settings", path: "/settings" },

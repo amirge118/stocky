@@ -8,7 +8,6 @@ import { useKeyboardNav } from "@/lib/hooks/useKeyboardNav"
 const NAV_LINKS = [
   { href: "/portfolio", label: "Portfolio", shortcut: "P" },
   { href: "/watchlist", label: "Watchlist", shortcut: "W" },
-  { href: "/market",    label: "Market",    shortcut: "M" },
   { href: "/settings",  label: "Settings",  shortcut: null },
 ]
 

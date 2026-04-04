@@ -3,8 +3,7 @@ import { test, expect } from "@playwright/test"
 
 test("home page redirects or loads", async ({ page }) => {
   const response = await page.goto("/", { waitUntil: "domcontentloaded" })
-  // The home page redirects to /portfolio — either the redirect succeeds (200 on final URL)
-  // or the initial response is a redirect (3xx). Either way, no crash.
+  // Home renders the market snapshot; no crash.
   const status = response?.status() ?? 200
   expect(status).toBeLessThan(500)
 })
@@ -19,9 +18,7 @@ test("compare page loads with empty state", async ({ page }) => {
   await expect(page.locator("h1")).toContainText("Stock Comparison")
 })
 
-test("market pulse page loads", async ({ page }) => {
-  await page.goto("/market", { waitUntil: "domcontentloaded" })
-  // The market page renders "Market Pulse" as the h1 — check it appears
-  // (the API call may fail in test env, but the heading is always rendered)
-  await expect(page.locator("h1")).toContainText("Market Pulse")
+test("home page shows market pulse section", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await expect(page.getByRole("heading", { name: "Market Pulse" })).toBeVisible()
 })

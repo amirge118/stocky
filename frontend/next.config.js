@@ -6,6 +6,9 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const { withSentryConfig } = require('@sentry/nextjs')
 
 const nextConfig = {
+  async redirects() {
+    return [{ source: '/market', destination: '/', permanent: true }]
+  },
   output: 'standalone',
   // Monorepo: trace files from repo root so Docker/Vercel standalone builds resolve correctly
   outputFileTracingRoot: path.join(__dirname, '..'),

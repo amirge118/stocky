@@ -21,7 +21,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Stocky — Financial Intelligence Platform",
-  description: "Portfolio tracking, AI-powered analysis, and real-time price alerts.",
+  description:
+    "Live market snapshot: benchmarks, sectors when available, and mega-cap movers. Plus portfolio, watchlist, and AI stock insight.",
 }
 
 export default function RootLayout({
