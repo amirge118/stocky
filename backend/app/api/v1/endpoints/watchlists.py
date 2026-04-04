@@ -11,6 +11,7 @@ from app.schemas.watchlist import (
     WatchlistListResponse,
     WatchlistListSummary,
     WatchlistListUpdate,
+    WatchlistMomentumResponse,
 )
 from app.services import watchlist_service
 
@@ -138,3 +139,20 @@ async def remove_item(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"{symbol.upper()} not found in watchlist {list_id}",
         )
+
+
+@router.get("/{list_id}/signals/momentum", response_model=WatchlistMomentumResponse)
+@limiter.limit("20/minute")
+async def get_momentum_signals(
+    request: Request,
+    list_id: int,
+    symbols: str = "",
+) -> WatchlistMomentumResponse:
+    """Return symbols with statistically unusual momentum (|Z-score| >= 2.0).
+
+    Pass symbols as a comma-separated query param, e.g. ?symbols=AAPL,MSFT,NVDA.
+    list_id scopes the endpoint for future ACL use; no DB lookup is performed.
+    """
+    symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+    signals = await watchlist_service.compute_momentum_signals(symbol_list)
+    return WatchlistMomentumResponse(signals=signals)

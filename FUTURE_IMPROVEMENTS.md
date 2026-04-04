@@ -38,6 +38,8 @@ Every request, feature idea, or improvement suggestion should be added here.
 - [ ] **MACD histogram per-bar coloring** [MEDIUM] — Color bars individually (green above 0, red below 0) using Recharts `<Cell>`
 - [ ] **Skeleton shimmer consistency** [MEDIUM] — Replace bare `animate-pulse` with `skeleton-shimmer` CSS class across all loading states (portfolio, watchlist, stock detail, sector)
 - [ ] **Gradient border hover variant for cards** [LOW] — Glow-blue border on hover for interactive cards (stock rows, comparison card)
+- [ ] **Portfolio inline news — expandable rows** [LOW] — Let users click a news row to see a brief AI summary or full article preview without leaving the page
+- [ ] **Portfolio sector donut — hover animation** [LOW] — Animate sector slice outward on hover with tooltip showing top holding in that sector
 
 ### Navigation & Accessibility
 

@@ -35,7 +35,7 @@ from app.models.holding import Holding  # noqa: F401
 from app.models.notification_settings import NotificationSettings  # noqa: F401
 from app.models.stock import Stock  # noqa: F401
 
-if settings.sentry_dsn:
+if settings.sentry_dsn and settings.sentry_dsn.startswith("https://"):
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
         traces_sample_rate=0.1,

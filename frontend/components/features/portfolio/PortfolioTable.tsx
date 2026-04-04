@@ -1,14 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Fragment } from "react"
 import { useRouter } from "next/navigation"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { X, TrendingUp, TrendingDown, Download, Bell, ChevronUp, ChevronDown } from "lucide-react"
+import { useMutation, useQuery, useQueries, useQueryClient } from "@tanstack/react-query"
+import {
+  X,
+  TrendingUp,
+  TrendingDown,
+  Download,
+  Bell,
+  ChevronUp,
+  ChevronDown,
+  Newspaper,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { removeHolding } from "@/lib/api/portfolio"
 import { fetchAlerts } from "@/lib/api/alerts"
+import { getStockNews } from "@/lib/api/stocks"
 import type { PortfolioPosition, PortfolioSummaryWithSector } from "@/types/portfolio"
 import type { Alert } from "@/types/alerts"
+import type { StockNewsItem } from "@/types/stock"
+import { shortNewsLinkLabel } from "@/lib/format/newsHeadline"
 
 interface Props {
   positions: PortfolioPosition[]
@@ -114,6 +126,17 @@ function positionsToCSV(positions: PortfolioPosition[]): string {
   return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
 }
 
+function timeAgo(unixMs: number | null): string {
+  if (!unixMs) return ""
+  const diff = Date.now() - unixMs
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
+}
+
 function sortPositions(
   positions: PortfolioPosition[],
   col: SortCol,
@@ -168,6 +191,23 @@ export function PortfolioTable({ positions, isPending }: Props) {
     URL.revokeObjectURL(url)
   }
 
+  // Inline news per stock
+  const newsQueries = useQueries({
+    queries: positions.map((p) => ({
+      queryKey: ["stockNews", p.symbol] as const,
+      queryFn: () => getStockNews(p.symbol),
+      staleTime: 10 * 60_000,
+    })),
+  })
+
+  const newsMap: Record<string, StockNewsItem[]> = {}
+  positions.forEach((p, idx) => {
+    const data = newsQueries[idx]?.data
+    if (data && data.length > 0) {
+      newsMap[p.symbol] = data.slice(0, 1)
+    }
+  })
+
   const removeMutation = useMutation({
     mutationFn: removeHolding,
     onMutate: async (symbol) => {
@@ -195,7 +235,6 @@ export function PortfolioTable({ positions, isPending }: Props) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
       queryClient.invalidateQueries({ queryKey: ["portfolio-history"] })
-      queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
     },
   })
 
@@ -298,14 +337,15 @@ export function PortfolioTable({ positions, isPending }: Props) {
                   ? "text-red-400"
                   : "text-zinc-300"
             const activeAlertsForPos = alertsByTicker[pos.symbol] ?? []
+            const news = newsMap[pos.symbol]
 
             return (
+              <Fragment key={pos.symbol}>
               <tr
-                key={pos.symbol}
                 onClick={() => router.push(`/stocks/${pos.symbol}`)}
                 className={`
                   group cursor-pointer transition-colors duration-100
-                  border-b border-zinc-800/40 last:border-0
+                  ${!news ? "border-b border-zinc-800/40" : ""}
                   hover:bg-zinc-800/40
                   ${idx % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/20"}
                 `}
@@ -426,6 +466,58 @@ export function PortfolioTable({ positions, isPending }: Props) {
                   </Button>
                 </td>
               </tr>
+              {news && news.length > 0 && (
+                <tr
+                  className={`border-b border-zinc-800/50 ${
+                    idx % 2 === 0 ? "bg-zinc-950/80" : "bg-zinc-900/15"
+                  }`}
+                >
+                  <td colSpan={COLUMNS.length} className="px-5 py-2 pl-9 align-middle">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <Newspaper size={12} className="shrink-0 text-zinc-600" aria-hidden />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                        Latest
+                      </span>
+                      {news.map((item, ni) => (
+                        <span key={ni} className="inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-0.5">
+                          {ni > 0 && (
+                            <span className="text-zinc-700" aria-hidden>
+                              |
+                            </span>
+                          )}
+                          {item.link ? (
+                            <a
+                              href={item.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              title={item.title}
+                              className="max-w-[min(100%,20rem)] truncate text-xs font-medium text-sky-400/95 hover:text-sky-300 underline-offset-2 hover:underline"
+                            >
+                              {shortNewsLinkLabel(item.title)}
+                            </a>
+                          ) : (
+                            <span
+                              className="max-w-[min(100%,20rem)] truncate text-xs text-zinc-500"
+                              title={item.title}
+                            >
+                              {shortNewsLinkLabel(item.title)}
+                            </span>
+                          )}
+                          {(item.publisher || item.published_at != null) && (
+                            <span className="text-[10px] text-zinc-600">
+                              {item.publisher}
+                              {item.publisher && item.published_at != null && " · "}
+                              {item.published_at != null && timeAgo(item.published_at)}
+                            </span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             )
           })}
         </tbody>
