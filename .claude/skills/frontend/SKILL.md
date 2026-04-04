@@ -36,7 +36,6 @@ Work through each item before opening an editor:
 6. **Chart selection**:
    - Sparkline (mini inline trend) → reuse `components/ui/Sparkline.tsx`
    - Full OHLCV candlestick / line → reuse `components/features/stocks/StockChart.tsx`
-   - Portfolio performance → reuse `components/features/portfolio/PortfolioPerformanceChart.tsx`
    - New chart type only if none of the above fit — use Recharts (already in deps)
 
 7. **Plan tests** — Name the test file before writing code. Confirm you will cover: loading state, error state, success state with mock data.

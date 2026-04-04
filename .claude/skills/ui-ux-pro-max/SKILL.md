@@ -82,7 +82,6 @@ python3 .cursor/skills/ui-ux-pro-max/scripts/search.py "suspense streaming cache
 |---|---|---|
 | Mini price trend (inline) | `components/ui/Sparkline.tsx` | Never — reuse |
 | Full price history / OHLCV | `components/features/stocks/StockChart.tsx` | Only for new chart type |
-| Portfolio performance over time | `components/features/portfolio/PortfolioPerformanceChart.tsx` | Only for new metric |
 | Distribution / allocation | None — use Recharts `PieChart` | Always available via Recharts |
 | Comparison bar | None — use Recharts `BarChart` | Always available via Recharts |
 
