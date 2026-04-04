@@ -150,7 +150,7 @@ export function WatchlistAddStockDialog({
           </span>
         </div>
 
-        <div className="min-h-[120px]">
+        <div className="min-h-[120px] max-h-[380px] overflow-y-auto">
           {showSkeleton && (
             <div className="space-y-2 mt-2">
               {[0, 1, 2].map((i) => (

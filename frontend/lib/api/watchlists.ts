@@ -5,6 +5,7 @@ import type {
   WatchlistListCreate,
   WatchlistListResponse,
   WatchlistListSummary,
+  WatchlistMomentumResponse,
 } from "@/types/watchlist"
 
 export async function getWatchlists(): Promise<WatchlistListSummary[]> {
@@ -44,4 +45,14 @@ export async function removeItemFromWatchlist(
   symbol: string
 ): Promise<void> {
   await del(`/api/v1/watchlists/${listId}/items/${symbol}`)
+}
+
+export async function getWatchlistMomentumSignals(
+  listId: number,
+  symbols: string[]
+): Promise<WatchlistMomentumResponse> {
+  const q = encodeURIComponent(symbols.join(","))
+  return get<WatchlistMomentumResponse>(
+    `/api/v1/watchlists/${listId}/signals/momentum?symbols=${q}`
+  )
 }

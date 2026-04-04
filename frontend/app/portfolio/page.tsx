@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Plus, RefreshCw } from "lucide-react"
+import { Plus, RefreshCw, TrendingUp, PieChart as PieChartIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getPortfolioSummary } from "@/lib/api/portfolio"
 import { PortfolioSummaryCard } from "@/components/features/portfolio/PortfolioSummaryCard"
@@ -38,13 +38,16 @@ export default function PortfolioPage() {
       <div className="min-h-screen bg-zinc-950 text-white">
         <div className="max-w-5xl mx-auto px-4 py-8 space-y-5">
           <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-medium tracking-widest uppercase text-zinc-500 mb-1">
-                Equity Portfolio
-              </p>
-              <h1 className="text-3xl font-bold tracking-tight text-white leading-none">
-                Portfolio
-              </h1>
+            <div className="flex items-center gap-3.5">
+              <div className="h-10 w-10 rounded-xl bg-zinc-800 animate-pulse" />
+              <div>
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-zinc-500 mb-0.5">
+                  Equity Portfolio
+                </p>
+                <h1 className="text-2xl font-bold tracking-tight text-white leading-none">
+                  Portfolio
+                </h1>
+              </div>
             </div>
             <div className="h-8 w-24 rounded bg-zinc-800 animate-pulse" />
           </div>
@@ -104,29 +107,31 @@ export default function PortfolioPage() {
 
         {/* ── Header ────────────────────────────────────────────────────────── */}
         <div className="flex items-end justify-between gap-4">
-          <div>
-            {/* Eyebrow */}
-            <p className="text-[11px] font-medium tracking-widest uppercase text-zinc-500 mb-1">
-              Equity Portfolio
-            </p>
-            {/* Headline */}
-            <h1 className="text-3xl font-bold tracking-tight text-white leading-none">
-              Portfolio
-            </h1>
+          <div className="flex items-center gap-3.5">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+              <TrendingUp size={18} className="text-white" />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold tracking-widest uppercase text-zinc-500 mb-0.5">
+                Equity Portfolio
+              </p>
+              <h1 className="text-2xl font-bold tracking-tight text-white leading-none">
+                Portfolio
+              </h1>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 pb-0.5">
-            {/* Live pulse indicator - suppressHydrationWarning: isFetching can differ server vs client */}
-            <div className="flex items-center gap-1.5 mr-1" suppressHydrationWarning>
+          <div className="flex items-center gap-2.5 pb-0.5">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-800/60 border border-zinc-700/40" suppressHydrationWarning>
               {isFetching ? (
-                <RefreshCw size={12} className="text-zinc-500 animate-spin" />
+                <RefreshCw size={10} className="text-zinc-500 animate-spin" />
               ) : (
-                <span className="relative flex h-2 w-2">
+                <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-40" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
                 </span>
               )}
-              <span className="text-[11px] text-zinc-600 tracking-wide">Live</span>
+              <span className="text-[10px] text-zinc-400 font-medium">Live</span>
             </div>
 
             <Button
@@ -147,23 +152,31 @@ export default function PortfolioPage() {
 
         {/* ── Sector Breakdown ─────────────────────────────────────────────── */}
         {sectorData && sectorData.sectors.length > 0 && (
-          <div className="space-y-4">
-            <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5 space-y-4">
-              <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">
+          <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden">
+            <div className="px-6 py-4 border-b border-zinc-800/60 flex items-center gap-2">
+              <PieChartIcon size={16} className="text-indigo-400" />
+              <h2 className="text-sm font-semibold text-zinc-200 uppercase tracking-wide">
                 Sector Allocation
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <SectorAllocationChart sectors={sectorData.sectors} />
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <SectorAllocationChart sectors={sectorData.sectors} totalValue={sectorData.total_value} />
                 <SectorBreakdownTable sectors={sectorData.sectors} />
               </div>
             </div>
-            <SectorTrendCard sectors={sectorData.sectors} />
+            <div className="px-6 pb-6">
+              <div className="border-t border-zinc-800/60 pt-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp size={14} className="text-zinc-500" />
+                  <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
+                    Sector Trends
+                  </span>
+                </div>
+                <SectorTrendCard sectors={sectorData.sectors} />
+              </div>
+            </div>
           </div>
-        )}
-
-        {/* ── Portfolio News Feed ──────────────────────────────────────────── */}
-        {data && data.positions.length > 0 && (
-          <PortfolioNewsFeed />
         )}
 
         {/* ── Dialog ───────────────────────────────────────────────────────── */}

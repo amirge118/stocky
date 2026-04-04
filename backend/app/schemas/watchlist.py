@@ -50,3 +50,14 @@ class WatchlistItemAdd(BaseModel):
     name: str = Field(..., max_length=255)
     exchange: str = Field(..., max_length=50)
     sector: Optional[str] = Field(None, max_length=100)
+
+
+class MomentumSignal(BaseModel):
+    symbol: str
+    z_score: float
+    direction: str  # "up" | "down"
+    last_return_pct: float
+
+
+class WatchlistMomentumResponse(BaseModel):
+    signals: list[MomentumSignal]
