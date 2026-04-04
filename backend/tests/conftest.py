@@ -45,7 +45,7 @@ def client(db_session, monkeypatch):
     app.dependency_overrides[get_db_session] = override_get_db
     app.dependency_overrides[get_db] = override_get_db
 
-    # Background tasks (e.g. agent trigger) use AsyncSessionLocal from app.core.database.
+    # AsyncSessionLocal must match the test session factory for endpoints that open their own session.
     # CI uses sqlite :memory: for both test_engine and app engine, but they are different
     # DBs unless we point AsyncSessionLocal at the same session factory as the test.
     monkeypatch.setattr("app.core.database.AsyncSessionLocal", TestSessionLocal)

@@ -35,7 +35,6 @@ except ImportError:
 TABLES = [
     "stocks",
     "holdings",
-    "agent_reports",
     "alerts",
     "watchlist_lists",
     "watchlist_items",  # FK → watchlist_lists

@@ -460,7 +460,7 @@ if __name__ == "__main__":
 **MANDATORY**: Whenever a new feature, page, agent, or major capability is added or removed, update the "What the App Does" section in the root `README.md` to reflect it.
 
 **When to update:**
-- A new page or route is added (e.g., `/portfolio`, `/agents/[name]`)
+- A new page or route is added (e.g., `/portfolio`, `/market`)
 - A new AI agent is registered
 - A new major API endpoint or service is introduced
 - An existing feature is significantly changed or removed

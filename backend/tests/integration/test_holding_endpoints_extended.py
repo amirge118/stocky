@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from app.schemas.agent import SectorBreakdownResponse, SectorSlice
+from app.schemas.sector_breakdown import SectorBreakdownResponse, SectorSlice
 from app.schemas.holding import (
     PortfolioPosition,
     PortfolioSummary,

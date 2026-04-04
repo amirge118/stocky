@@ -9,7 +9,6 @@ const NAV_LINKS = [
   { href: "/portfolio", label: "Portfolio", shortcut: "P" },
   { href: "/watchlist", label: "Watchlist", shortcut: "W" },
   { href: "/market",    label: "Market",    shortcut: "M" },
-  { href: "/agents",    label: "Agents",    shortcut: null },
   { href: "/settings",  label: "Settings",  shortcut: null },
 ]
 
@@ -19,7 +18,7 @@ export function Navbar() {
 
   const isActive = (href: string) =>
     pathname === href ||
-    (href !== "/portfolio" && href !== "/watchlist" && href !== "/agents" && pathname.startsWith(href + "/")) ||
+    (href !== "/portfolio" && href !== "/watchlist" && pathname.startsWith(href + "/")) ||
     (href === "/watchlist" && pathname.startsWith("/watchlist"))
 
   return (

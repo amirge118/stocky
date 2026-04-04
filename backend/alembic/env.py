@@ -9,7 +9,6 @@ from app.core.database import Base, _asyncpg_connect_args, effective_database_ur
 
 # Import all models so Alembic can detect them
 from app.models.stock import Stock  # noqa: F401
-from app.models.agent_report import AgentReport  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

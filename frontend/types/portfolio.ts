@@ -24,7 +24,18 @@ export interface PortfolioSummary {
   total_day_change_pct: number | null
 }
 
-import type { SectorBreakdown } from "./agent"
+export interface SectorSlice {
+  sector: string
+  total_value: number
+  weight_pct: number
+  symbols: string[]
+  num_holdings: number
+}
+
+export interface SectorBreakdown {
+  sectors: SectorSlice[]
+  total_value: number
+}
 
 export interface PortfolioSummaryWithSector {
   portfolio: PortfolioSummary

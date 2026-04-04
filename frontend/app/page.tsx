@@ -201,7 +201,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Cell C — AI Agents (col-span-1) */}
+          {/* Cell C — AI on stock pages (col-span-1) */}
           <div className="col-span-6 sm:col-span-1 glass rounded-2xl p-5 hover-glow-blue transition-all duration-300 hover:scale-[1.01] flex flex-col">
             <div className="h-8 w-8 rounded-xl bg-rose-500/15 flex items-center justify-center mb-3">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4 text-rose-400">
@@ -209,10 +209,10 @@ export default function HomePage() {
               </svg>
             </div>
             <p className="text-[11px] uppercase tracking-widest text-zinc-500 mb-1">AI</p>
-            <h3 className="text-sm font-semibold text-white tracking-tight mb-1">Agents</h3>
-            <p className="text-xs text-zinc-500 leading-relaxed flex-1">Analyze any stock in seconds.</p>
-            <Link href="/agents" className="mt-3 text-[10px] text-rose-400 hover:text-rose-300 transition-colors">
-              Try now →
+            <h3 className="text-sm font-semibold text-white tracking-tight mb-1">Stock insight</h3>
+            <p className="text-xs text-zinc-500 leading-relaxed flex-1">Open any ticker for AI analysis on its page.</p>
+            <Link href="/market" className="mt-3 text-[10px] text-rose-400 hover:text-rose-300 transition-colors">
+              Market overview →
             </Link>
           </div>
 

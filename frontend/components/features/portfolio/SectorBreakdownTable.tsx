@@ -1,6 +1,6 @@
 "use client"
 
-import type { SectorSlice } from "@/types/agent"
+import type { SectorSlice } from "@/types/portfolio"
 import { SECTOR_COLORS } from "@/lib/constants/colors"
 
 interface SectorBreakdownTableProps {

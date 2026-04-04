@@ -14,7 +14,6 @@ import { StockNews } from "@/components/features/stocks/StockNews"
 import { SectorNews } from "@/components/features/stocks/SectorNews"
 import { StockAIAnalysis } from "@/components/features/stocks/StockAIAnalysis"
 import { StockSectorOverview } from "@/components/features/stocks/StockSectorOverview"
-import { StockDeepDiveCard } from "@/components/features/agents/StockDeepDiveCard"
 import { StockDividends } from "@/components/features/stocks/StockDividends"
 import { StockAlertsSection } from "@/components/features/stocks/StockAlertsSection"
 
@@ -181,9 +180,6 @@ export default function StockDetailPage() {
 
         {/* AI Analysis */}
         <StockAIAnalysis symbol={symbol} />
-
-        {/* Deep Dive Agent */}
-        <StockDeepDiveCard symbol={symbol} />
 
         {/* Sector Overview */}
         {info && (

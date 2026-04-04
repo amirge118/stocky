@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.limiter import limiter
-from app.schemas.agent import SectorBreakdownResponse
+from app.schemas.sector_breakdown import SectorBreakdownResponse
 from app.schemas.holding import (
     HoldingCreate,
     PortfolioPosition,

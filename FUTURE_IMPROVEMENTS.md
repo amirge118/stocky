@@ -101,7 +101,7 @@ Every request, feature idea, or improvement suggestion should be added here.
 - [ ] **AI Portfolio Health Coach** [HIGH]
   - Claude AI analyzes entire portfolio: concentration risk, sector imbalance, correlation, overweight positions
   - Actionable plain-language recommendations ("Your portfolio is 60% tech — consider diversifying")
-  - Backend: `POST /api/v1/portfolio/ai-analysis` using `anthropic` SDK (same pattern as existing agent report)
+  - Backend: `POST /api/v1/portfolio/ai-analysis` using `anthropic` SDK (same pattern as per-stock AI analysis)
   - Frontend: "AI Coach" card/tab on portfolio page with streaming output
 
 - [ ] **Backend-Driven Alert Checker Cron Job** [HIGH]
@@ -181,9 +181,6 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 - [ ] **Drag-and-Drop Portfolio Reordering** [LOW]
   - Let users reorder holdings; persist order preference
-
-- [ ] **Agent Report Favorites** [LOW]
-  - Pin favorite AI agent reports to dashboard; quick access to frequently referenced analyses
 
 ---
 

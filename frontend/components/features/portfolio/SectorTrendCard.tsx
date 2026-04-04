@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Flame } from "lucide-react"
 import { fetchStockDataBatch } from "@/lib/api/stocks"
-import type { SectorSlice } from "@/types/agent"
+import type { SectorSlice } from "@/types/portfolio"
 
 const SECTOR_ETF: Record<string, string> = {
   Technology: "XLK",

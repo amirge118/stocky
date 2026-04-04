@@ -100,31 +100,3 @@ CREATE TABLE IF NOT EXISTS watchlist_items (
 
 CREATE INDEX IF NOT EXISTS idx_watchlist_items_watchlist_id ON watchlist_items (watchlist_id);
 CREATE INDEX IF NOT EXISTS idx_watchlist_items_symbol       ON watchlist_items (symbol);
-
--- ---------------------
--- 7. agent_reports
--- ---------------------
-CREATE TABLE IF NOT EXISTS agent_reports (
-    id               SERIAL       PRIMARY KEY,
-    agent_name       VARCHAR(100) NOT NULL,
-    agent_type       VARCHAR(50)  NOT NULL,
-    status           VARCHAR(20)  NOT NULL DEFAULT 'completed',
-    target_symbol    VARCHAR(10),
-    data             JSONB,
-    error_message    TEXT,
-    tokens_used      INTEGER,
-    run_duration_ms  INTEGER,
-    created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at       TIMESTAMPTZ
-);
-
-CREATE INDEX IF NOT EXISTS idx_agent_reports_name_symbol_created
-    ON agent_reports (agent_name, target_symbol, created_at);
-CREATE INDEX IF NOT EXISTS idx_agent_reports_type_created
-    ON agent_reports (agent_type, created_at);
-CREATE INDEX IF NOT EXISTS idx_agent_reports_name
-    ON agent_reports (agent_name);
-CREATE INDEX IF NOT EXISTS idx_agent_reports_type
-    ON agent_reports (agent_type);
-CREATE INDEX IF NOT EXISTS idx_agent_reports_target_symbol
-    ON agent_reports (target_symbol);

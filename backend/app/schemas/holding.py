@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
-from app.schemas.agent import SectorBreakdownResponse
+from app.schemas.sector_breakdown import SectorBreakdownResponse
 
 
 class HoldingCreate(BaseModel):

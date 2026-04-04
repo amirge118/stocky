@@ -14,8 +14,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-# Register all agents (side-effect: populates AgentRegistry)
-from app import agents  # noqa: F401
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.database import engine
@@ -29,7 +27,6 @@ from app.middleware.error_handler import (
 from app.middleware.request_logging import RequestLoggingMiddleware
 
 # Import models so Alembic can detect them
-from app.models.agent_report import AgentReport  # noqa: F401
 from app.models.alert import Alert  # noqa: F401
 from app.models.holding import Holding  # noqa: F401
 from app.models.notification_settings import NotificationSettings  # noqa: F401
@@ -52,13 +49,7 @@ _logger.setLevel(getattr(logging, settings.log_level.upper(), logging.INFO))
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager for startup and shutdown events."""
-    # Startup
-    from app.agents.scheduler import start_scheduler
-    await start_scheduler()
     yield
-    # Shutdown
-    from app.agents.scheduler import stop_scheduler
-    await stop_scheduler()
     await engine.dispose()
 
 

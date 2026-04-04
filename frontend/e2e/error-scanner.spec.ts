@@ -9,7 +9,6 @@ const PAGES = [
   { name: "Market", path: "/market" },
   { name: "Portfolio", path: "/portfolio" },
   { name: "Watchlist", path: "/watchlist" },
-  { name: "Agents", path: "/agents" },
   { name: "Settings", path: "/settings" },
 ]
 

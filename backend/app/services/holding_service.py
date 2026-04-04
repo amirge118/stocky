@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.holding import Holding
-from app.schemas.agent import SectorBreakdownResponse, SectorSlice
+from app.schemas.sector_breakdown import SectorBreakdownResponse, SectorSlice
 from app.schemas.holding import (
     HoldingResponse,
     PortfolioPosition,
