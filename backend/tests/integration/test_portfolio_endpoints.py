@@ -105,19 +105,6 @@ async def test_get_portfolio_news_empty(mock_fetch, client: TestClient):
 
 
 @pytest.mark.asyncio
-@patch("app.services.holding_service.fetch_stock_history")
-async def test_get_portfolio_history_empty(mock_fetch, client: TestClient):
-    """Test GET /portfolio/history when no holdings."""
-    response = client.get("/api/v1/portfolio/history?period=1m")
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["period"] == "1m"
-    assert data["data"] == []
-    mock_fetch.assert_not_called()
-
-
-@pytest.mark.asyncio
 async def test_add_holding_creates_position(client: TestClient, db_session):
     """Test POST /portfolio adds a holding."""
     response = client.post(

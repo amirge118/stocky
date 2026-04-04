@@ -11,6 +11,7 @@ export interface PortfolioPosition {
   portfolio_pct: number | null
   day_change: number | null
   day_change_percent: number | null
+  purchase_date?: string | null
 }
 
 export interface PortfolioSummary {

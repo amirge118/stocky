@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, Fragment } from "react"
+import { Fragment, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useMutation, useQuery, useQueries, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   X,
   TrendingUp,
@@ -16,15 +16,15 @@ import {
 import { Button } from "@/components/ui/button"
 import { removeHolding } from "@/lib/api/portfolio"
 import { fetchAlerts } from "@/lib/api/alerts"
-import { getStockNews } from "@/lib/api/stocks"
-import type { PortfolioPosition, PortfolioSummaryWithSector } from "@/types/portfolio"
-import type { Alert } from "@/types/alerts"
-import type { StockNewsItem } from "@/types/stock"
+import type { PortfolioNewsItem, PortfolioPosition, PortfolioSummaryWithSector } from "@/types/portfolio"
 import { shortNewsLinkLabel } from "@/lib/format/newsHeadline"
+import type { Alert } from "@/types/alerts"
 
 interface Props {
   positions: PortfolioPosition[]
   isPending: boolean
+  /** Newest headline per symbol from the shared portfolio news query */
+  headlineBySymbol?: Record<string, PortfolioNewsItem>
 }
 
 type SortCol =
@@ -48,6 +48,13 @@ const COLUMNS: { label: string; key: SortCol | null; align: "left" | "right" }[]
   { label: "Weight",       key: "portfolio_pct",      align: "right" },
   { label: "",             key: null,                 align: "right" },
 ]
+
+function formatPositionSince(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
 
 function fmtUSD(n: number | null, decimals = 2): string {
   if (n === null) return "—"
@@ -126,15 +133,14 @@ function positionsToCSV(positions: PortfolioPosition[]): string {
   return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
 }
 
-function timeAgo(unixMs: number | null): string {
-  if (!unixMs) return ""
-  const diff = Date.now() - unixMs
+function newsTimeAgo(ms: number | null): string {
+  if (!ms) return ""
+  const diff = Date.now() - ms
   const mins = Math.floor(diff / 60_000)
   if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  return `${days}d ago`
+  return `${Math.floor(hrs / 24)}d ago`
 }
 
 function sortPositions(
@@ -159,7 +165,7 @@ function sortPositions(
   })
 }
 
-export function PortfolioTable({ positions, isPending }: Props) {
+export function PortfolioTable({ positions, isPending, headlineBySymbol = {} }: Props) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [sort, setSort] = useState<{ col: SortCol; dir: "asc" | "desc" }>({
@@ -191,23 +197,6 @@ export function PortfolioTable({ positions, isPending }: Props) {
     URL.revokeObjectURL(url)
   }
 
-  // Inline news per stock
-  const newsQueries = useQueries({
-    queries: positions.map((p) => ({
-      queryKey: ["stockNews", p.symbol] as const,
-      queryFn: () => getStockNews(p.symbol),
-      staleTime: 10 * 60_000,
-    })),
-  })
-
-  const newsMap: Record<string, StockNewsItem[]> = {}
-  positions.forEach((p, idx) => {
-    const data = newsQueries[idx]?.data
-    if (data && data.length > 0) {
-      newsMap[p.symbol] = data.slice(0, 1)
-    }
-  })
-
   const removeMutation = useMutation({
     mutationFn: removeHolding,
     onMutate: async (symbol) => {
@@ -234,6 +223,7 @@ export function PortfolioTable({ positions, isPending }: Props) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
+      queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
       queryClient.invalidateQueries({ queryKey: ["portfolio-history"] })
     },
   })
@@ -337,7 +327,7 @@ export function PortfolioTable({ positions, isPending }: Props) {
                   ? "text-red-400"
                   : "text-zinc-300"
             const activeAlertsForPos = alertsByTicker[pos.symbol] ?? []
-            const news = newsMap[pos.symbol]
+            const headline = headlineBySymbol[pos.symbol]
 
             return (
               <Fragment key={pos.symbol}>
@@ -345,7 +335,7 @@ export function PortfolioTable({ positions, isPending }: Props) {
                 onClick={() => router.push(`/stocks/${pos.symbol}`)}
                 className={`
                   group cursor-pointer transition-colors duration-100
-                  ${!news ? "border-b border-zinc-800/40" : ""}
+                  border-b border-zinc-800/40 last:border-0
                   hover:bg-zinc-800/40
                   ${idx % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/20"}
                 `}
@@ -353,7 +343,6 @@ export function PortfolioTable({ positions, isPending }: Props) {
                 {/* Symbol + Name */}
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-3">
-                    {/* Accent dot shows gain/loss direction */}
                     <span
                       className={`w-1 h-8 rounded-full shrink-0 transition-colors ${
                         isUp === true
@@ -363,7 +352,7 @@ export function PortfolioTable({ positions, isPending }: Props) {
                             : "bg-zinc-700"
                       }`}
                     />
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono font-bold text-white tracking-wide">
                           {pos.symbol}
@@ -384,9 +373,14 @@ export function PortfolioTable({ positions, isPending }: Props) {
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-zinc-500 truncate max-w-[160px] mt-0.5">
+                      <div className="text-xs text-zinc-500 truncate max-w-[200px] mt-0.5">
                         {pos.name}
                       </div>
+                      {formatPositionSince(pos.purchase_date) && (
+                        <div className="text-[10px] text-zinc-600 tabular-nums mt-0.5">
+                          Since {formatPositionSince(pos.purchase_date)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </td>
@@ -466,7 +460,7 @@ export function PortfolioTable({ positions, isPending }: Props) {
                   </Button>
                 </td>
               </tr>
-              {news && news.length > 0 && (
+              {headline && (
                 <tr
                   className={`border-b border-zinc-800/50 ${
                     idx % 2 === 0 ? "bg-zinc-950/80" : "bg-zinc-900/15"
@@ -474,45 +468,43 @@ export function PortfolioTable({ positions, isPending }: Props) {
                 >
                   <td colSpan={COLUMNS.length} className="px-5 py-2 pl-9 align-middle">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <Newspaper size={12} className="shrink-0 text-zinc-600" aria-hidden />
+                      <Newspaper
+                        size={12}
+                        className="shrink-0 text-zinc-600"
+                        aria-hidden
+                      />
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
                         Latest
                       </span>
-                      {news.map((item, ni) => (
-                        <span key={ni} className="inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-0.5">
-                          {ni > 0 && (
-                            <span className="text-zinc-700" aria-hidden>
-                              |
-                            </span>
-                          )}
-                          {item.link ? (
-                            <a
-                              href={item.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              title={item.title}
-                              className="max-w-[min(100%,20rem)] truncate text-xs font-medium text-sky-400/95 hover:text-sky-300 underline-offset-2 hover:underline"
-                            >
-                              {shortNewsLinkLabel(item.title)}
-                            </a>
-                          ) : (
-                            <span
-                              className="max-w-[min(100%,20rem)] truncate text-xs text-zinc-500"
-                              title={item.title}
-                            >
-                              {shortNewsLinkLabel(item.title)}
-                            </span>
-                          )}
-                          {(item.publisher || item.published_at != null) && (
-                            <span className="text-[10px] text-zinc-600">
-                              {item.publisher}
-                              {item.publisher && item.published_at != null && " · "}
-                              {item.published_at != null && timeAgo(item.published_at)}
+                      {headline.link ? (
+                        <a
+                          href={headline.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={headline.title}
+                          className="max-w-[min(100%,20rem)] truncate text-xs font-medium text-sky-400/95 hover:text-sky-300 underline-offset-2 hover:underline"
+                        >
+                          {shortNewsLinkLabel(headline.title)}
+                        </a>
+                      ) : (
+                        <span
+                          className="max-w-[min(100%,20rem)] truncate text-xs text-zinc-500"
+                          title={headline.title}
+                        >
+                          {shortNewsLinkLabel(headline.title)}
+                        </span>
+                      )}
+                      {(headline.publisher || headline.published_at != null) && (
+                        <span className="text-[10px] text-zinc-600">
+                          {headline.publisher}
+                          {headline.publisher && headline.published_at != null && " · "}
+                          {headline.published_at != null && (
+                            <span suppressHydrationWarning>
+                              {newsTimeAgo(headline.published_at)}
                             </span>
                           )}
                         </span>
-                      ))}
+                      )}
                     </div>
                   </td>
                 </tr>

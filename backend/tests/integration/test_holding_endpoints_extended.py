@@ -6,7 +6,6 @@ from fastapi.testclient import TestClient
 
 from app.schemas.agent import SectorBreakdownResponse, SectorSlice
 from app.schemas.holding import (
-    PortfolioHistoryResponse,
     PortfolioPosition,
     PortfolioSummary,
 )
@@ -105,6 +104,7 @@ async def test_add_holding_success(client: TestClient):
     mock_holding.shares = 10.0
     mock_holding.avg_cost = 150.0
     mock_holding.total_cost = 1500.0
+    mock_holding.purchase_date = date.today()
 
     with patch(
         "app.api.v1.endpoints.portfolio.holding_service.upsert_holding",
@@ -126,24 +126,6 @@ async def test_add_holding_success(client: TestClient):
     data = r.json()
     assert data["symbol"] == "AAPL"
     assert data["shares"] == 10.0
-
-
-# ── GET /portfolio/history ────────────────────────────────────────────────────
-
-@pytest.mark.asyncio
-async def test_get_portfolio_history_success(client: TestClient):
-    mock_result = PortfolioHistoryResponse(period="1m", data=[])
-    with patch(
-        "app.api.v1.endpoints.portfolio.holding_service.get_portfolio_history",
-        new_callable=AsyncMock,
-        return_value=mock_result,
-    ):
-        r = client.get("/api/v1/portfolio/history?period=1m")
-
-    assert r.status_code == 200
-    data = r.json()
-    assert data["period"] == "1m"
-    assert data["data"] == []
 
 
 # ── GET /portfolio/news ───────────────────────────────────────────────────────

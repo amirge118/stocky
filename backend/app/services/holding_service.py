@@ -1,5 +1,5 @@
 import asyncio
-from datetime import date, timedelta
+from datetime import date
 from typing import Optional
 
 from sqlalchemy import select
@@ -9,16 +9,12 @@ from app.models.holding import Holding
 from app.schemas.agent import SectorBreakdownResponse, SectorSlice
 from app.schemas.holding import (
     HoldingResponse,
-    PortfolioHistoryPoint,
-    PortfolioHistoryResponse,
     PortfolioPosition,
     PortfolioSummary,
 )
 from app.schemas.stock import (
     PortfolioNewsItem,
     StockDataResponse,
-    StockHistoryPoint,
-    StockHistoryResponse,
     StockInfoResponse,
 )
 from app.services.stock_data import (
@@ -26,7 +22,6 @@ from app.services.stock_data import (
     fetch_stock_info,
     fetch_stock_news,
 )
-from app.services.yfinance_service import fetch_history_daily, fetch_history_intraday
 
 
 async def upsert_holding(
@@ -145,6 +140,7 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
                 portfolio_pct=None,  # filled in second pass
                 day_change=day_change,
                 day_change_percent=day_change_percent,
+                purchase_date=holding.purchase_date,
             )
         )
 
@@ -262,83 +258,3 @@ async def get_portfolio_news(db: AsyncSession, limit: int = 20) -> list[Portfoli
         reverse=True,
     )
     return merged[:limit]
-
-
-async def fetch_stock_history(symbol: str, period: str) -> StockHistoryResponse:
-    """Fetch historical price data for a symbol and return as StockHistoryResponse.
-
-    For the "1d" period intraday (5-min) bars are used.
-    For all other periods daily closes are used.
-    """
-    import calendar
-
-    if period == "1d":
-        bars = await fetch_history_intraday(symbol)
-        data = [
-            StockHistoryPoint(
-                t=int(dt.timestamp() * 1000),
-                o=price,
-                h=price,
-                l=price,
-                c=price,
-            )
-            for dt, price in bars
-        ]
-        return StockHistoryResponse(symbol=symbol, period=period, data=data)
-
-    today = date.today()
-    period_map: dict[str, date] = {
-        "1w": today - timedelta(days=7),
-        "1m": today - timedelta(days=30),
-        "6m": today - timedelta(days=180),
-        "1y": today - timedelta(days=365),
-    }
-    window_start = period_map.get(period, today - timedelta(days=30))
-    prices = await fetch_history_daily(symbol, window_start, today)
-    data = [
-        StockHistoryPoint(
-            t=int(calendar.timegm(d.timetuple()) * 1000),
-            o=price,
-            h=price,
-            l=price,
-            c=price,
-        )
-        for d, price in sorted(prices.items())
-    ]
-    return StockHistoryResponse(symbol=symbol, period=period, data=data)
-
-
-async def get_portfolio_history(db: AsyncSession, period: str = "1m") -> PortfolioHistoryResponse:
-    """Compute portfolio $ value over time using yfinance historical prices.
-
-    For the "1d" period we use intraday (5-min) bars.
-    For all other periods we use daily closes, respecting each holding's
-    purchase_date so a holding only contributes value from the day it was bought.
-    """
-    from collections import defaultdict
-
-    result = await db.execute(select(Holding).order_by(Holding.symbol))
-    holdings = list(result.scalars().all())
-    if not holdings:
-        return PortfolioHistoryResponse(period=period, data=[])
-
-    history_results = await asyncio.gather(
-        *[fetch_stock_history(h.symbol, period) for h in holdings],
-        return_exceptions=True,
-    )
-
-    ts_values: dict[int, float] = defaultdict(float)
-    for holding, history in zip(holdings, history_results):
-        if not isinstance(history, StockHistoryResponse):
-            continue
-        for point in history.data:
-            ts_values[point.t] += holding.shares * point.c
-
-    if not ts_values:
-        return PortfolioHistoryResponse(period=period, data=[])
-
-    points = [
-        PortfolioHistoryPoint(t=t, value=round(v, 2))
-        for t, v in sorted(ts_values.items())
-    ]
-    return PortfolioHistoryResponse(period=period, data=points)

@@ -1,4 +1,5 @@
 """Unit tests for holding service."""
+from datetime import date
 from unittest.mock import patch
 
 import pytest
@@ -7,8 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.holding import Holding
 from app.schemas.stock import (
     StockDataResponse,
-    StockHistoryPoint,
-    StockHistoryResponse,
     StockNewsItem,
 )
 from app.services import holding_service
@@ -103,49 +102,33 @@ async def test_get_portfolio_news_merges_and_dedupes(mock_fetch, db_session: Asy
 
 
 @pytest.mark.asyncio
-@patch("app.services.holding_service.fetch_stock_history")
-async def test_get_portfolio_history_empty(mock_fetch, db_session: AsyncSession):
-    """Test portfolio history when no holdings."""
-    result = await holding_service.get_portfolio_history(db_session, "1m")
+@patch("app.services.holding_service.fetch_stock_data_from_yfinance")
+async def test_get_portfolio_includes_purchase_date(mock_fetch, db_session: AsyncSession):
+    """Portfolio positions include purchase_date from the holding row."""
+    from datetime import date as date_cls
 
-    assert result.period == "1m"
-    assert result.data == []
-    mock_fetch.assert_not_called()
-
-
-@pytest.mark.asyncio
-@patch("app.services.holding_service.fetch_stock_history")
-async def test_get_portfolio_history_aggregates_values(mock_fetch, db_session: AsyncSession):
-    """Test portfolio history aggregates value across holdings."""
-    db_session.add(
-        Holding(symbol="AAPL", name="Apple", shares=10.0, avg_cost=150.0, total_cost=1500.0)
+    holding = Holding(
+        symbol="AAPL",
+        name="Apple Inc.",
+        shares=10.0,
+        avg_cost=150.0,
+        total_cost=1500.0,
+        purchase_date=date_cls(2023, 6, 1),
     )
-    db_session.add(
-        Holding(symbol="MSFT", name="Microsoft", shares=5.0, avg_cost=300.0, total_cost=1500.0)
-    )
+    db_session.add(holding)
     await db_session.commit()
 
-    # AAPL: 10 shares, MSFT: 5 shares. At t=100: AAPL=155, MSFT=310 -> total 1550+1550=3100
-    mock_fetch.side_effect = [
-        StockHistoryResponse(
-            symbol="AAPL",
-            period="1m",
-            data=[
-                StockHistoryPoint.model_validate({"t": 100, "o": 150, "h": 156, "l": 149, "c": 155, "v": 1000}),
-            ],
-        ),
-        StockHistoryResponse(
-            symbol="MSFT",
-            period="1m",
-            data=[
-                StockHistoryPoint.model_validate({"t": 100, "o": 305, "h": 312, "l": 304, "c": 310, "v": 500}),
-            ],
-        ),
-    ]
+    mock_fetch.return_value = StockDataResponse(
+        symbol="AAPL",
+        name="Apple Inc.",
+        current_price=155.0,
+        previous_close=150.0,
+        change=5.0,
+        change_percent=3.33,
+        volume=1000000,
+        market_cap=2500000000000,
+        currency="USD",
+    )
 
-    result = await holding_service.get_portfolio_history(db_session, "1m")
-
-    assert result.period == "1m"
-    assert len(result.data) == 1
-    assert result.data[0].t == 100
-    assert result.data[0].value == 1550 + 1550  # 10*155 + 5*310
+    result = await holding_service.get_portfolio(db_session)
+    assert result.positions[0].purchase_date == date_cls(2023, 6, 1)

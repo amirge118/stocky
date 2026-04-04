@@ -6,7 +6,6 @@ from app.core.limiter import limiter
 from app.schemas.agent import SectorBreakdownResponse
 from app.schemas.holding import (
     HoldingCreate,
-    PortfolioHistoryResponse,
     PortfolioPosition,
     PortfolioSummary,
     PortfolioSummaryWithSector,
@@ -61,16 +60,8 @@ async def add_holding(
         gain_loss=None,
         gain_loss_pct=None,
         portfolio_pct=None,
+        purchase_date=holding.purchase_date,
     )
-
-
-@router.get("/history", response_model=PortfolioHistoryResponse)
-async def get_portfolio_history(
-    period: str = Query("1m", description="1d | 1w | 1m | 6m | 1y | all"),
-    db: AsyncSession = Depends(get_db),
-) -> PortfolioHistoryResponse:
-    """Get portfolio value over time (computed from historical prices)."""
-    return await holding_service.get_portfolio_history(db, period=period)
 
 
 @router.get("/news", response_model=list[PortfolioNewsItem])

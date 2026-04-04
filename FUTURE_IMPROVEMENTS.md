@@ -19,7 +19,7 @@ Every request, feature idea, or improvement suggestion should be added here.
 - [ ] **Image optimization and lazy loading** [LOW] — Use `next/image` for all logo/chart images
 - [ ] **SSR improvements** [LOW] — Pre-render market overview and landing page data at build time via `generateStaticParams`
 - [ ] **Optimistic UI updates** [MEDIUM] — Instant feedback on add/remove holding and watchlist mutations before server confirms
-- [ ] **Portfolio performance over time chart** [LOW] — Restore removed `PortfolioPerformanceChart` (Recharts + `/api/v1/portfolio/history`) on portfolio page if users want historical value curve again
+- [ ] **Portfolio value over time (optional)** [LOW] — Was removed from the portfolio page; reintroduce only with a reliable data story (e.g. transaction-based NAV, paid market data, or broker import), not fragile multi-ticker yfinance reconstruction
 
 ### Backend
 

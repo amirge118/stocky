@@ -61,13 +61,3 @@ class PortfolioSummaryWithSector(BaseModel):
 
     portfolio: PortfolioSummary
     sector_breakdown: SectorBreakdownResponse
-
-
-class PortfolioHistoryPoint(BaseModel):
-    t: int  # Unix ms
-    value: float
-
-
-class PortfolioHistoryResponse(BaseModel):
-    period: str
-    data: list[PortfolioHistoryPoint]

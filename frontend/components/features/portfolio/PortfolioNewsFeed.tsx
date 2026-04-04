@@ -23,12 +23,22 @@ function isBreaking(publishedAt: number | null): boolean {
   return Date.now() - publishedAt < BREAKING_THRESHOLD_MS
 }
 
-export function PortfolioNewsFeed() {
-  const { data: news, isPending } = useQuery({
-    queryKey: ["portfolio-news"],
+export interface PortfolioNewsFeedProps {
+  /** When set, skips an internal fetch so the parent can share one query with the holdings table. */
+  items?: PortfolioNewsItem[]
+  isPending?: boolean
+}
+
+export function PortfolioNewsFeed({ items: itemsFromParent, isPending: pendingFromParent }: PortfolioNewsFeedProps) {
+  const internal = useQuery({
+    queryKey: ["portfolio-news", 20],
     queryFn: () => getPortfolioNews(20),
     staleTime: 5 * 60_000,
+    enabled: itemsFromParent === undefined,
   })
+
+  const news = itemsFromParent ?? internal.data
+  const isPending = pendingFromParent ?? internal.isPending
 
   return (
     <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
@@ -58,7 +68,7 @@ export function PortfolioNewsFeed() {
           {news.map((item: PortfolioNewsItem, i: number) => {
             const hot = isBreaking(item.published_at)
             return (
-              <li key={i} className="py-3 first:pt-0">
+              <li key={`${item.symbol}-${item.published_at ?? i}-${i}`} className="py-3 first:pt-0">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
