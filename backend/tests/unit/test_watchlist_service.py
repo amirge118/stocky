@@ -1,9 +1,107 @@
 """Unit tests for watchlist service."""
 
+from datetime import date, timedelta
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services import watchlist_service
+
+
+# ── compute_momentum_signals ─────────────────────────────────────────────────
+
+def _make_history(n: int, noise: float = 0.005, spike: float = 0.0) -> dict[date, float]:
+    """Generate n daily closes with deterministic noise and an optional spike on the last return.
+
+    Using alternating +noise/-noise ensures sigma > 0 for realistic Z-score tests.
+    """
+    prices: dict[date, float] = {}
+    base = date(2025, 1, 2)
+    price = 100.0
+    for i in range(n):
+        prices[base + timedelta(days=i)] = price
+        if i < n - 2:
+            # Alternating ±noise so variance is well-defined
+            direction = 1.0 if i % 2 == 0 else -1.0
+            price *= 1.0 + direction * noise
+        else:
+            price *= 1.0 + spike
+    return prices
+
+
+@pytest.mark.asyncio
+async def test_momentum_signals_empty_symbols():
+    """Empty symbol list returns empty signals."""
+    result = await watchlist_service.compute_momentum_signals([])
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_momentum_signals_insufficient_history():
+    """Symbol with fewer than 31 closes is excluded from results."""
+    short_hist = _make_history(20, spike=0.1)  # only 20 closes
+    with patch(
+        "app.services.watchlist_service.fetch_history_daily",
+        new=AsyncMock(return_value=short_hist),
+    ):
+        result = await watchlist_service.compute_momentum_signals(["AAPL"])
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_momentum_signals_z_above_threshold():
+    """Symbol with |Z-score| >= 2.0 appears in results with correct direction."""
+    hist = _make_history(60, noise=0.005, spike=0.15)  # big spike on last day → high Z
+    with patch(
+        "app.services.watchlist_service.fetch_history_daily",
+        new=AsyncMock(return_value=hist),
+    ):
+        result = await watchlist_service.compute_momentum_signals(["NVDA"])
+    assert len(result) == 1
+    assert result[0].symbol == "NVDA"
+    assert result[0].direction == "up"
+    assert result[0].z_score >= 2.0
+
+
+@pytest.mark.asyncio
+async def test_momentum_signals_z_below_threshold():
+    """Symbol with |Z-score| < 2.0 is absent from results."""
+    # Last return = +noise (same magnitude as typical returns) → Z ≈ 1, not flagged
+    hist = _make_history(60, noise=0.005, spike=0.005)
+    with patch(
+        "app.services.watchlist_service.fetch_history_daily",
+        new=AsyncMock(return_value=hist),
+    ):
+        result = await watchlist_service.compute_momentum_signals(["MSFT"])
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_momentum_signals_zero_sigma():
+    """Symbol where all returns are identical (sigma=0) is excluded without error."""
+    # Flat price — all returns are 0.0, sigma = 0
+    hist = {date(2025, 1, 2) + timedelta(days=i): 100.0 for i in range(60)}
+    with patch(
+        "app.services.watchlist_service.fetch_history_daily",
+        new=AsyncMock(return_value=hist),
+    ):
+        result = await watchlist_service.compute_momentum_signals(["FLAT"])
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_momentum_signals_down_direction():
+    """Large negative move produces direction='down' signal."""
+    hist = _make_history(60, noise=0.005, spike=-0.15)
+    with patch(
+        "app.services.watchlist_service.fetch_history_daily",
+        new=AsyncMock(return_value=hist),
+    ):
+        result = await watchlist_service.compute_momentum_signals(["TSLA"])
+    assert len(result) == 1
+    assert result[0].direction == "down"
+    assert result[0].z_score <= -2.0
 
 
 @pytest.mark.asyncio

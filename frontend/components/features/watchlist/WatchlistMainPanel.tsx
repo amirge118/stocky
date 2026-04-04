@@ -6,6 +6,8 @@ import { getWatchlist, getWatchlists } from "@/lib/api/watchlists"
 import { fetchStockDataBatch, getStockHistory, fetchStockEnrichedBatch } from "@/lib/api/stocks"
 import { useStockPrices } from "@/lib/hooks/useStockPrices"
 import { WatchlistStockList } from "./WatchlistStockList"
+import { WatchlistHeatmap } from "./WatchlistHeatmap"
+import { WatchlistSignalsBar } from "./WatchlistSignalsBar"
 import { WatchlistAddStockDialog } from "./WatchlistAddStockDialog"
 import { WatchlistSummaryStrip } from "./WatchlistSummaryStrip"
 import { Button } from "@/components/ui/button"
@@ -13,6 +15,7 @@ import type { WatchlistItem } from "@/types/watchlist"
 import type { StockData, StockEnrichedData } from "@/types/stock"
 
 type Period = "1d" | "1w" | "1m"
+type ViewMode = "table" | "heatmap"
 
 interface WatchlistMainPanelProps {
   activeListId: number | null
@@ -21,6 +24,7 @@ interface WatchlistMainPanelProps {
 export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
   const [addOpen, setAddOpen] = useState(false)
   const [period, setPeriod] = useState<Period>("1w")
+  const [viewMode, setViewMode] = useState<ViewMode>("table")
 
   // "All" view: fetch all lists, then each individual list
   const { data: summaries, isError: summariesError } = useQuery({
@@ -166,6 +170,23 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex rounded-md border border-zinc-700 overflow-hidden text-xs">
+            {(["table", "heatmap"] as ViewMode[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => setViewMode(v)}
+                title={v === "table" ? "Table view" : "Heatmap view"}
+                className={`px-2.5 py-1 transition-colors ${
+                  viewMode === v
+                    ? "bg-zinc-700 text-white"
+                    : "bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                }`}
+              >
+                {v === "table" ? "≡" : "⊞"}
+              </button>
+            ))}
+          </div>
           {/* Period toggle */}
           <div className="flex rounded-md border border-zinc-700 overflow-hidden text-xs">
             {(["1d", "1w", "1m"] as Period[]).map((p) => (
@@ -197,6 +218,18 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
       {/* Divider */}
       <div className="border-t border-zinc-800 mb-4" />
 
+      {/* Signals bar */}
+      {!isLoading && symbols.length > 0 && (
+        <WatchlistSignalsBar
+          symbols={symbols}
+          listId={activeListId}
+          batchPrices={batchPrices ?? {}}
+          enrichedMap={enrichedMap}
+          changePctMap={periodChangeMap}
+          items={displayItems}
+        />
+      )}
+
       {/* Summary strip */}
       {!isLoading && symbols.length > 0 && (
         <WatchlistSummaryStrip prices={summaryPrices} symbols={symbols} />
@@ -216,6 +249,13 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
             <div key={i} className="h-16 rounded-lg bg-zinc-800/50 animate-pulse" />
           ))}
         </div>
+      ) : viewMode === "heatmap" ? (
+        <WatchlistHeatmap
+          items={displayItems}
+          batchPrices={batchPrices ?? {}}
+          enrichedMap={enrichedMap}
+          changePctMap={periodChangeMap}
+        />
       ) : (
         <WatchlistStockList
           items={displayItems}

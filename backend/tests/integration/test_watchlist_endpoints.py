@@ -1,5 +1,8 @@
 """Integration tests for watchlist API endpoints."""
 
+from datetime import date, timedelta
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -176,3 +179,54 @@ async def test_remove_item_not_found(client: TestClient):
     wl = _create_list(client)
     r = client.delete(f"/api/v1/watchlists/{wl['id']}/items/ZZZZZ")
     assert r.status_code == 404
+
+
+# ── GET /watchlists/{id}/signals/momentum ────────────────────────────────────
+
+def _make_hist(n: int, noise: float = 0.005, spike: float = 0.0) -> dict[date, float]:
+    """Generate n closes with alternating ±noise and an optional spike on last return."""
+    prices = {}
+    base = date(2025, 1, 2)
+    price = 100.0
+    for i in range(n):
+        prices[base + timedelta(days=i)] = price
+        if i < n - 2:
+            direction = 1.0 if i % 2 == 0 else -1.0
+            price *= 1.0 + direction * noise
+        else:
+            price *= 1.0 + spike
+    return prices
+
+
+@pytest.mark.asyncio
+async def test_momentum_signals_endpoint(client: TestClient):
+    wl = _create_list(client)
+    big_spike = _make_hist(60, noise=0.005, spike=0.15)   # 15% spike → high Z
+    flat = _make_hist(60, noise=0.005, spike=0.005)        # normal-range return → Z < 2
+
+    def _hist_side_effect(symbol: str, start: date, end: date):
+        return big_spike if symbol == "AAPL" else flat
+
+    with patch(
+        "app.services.watchlist_service.fetch_history_daily",
+        new=AsyncMock(side_effect=_hist_side_effect),
+    ):
+        r = client.get(
+            f"/api/v1/watchlists/{wl['id']}/signals/momentum?symbols=AAPL,MSFT"
+        )
+
+    assert r.status_code == 200
+    data = r.json()
+    assert "signals" in data
+    assert isinstance(data["signals"], list)
+    symbols_in = {s["symbol"] for s in data["signals"]}
+    assert "AAPL" in symbols_in
+    assert "MSFT" not in symbols_in
+
+
+@pytest.mark.asyncio
+async def test_momentum_signals_endpoint_empty_symbols(client: TestClient):
+    wl = _create_list(client)
+    r = client.get(f"/api/v1/watchlists/{wl['id']}/signals/momentum?symbols=")
+    assert r.status_code == 200
+    assert r.json() == {"signals": []}

@@ -35,7 +35,11 @@ async def fetch_history_daily(
         )
         if df.empty:
             return {}
-        return {row.Index.date(): float(row["Close"]) for row in df.itertuples()}
+        # yfinance ≥0.2.x may return MultiIndex columns — flatten to single level
+        import pandas as pd
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        return {idx.date(): float(price) for idx, price in df["Close"].items()}
 
     try:
         result = await asyncio.to_thread(_sync)
@@ -64,7 +68,10 @@ async def fetch_history_intraday(
         df = yf.Ticker(symbol).history(period="1d", interval="5m", auto_adjust=True)
         if df.empty:
             return []
-        return [(r.Index.to_pydatetime(), float(r["Close"])) for r in df.itertuples()]
+        import pandas as pd
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        return [(idx.to_pydatetime(), float(price)) for idx, price in df["Close"].items()]
 
     try:
         result = await asyncio.to_thread(_sync)

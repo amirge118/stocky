@@ -35,7 +35,6 @@ from app.models.holding import Holding  # noqa: F401
 from app.models.notification_settings import NotificationSettings  # noqa: F401
 from app.models.stock import Stock  # noqa: F401
 
-# Placeholder or empty SENTRY_DSN in .env must not crash startup (BadDsn).
 _sentry_dsn = (settings.sentry_dsn or "").strip()
 if _sentry_dsn.startswith("https://"):
     sentry_sdk.init(

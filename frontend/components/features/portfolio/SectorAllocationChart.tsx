@@ -5,7 +5,6 @@ import {
   Pie,
   Cell,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts"
 import type { SectorSlice } from "@/types/agent"
@@ -37,11 +36,20 @@ function CustomTooltip({
   )
 }
 
-interface SectorAllocationChartProps {
-  sectors: SectorSlice[]
+function fmtCompact(n: number): string {
+  if (Math.abs(n) >= 1_000_000)
+    return `$${(n / 1_000_000).toFixed(2)}M`
+  if (Math.abs(n) >= 1_000)
+    return `$${(n / 1_000).toFixed(1)}K`
+  return `$${n.toFixed(0)}`
 }
 
-export function SectorAllocationChart({ sectors }: SectorAllocationChartProps) {
+interface SectorAllocationChartProps {
+  sectors: SectorSlice[]
+  totalValue?: number
+}
+
+export function SectorAllocationChart({ sectors, totalValue }: SectorAllocationChartProps) {
   if (!sectors.length) return null
 
   const data = sectors.map((s) => ({
@@ -51,29 +59,37 @@ export function SectorAllocationChart({ sectors }: SectorAllocationChartProps) {
   }))
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          innerRadius={70}
-          outerRadius={110}
-          paddingAngle={2}
-          dataKey="value"
-          nameKey="name"
-        >
-          {data.map((_, index) => (
-            <Cell key={index} fill={SECTOR_COLORS[index % SECTOR_COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip content={<CustomTooltip />} />
-        <Legend
-          formatter={(value) => (
-            <span className="text-xs text-zinc-400">{value}</span>
-          )}
-        />
-      </PieChart>
-    </ResponsiveContainer>
+    <div className="relative">
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={80}
+            outerRadius={120}
+            paddingAngle={2}
+            dataKey="value"
+            nameKey="name"
+            stroke="none"
+          >
+            {data.map((_, index) => (
+              <Cell key={index} fill={SECTOR_COLORS[index % SECTOR_COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip content={<CustomTooltip />} />
+        </PieChart>
+      </ResponsiveContainer>
+      {totalValue != null && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-2xl font-bold text-white tabular-nums">
+            {fmtCompact(totalValue)}
+          </span>
+          <span className="text-[11px] text-zinc-500 uppercase tracking-wider mt-0.5">
+            Total Value
+          </span>
+        </div>
+      )}
+    </div>
   )
 }
