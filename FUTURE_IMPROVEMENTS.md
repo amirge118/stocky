@@ -229,6 +229,7 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 ## Code Quality
 
+- [ ] **backend/.dockerignore** [LOW] — Exclude tests, coverage, and local venv artifacts from the Docker build context (smaller/faster `docker build` when the backend tree has dev junk)
 - [ ] **Stricter TypeScript configurations** [MEDIUM] — Enable `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`
 - [ ] **SonarQube or CodeClimate** [LOW] — Code quality and technical debt visibility
 - [ ] **Automated code quality checks** [LOW]

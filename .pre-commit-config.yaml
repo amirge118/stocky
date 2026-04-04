@@ -3,6 +3,15 @@
 # Run manually: pre-commit run --all-files
 
 repos:
+  - repo: local
+    hooks:
+      - id: forbidden-tracked
+        name: forbidden tracked paths
+        entry: bash scripts/check-forbidden-tracked.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+
   # Backend: Ruff, Mypy, Pytest (uses project venv)
   - repo: local
     hooks:

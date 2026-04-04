@@ -7,6 +7,15 @@ on:
     branches: [main]
 
 jobs:
+  forbidden-tracked:
+    name: Forbidden tracked paths
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify no forbidden tracked files
+        run: bash scripts/check-forbidden-tracked.sh
+
   backend-integration:
     name: Backend Integration
     runs-on: ubuntu-latest
