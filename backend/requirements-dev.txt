@@ -15,6 +15,7 @@ httpx==0.28.1
 
 # Type Stubs
 types-python-jose==3.5.0.20250531
+pandas-stubs==2.3.3.260113
 
 # Testing Database
 aiosqlite==0.22.1

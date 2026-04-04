@@ -125,7 +125,7 @@ async def compute_momentum_signals(symbols: list[str]) -> list[MomentumSignal]:
     results: list[MomentumSignal] = []
 
     for sym, hist in zip(symbols, histories):
-        if isinstance(hist, Exception) or not hist:
+        if not isinstance(hist, dict) or not hist:
             continue
 
         closes = sorted(hist.items())  # list of (date, price)
