@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
+import { RefreshCw } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { getMarketOverview } from "@/lib/api/market"
 import { ApiError } from "@/lib/api/client"
@@ -101,19 +102,22 @@ export default function HomePage() {
     setMounted(true)
   }, [])
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError, error, failureCount } = useQuery({
     queryKey: ["market-overview"],
     queryFn: getMarketOverview,
     staleTime: FIVE_MINUTES,
     refetchInterval: FIVE_MINUTES,
     retry: (count, err) => {
+      // Render free tier cold starts can take up to 60s — retry for 12× @ 5s = 60s
       if (err instanceof ApiError && (err.status === 502 || err.status === 503)) {
-        return count < 6
+        return count < 12
       }
       return false
     },
     retryDelay: 5000,
   })
+
+  const isWarmingUp = isPending && error instanceof ApiError && (error.status === 502 || error.status === 503)
 
   const tickerItems = useMemo(() => tickerFromOverview(data), [data])
 
@@ -192,17 +196,20 @@ export default function HomePage() {
           )}
         </div>
 
-        {isPending && <MarketSkeleton />}
+        {isPending && !isWarmingUp && <MarketSkeleton />}
 
-        {isError && (
+        {isWarmingUp && (
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-6 text-center space-y-2">
+            <RefreshCw size={16} className="mx-auto text-zinc-500 animate-spin" />
+            <p className="text-zinc-300 font-medium text-sm">Backend is warming up…</p>
+            <p className="text-zinc-600 text-xs">Retrying automatically (attempt {failureCount} of 12)</p>
+          </div>
+        )}
+
+        {isError && !isWarmingUp && (
           <div className="bg-red-950/40 border border-red-800 rounded-lg p-6 text-center space-y-2">
             <p className="text-red-400 font-medium">Failed to load market data.</p>
             <p className="text-red-500 text-sm">Please try again in a moment.</p>
-            <p className="text-zinc-500 text-xs max-w-md mx-auto">
-              If this persists in production, set <code className="text-zinc-400">BACKEND_INTERNAL_URL</code>{" "}
-              (or <code className="text-zinc-400">NEXT_PUBLIC_API_BASE_URL</code>) to your API URL so
-              requests can reach the backend.
-            </p>
           </div>
         )}
 

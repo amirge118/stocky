@@ -30,9 +30,9 @@ export default function PortfolioPage() {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     retry: (count, err) => {
-      // Retry 502/503 up to 6× (~30s) — Render free tier cold starts take ~20-30s
+      // Retry 502/503 up to 12× (~60s) — Render free tier cold starts can take up to 60s
       if (err instanceof ApiError && (err.status === 502 || err.status === 503)) {
-        return count < 6
+        return count < 12
       }
       return false
     },
@@ -126,7 +126,7 @@ export default function PortfolioPage() {
           <p className="text-zinc-500 text-sm">
             The server is starting from sleep. This takes ~20–30 seconds on the free tier.
           </p>
-          <p className="text-zinc-600 text-xs">Retrying automatically… (attempt {failureCount})</p>
+          <p className="text-zinc-600 text-xs">Retrying automatically… (attempt {failureCount} of 12)</p>
         </div>
       </div>
     )
