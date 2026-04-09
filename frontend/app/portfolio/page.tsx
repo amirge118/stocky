@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Plus, RefreshCw, TrendingUp, PieChart as PieChartIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getPortfolioSummary, getPortfolioNews } from "@/lib/api/portfolio"
+import { ApiError } from "@/lib/api/client"
 import { PortfolioSummaryCard } from "@/components/features/portfolio/PortfolioSummaryCard"
 import { PortfolioTable } from "@/components/features/portfolio/PortfolioTable"
 import { AddPositionDialog } from "@/components/features/portfolio/AddPositionDialog"
@@ -23,11 +24,19 @@ export default function PortfolioPage() {
     setMounted(true)
   }, [])
 
-  const { data: summaryData, isPending, isFetching, isError } = useQuery({
+  const { data: summaryData, isPending, isFetching, isError, error, failureCount } = useQuery({
     queryKey: ["portfolio-summary"],
     queryFn: getPortfolioSummary,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    retry: (count, err) => {
+      // Retry 502/503 up to 6× (~30s) — Render free tier cold starts take ~20-30s
+      if (err instanceof ApiError && (err.status === 502 || err.status === 503)) {
+        return count < 6
+      }
+      return false
+    },
+    retryDelay: 5000,
   })
 
   const data = summaryData?.portfolio
@@ -105,12 +114,34 @@ export default function PortfolioPage() {
     )
   }
 
+  const isColdStart = error instanceof ApiError && (error.status === 502 || error.status === 503)
+
+  if (isPending && isColdStart) {
+    // Show warming-up state during auto-retry
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 px-10 py-12 text-center max-w-sm space-y-3">
+          <RefreshCw size={20} className="mx-auto text-zinc-500 animate-spin" />
+          <p className="text-zinc-200 font-semibold text-lg">Backend is warming up</p>
+          <p className="text-zinc-500 text-sm">
+            The server is starting from sleep. This takes ~20–30 seconds on the free tier.
+          </p>
+          <p className="text-zinc-600 text-xs">Retrying automatically… (attempt {failureCount})</p>
+        </div>
+      </div>
+    )
+  }
+
   if (isError) {
     return (
       <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 px-10 py-12 text-center max-w-sm">
-          <p className="text-zinc-200 font-semibold text-lg mb-2">Failed to load portfolio</p>
-          <p className="text-zinc-500 text-sm mb-6">Could not reach the server. Check your connection and try again.</p>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 px-10 py-12 text-center max-w-sm space-y-3">
+          <p className="text-zinc-200 font-semibold text-lg">Failed to load portfolio</p>
+          <p className="text-zinc-500 text-sm">
+            {isColdStart
+              ? "The backend didn't respond in time. It may still be starting — try again in a moment."
+              : "Could not reach the server. Check your connection and try again."}
+          </p>
           <Button
             onClick={() => queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })}
             className="h-8 px-4 text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 rounded-lg"

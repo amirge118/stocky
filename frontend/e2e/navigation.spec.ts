@@ -8,14 +8,9 @@ test("home page redirects or loads", async ({ page }) => {
   expect(status).toBeLessThan(500)
 })
 
-test("stocks page loads", async ({ page }) => {
+test("legacy /stocks list redirects to home", async ({ page }) => {
   await page.goto("/stocks", { waitUntil: "domcontentloaded" })
-  await expect(page.locator("h1")).toContainText("Stocks")
-})
-
-test("compare page loads with empty state", async ({ page }) => {
-  await page.goto("/stocks/compare", { waitUntil: "domcontentloaded" })
-  await expect(page.locator("h1")).toContainText("Stock Comparison")
+  await expect(page).toHaveURL(/\/$/)
 })
 
 test("home page shows market pulse section", async ({ page }) => {

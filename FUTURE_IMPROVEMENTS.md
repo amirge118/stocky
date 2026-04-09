@@ -53,6 +53,8 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 ### Polish
 
+- [ ] **Restore stock list and compare routes** [LOW] — `/stocks` and `/stocks/compare` were removed; re-add if a browse/compare UI is needed again (detail pages at `/stocks/[symbol]` remain)
+
 - [ ] **Replace `text-[10px]` in landing hero** [LOW] — Use `text-xs` as part of a landing page polish pass
 - [ ] **Standardize SectorBreakdownTable + StockSectorOverview column headers** [LOW] — Use `.section-label` utility class uniformly
 - [ ] **`.card-surface` utility class sweep** [LOW] — Ensure all feature panels use `rounded-xl border border-zinc-800 bg-zinc-900` via a shared utility

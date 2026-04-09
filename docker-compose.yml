@@ -55,6 +55,9 @@ services:
     ports:
       - "3000:3000"
     environment:
+      # Docker Desktop (macOS/Windows): bind mounts often miss file events — polling enables live reload
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
       NEXT_PUBLIC_APP_ENV: ${NEXT_PUBLIC_APP_ENV:-development}
     volumes:

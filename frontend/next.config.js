@@ -7,7 +7,25 @@ const { withSentryConfig } = require('@sentry/nextjs')
 
 const nextConfig = {
   async redirects() {
-    return [{ source: '/market', destination: '/', permanent: true }]
+    return [
+      { source: '/market', destination: '/', permanent: true },
+      { source: '/stocks/compare', destination: '/', permanent: true },
+      { source: '/stocks', destination: '/', permanent: true },
+    ]
+  },
+  /** Proxy API to backend so the browser never needs NEXT_PUBLIC_API_BASE_URL to localhost in prod */
+  async rewrites() {
+    const backend =
+      process.env.BACKEND_INTERNAL_URL ||
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      'http://127.0.0.1:8000'
+    const base = backend.replace(/\/$/, '')
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: `${base}/api/v1/:path*`,
+      },
+    ]
   },
   output: 'standalone',
   // Monorepo: trace files from repo root so Docker/Vercel standalone builds resolve correctly

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { getMarketOverview } from "@/lib/api/market"
+import { ApiError } from "@/lib/api/client"
 import { IndicesStrip } from "@/components/features/market/IndicesStrip"
 import { SectorHeatmap } from "@/components/features/market/SectorHeatmap"
 import { TopMovers } from "@/components/features/market/TopMovers"
@@ -105,6 +106,13 @@ export default function HomePage() {
     queryFn: getMarketOverview,
     staleTime: FIVE_MINUTES,
     refetchInterval: FIVE_MINUTES,
+    retry: (count, err) => {
+      if (err instanceof ApiError && (err.status === 502 || err.status === 503)) {
+        return count < 6
+      }
+      return false
+    },
+    retryDelay: 5000,
   })
 
   const tickerItems = useMemo(() => tickerFromOverview(data), [data])
@@ -151,23 +159,23 @@ export default function HomePage() {
           className={`mt-5 max-w-xl text-base text-zinc-400 leading-relaxed transition-all duration-700 delay-200 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
         >
           Live benchmarks, sector context when available, and mega-cap movers — a neutral read on
-          conditions before you open positions or run AI on a ticker.
+          broad market conditions.
         </p>
 
         <div
           className={`mt-8 flex flex-col sm:flex-row items-center gap-3 transition-all duration-700 delay-300 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
         >
           <Link
-            href="/stocks"
+            href="/portfolio"
             className="rounded-lg bg-electric-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-electric-400 shadow-glow-blue transition-all duration-200"
           >
-            Browse stocks
+            Portfolio
           </Link>
           <Link
-            href="/portfolio"
+            href="/watchlist"
             className="rounded-lg glass px-6 py-2.5 text-sm font-medium text-zinc-300 hover:border-white/20 hover:text-white transition-all duration-200"
           >
-            Portfolio
+            Watchlist
           </Link>
         </div>
       </section>
@@ -187,9 +195,14 @@ export default function HomePage() {
         {isPending && <MarketSkeleton />}
 
         {isError && (
-          <div className="bg-red-950/40 border border-red-800 rounded-lg p-6 text-center">
+          <div className="bg-red-950/40 border border-red-800 rounded-lg p-6 text-center space-y-2">
             <p className="text-red-400 font-medium">Failed to load market data.</p>
-            <p className="text-red-500 text-sm mt-1">Please try again in a moment.</p>
+            <p className="text-red-500 text-sm">Please try again in a moment.</p>
+            <p className="text-zinc-500 text-xs max-w-md mx-auto">
+              If this persists in production, set <code className="text-zinc-400">BACKEND_INTERNAL_URL</code>{" "}
+              (or <code className="text-zinc-400">NEXT_PUBLIC_API_BASE_URL</code>) to your API URL so
+              requests can reach the backend.
+            </p>
           </div>
         )}
 
@@ -210,15 +223,7 @@ export default function HomePage() {
         <p className="text-center text-[11px] font-semibold tracking-widest uppercase text-zinc-600 mb-6">
           Also in Stocky
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Link
-            href="/stocks"
-            className="glass rounded-2xl p-5 hover-glow-blue transition-all hover:scale-[1.01] border border-white/[0.06]"
-          >
-            <p className="text-[11px] uppercase tracking-widest text-zinc-500 mb-1">Research</p>
-            <h3 className="text-sm font-semibold text-white mb-2">Stock pages</h3>
-            <p className="text-xs text-zinc-500 leading-relaxed">Fundamentals, charts, and AI insight per ticker.</p>
-          </Link>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
           <Link
             href="/watchlist"
             className="glass rounded-2xl p-5 hover-glow-blue transition-all hover:scale-[1.01] border border-white/[0.06]"

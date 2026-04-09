@@ -19,8 +19,8 @@ export function MarketContextPanel() {
           large-cap, growth-heavy, blue-chip, and small-cap direction in one glance.
         </li>
         <li>
-          <span className="text-zinc-300">Top movers</span> below are drawn from a fixed mega-cap
-          universe for the session — useful for breadth, not a full market scan.
+          <span className="text-zinc-300">Top movers</span> below use a fixed mega-cap universe for
+          the session — useful for breadth, not a full-market scan.
         </li>
         <li>
           When sector ETF tiles are available, use them for{" "}

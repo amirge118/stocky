@@ -1,9 +1,16 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 
-/** Belt-and-suspenders: old bookmarks to /market always land on home (same as next.config redirects). */
+/** Belt-and-suspenders with next.config redirects: legacy routes land on home. */
 export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname === "/market" || request.nextUrl.pathname.startsWith("/market/")) {
+  const p = request.nextUrl.pathname
+  if (p === "/market" || p.startsWith("/market/")) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/"
+    url.search = ""
+    return NextResponse.redirect(url, 308)
+  }
+  if (p === "/stocks" || p === "/stocks/compare") {
     const url = request.nextUrl.clone()
     url.pathname = "/"
     url.search = ""
@@ -13,5 +20,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/market", "/market/:path*"],
+  matcher: ["/market", "/market/:path*", "/stocks", "/stocks/compare"],
 }

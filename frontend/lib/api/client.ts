@@ -1,7 +1,12 @@
 import * as Sentry from "@sentry/nextjs"
 import type { ApiErrorResponse } from "@/types"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+/**
+ * When empty, requests use same-origin paths like `/api/v1/...` so Next.js rewrites can proxy
+ * to the backend (fixes production when the browser cannot reach localhost:8000).
+ * Set `NEXT_PUBLIC_API_BASE_URL` to a full URL only if you need direct browser→API calls.
+ */
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
 
 function reportError(error: {
   name: string

@@ -3,9 +3,7 @@ import fs from "fs"
 import path from "path"
 
 const PAGES = [
-  { name: "Home/Portfolio redirect", path: "/" },
-  { name: "Stocks", path: "/stocks" },
-  { name: "Stock Compare", path: "/stocks/compare" },
+  { name: "Home", path: "/" },
   { name: "Portfolio", path: "/portfolio" },
   { name: "Watchlist", path: "/watchlist" },
   { name: "Settings", path: "/settings" },
