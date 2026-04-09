@@ -102,7 +102,7 @@ export default function HomePage() {
     setMounted(true)
   }, [])
 
-  const { data, isPending, isError, error, failureCount } = useQuery({
+  const { data, isPending, isError, failureCount } = useQuery({
     queryKey: ["market-overview"],
     queryFn: getMarketOverview,
     staleTime: FIVE_MINUTES,
@@ -117,7 +117,8 @@ export default function HomePage() {
     retryDelay: 5000,
   })
 
-  const isWarmingUp = isPending && error instanceof ApiError && (error.status === 502 || error.status === 503)
+  // isPending + failureCount > 0 means retrying (TanStack narrows error to null when isPending)
+  const isWarmingUp = isPending && failureCount > 0
 
   const tickerItems = useMemo(() => tickerFromOverview(data), [data])
 

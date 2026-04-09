@@ -114,9 +114,12 @@ export default function PortfolioPage() {
     )
   }
 
-  const isColdStart = error instanceof ApiError && (error.status === 502 || error.status === 503)
+  // isPending + failureCount > 0 means retrying (TanStack narrows error to null when isPending)
+  const isRetrying = isPending && failureCount > 0
+  // After all retries, check if the final error was a cold-start 502/503
+  const isColdStart = isError && error instanceof ApiError && (error.status === 502 || error.status === 503)
 
-  if (isPending && isColdStart) {
+  if (isRetrying) {
     // Show warming-up state during auto-retry
     return (
       <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
