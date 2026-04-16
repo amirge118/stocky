@@ -170,7 +170,7 @@ export function WatchlistStockRow({
   const flashClass = usePriceFlash(displayPrice)
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-zinc-900 hover:bg-zinc-800/50 transition-colors">
+    <div className="flex items-center gap-3 px-4 py-3 bg-zinc-900 hover:bg-zinc-800/40 transition-colors">
       {/* Symbol + name */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">

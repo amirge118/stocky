@@ -22,8 +22,8 @@ interface WatchlistStockListProps {
 }
 
 function SortIcon({ col, active, dir }: { col: SortCol; active: SortCol; dir: SortDir }) {
-  if (col !== active) return <span className="text-zinc-700 ml-0.5">⇅</span>
-  return <span className="text-zinc-300 ml-0.5">{dir === "asc" ? "▲" : "▼"}</span>
+  if (col !== active) return <span className="text-zinc-600 ml-0.5 text-[10px]">↕</span>
+  return <span className="text-blue-400 ml-0.5 text-[10px]">{dir === "asc" ? "↑" : "↓"}</span>
 }
 
 export function WatchlistStockList({
@@ -102,59 +102,60 @@ export function WatchlistStockList({
   }
 
   return (
-    <div>
+    <div className="rounded-xl border border-zinc-800 overflow-hidden">
       {/* Column headers */}
-      <div className="flex items-center gap-3 px-4 py-1.5 text-xs text-zinc-600 select-none mb-1">
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-zinc-800/40 border-b border-zinc-800 text-[11px] font-medium text-zinc-500 select-none">
         <button
           onClick={() => handleSort("name")}
-          className="flex-1 text-left flex items-center hover:text-zinc-400 transition-colors"
+          className={`flex-1 text-left flex items-center gap-0.5 transition-colors hover:text-zinc-300 ${sortCol === "name" ? "text-zinc-300" : ""}`}
         >
           Name <SortIcon col="name" active={sortCol} dir={sortDir} />
         </button>
-        <div className="shrink-0 w-20" /> {/* sparkline spacer */}
+        {/* Sparkline header */}
+        <div className="shrink-0 w-20 text-center text-zinc-600 text-[10px] tracking-widest">chart</div>
         <div className="hidden sm:flex items-center gap-1 shrink-0">
           <button
             onClick={() => handleSort("chg1d")}
-            className="w-14 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+            className={`w-14 flex items-center justify-center gap-0.5 transition-colors hover:text-zinc-300 ${sortCol === "chg1d" ? "text-zinc-300" : ""}`}
           >
             1D <SortIcon col="chg1d" active={sortCol} dir={sortDir} />
           </button>
           <button
             onClick={() => handleSort("chg1w")}
-            className="w-14 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+            className={`w-14 flex items-center justify-center gap-0.5 transition-colors hover:text-zinc-300 ${sortCol === "chg1w" ? "text-zinc-300" : ""}`}
           >
             1W <SortIcon col="chg1w" active={sortCol} dir={sortDir} />
           </button>
           <button
             onClick={() => handleSort("chg1m")}
-            className="w-14 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+            className={`w-14 flex items-center justify-center gap-0.5 transition-colors hover:text-zinc-300 ${sortCol === "chg1m" ? "text-zinc-300" : ""}`}
           >
             1M <SortIcon col="chg1m" active={sortCol} dir={sortDir} />
           </button>
-          <div className="w-px mx-1" /> {/* spacer aligns with row divider */}
+          <div className="w-px mx-1 h-3 bg-zinc-700" />
           <button
             onClick={() => handleSort("volume")}
-            className="w-16 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+            className={`w-16 flex items-center justify-center gap-0.5 transition-colors hover:text-zinc-300 ${sortCol === "volume" ? "text-zinc-300" : ""}`}
           >
             Vol <SortIcon col="volume" active={sortCol} dir={sortDir} />
           </button>
           <button
             onClick={() => handleSort("mktcap")}
-            className="w-20 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+            className={`w-20 flex items-center justify-center gap-0.5 transition-colors hover:text-zinc-300 ${sortCol === "mktcap" ? "text-zinc-300" : ""}`}
           >
             Mkt Cap <SortIcon col="mktcap" active={sortCol} dir={sortDir} />
           </button>
         </div>
         <button
           onClick={() => handleSort("price")}
-          className="text-right shrink-0 w-20 flex items-center justify-end hover:text-zinc-400 transition-colors"
+          className={`text-right shrink-0 w-20 flex items-center justify-end gap-0.5 transition-colors hover:text-zinc-300 ${sortCol === "price" ? "text-zinc-300" : ""}`}
         >
           Price <SortIcon col="price" active={sortCol} dir={sortDir} />
         </button>
-        <div className="shrink-0 w-10" /> {/* actions spacer */}
+        <div className="shrink-0 w-10" />
       </div>
 
-      <div className="space-y-1">
+      <div className="divide-y divide-zinc-800/60">
         {sorted.map((item) => (
           <WatchlistStockRow
             key={item.id}
