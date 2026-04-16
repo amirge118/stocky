@@ -266,5 +266,19 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 ---
 
-**Last Updated**: 2026-03-21
-**Open Items**: ~75
+## Sector Browser (Add to Watchlist)
+
+- [ ] Expand `SECTOR_UNIVERSE` to pull live constituents from a data provider (e.g. FMP screener if plan is upgraded) instead of a hardcoded list [MEDIUM]
+- [ ] Add per-user sector preference — remember last-used sector chip across sessions [LOW]
+- [ ] Show sector ETF performance header (e.g. XLK ▲1.2%) at the top of each sector browse list [MEDIUM]
+- [ ] "Create new list + add sector" shortcut: one-click to create a watchlist pre-populated with a whole sector [HIGH]
+- [ ] Persist `exchange` metadata per curated symbol so `WatchlistItemAdd.exchange` is accurate (currently defaults to "NASDAQ") [LOW]
+- [ ] Sector browse endpoint: add `market_cap_filter` param (e.g. large-cap only) for power users [LOW]
+- [ ] Batch pre-warm sector cache on app startup for the most common sectors (Technology, ETFs) [LOW]
+- [ ] Add a "Trending in sector" sort option on `SectorStockList` (sort by day_change_percent desc) [MEDIUM]
+- [ ] Support multi-select checkboxes in search mode (not just browse mode) for bulk-adding search results [MEDIUM]
+
+---
+
+**Last Updated**: 2026-04-16
+**Open Items**: ~84

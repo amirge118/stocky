@@ -174,6 +174,45 @@ async def get_stock_dividends(
     return await stock_service.fetch_stock_dividends(symbol, years=years)
 
 
+@router.get(
+    "/sectors",
+    response_model=list[str],
+    summary="List available sectors",
+)
+async def list_sectors(
+    db: AsyncSession = Depends(get_db_session),
+) -> list[str]:
+    """Return curated GICS sectors (stable display order) merged with any extra DB sectors."""
+    cache_key = "sectors:list"
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return cached  # type: ignore[return-value]
+    result = await stock_service.get_sector_list(db)
+    await cache_set(cache_key, result, ttl=1800)  # 30 min — nearly static
+    return result
+
+
+@router.get(
+    "/by-sector",
+    response_model=list[SectorPeerResponse],
+    summary="Browse stocks by sector",
+)
+async def browse_stocks_by_sector(
+    sector: str = Query(..., min_length=1, description="Sector name, e.g. Technology"),
+    limit: int = Query(30, ge=1, le=50),
+    db: AsyncSession = Depends(get_db_session),
+) -> list[SectorPeerResponse]:
+    """Return curated + DB stocks for *sector*, enriched with live price and fundamentals."""
+    cache_key = f"sector_browse:{sector.lower()}:{limit}"
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return [SectorPeerResponse.model_validate(r) for r in cached]
+    result = await stock_service.get_sector_browse_results(db, sector=sector, limit=limit)
+    if result:
+        await cache_set(cache_key, [r.model_dump() for r in result], ttl=300)
+    return result
+
+
 @router.get("/{symbol}", response_model=StockResponse, summary="Get stock by symbol")
 async def get_stock(
     symbol: str,

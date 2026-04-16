@@ -122,6 +122,79 @@ async def delete_stock(db: AsyncSession, symbol: str) -> bool:
     return True
 
 
+async def get_sector_list(db: AsyncSession) -> list[str]:
+    """Curated GICS sectors (stable display order) merged with any extra DB sectors."""
+    from app.core.sector_universe import SECTOR_DISPLAY_ORDER
+
+    result = await db.execute(
+        select(Stock.sector).where(Stock.sector.isnot(None)).distinct()
+    )
+    db_sectors = {row[0] for row in result.all() if row[0]}
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for s in SECTOR_DISPLAY_ORDER:
+        ordered.append(s)
+        seen.add(s.lower())
+    for s in sorted(db_sectors):
+        if s.lower() not in seen:
+            ordered.append(s)
+    return ordered
+
+
+async def get_sector_browse_results(
+    db: AsyncSession,
+    sector: str,
+    limit: int = 30,
+) -> list[SectorPeerResponse]:
+    """Return enriched stocks for sector browsing.
+
+    Merges curated SECTOR_UNIVERSE symbols with DB stocks for the same sector,
+    then enriches via fetch_stock_data_batch + fetch_stock_info (both cached).
+    """
+    from app.core.sector_universe import get_symbols_for_sector
+
+    curated = get_symbols_for_sector(sector, limit)
+    db_stocks_result, _ = await get_stocks(db, skip=0, limit=50, sector=sector)
+    db_syms = [s.symbol for s in db_stocks_result if s.symbol not in curated]
+    symbol_order = (curated + db_syms)[:limit]
+
+    if not symbol_order:
+        return []
+
+    batch = await fetch_stock_data_batch(symbol_order)
+    infos = await asyncio.gather(
+        *[fetch_stock_info(s) for s in symbol_order],
+        return_exceptions=True,
+    )
+
+    db_meta = {s.symbol: s for s in db_stocks_result}
+    out: list[SectorPeerResponse] = []
+    for sym, info_res in zip(symbol_order, infos):
+        data = batch.get(sym)
+        info: Optional[StockInfoResponse] = (
+            info_res if isinstance(info_res, StockInfoResponse) else None
+        )
+        meta = db_meta.get(sym)
+        out.append(
+            SectorPeerResponse(
+                symbol=sym,
+                name=(
+                    (meta.name if meta else None)
+                    or (data.name if data else None)
+                    or sym
+                ),
+                sector=(info.sector if info else None) or sector,
+                industry=info.industry if info else None,
+                current_price=data.current_price if data else None,
+                day_change_percent=data.change_percent if data else None,
+                pe_ratio=info.pe_ratio if info else None,
+                market_cap=info.market_cap if info else None,
+                is_current=False,
+            )
+        )
+    return out
+
+
 async def get_sector_peers(
     db: AsyncSession,
     sector: str,

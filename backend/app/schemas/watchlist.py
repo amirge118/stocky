@@ -61,3 +61,13 @@ class MomentumSignal(BaseModel):
 
 class WatchlistMomentumResponse(BaseModel):
     signals: list[MomentumSignal]
+
+
+class WatchlistItemBulkAdd(BaseModel):
+    items: list[WatchlistItemAdd] = Field(..., min_length=1, max_length=50)
+
+
+class WatchlistBulkAddResult(BaseModel):
+    added: list[WatchlistItemResponse] = []
+    skipped: list[str] = []   # symbols already in the list (duplicate)
+    failed: list[dict] = []   # [{"symbol": "...", "error": "..."}]

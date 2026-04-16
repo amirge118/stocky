@@ -128,6 +128,18 @@ export interface CompareSummary {
   summary: string
 }
 
+export async function getSectors(): Promise<string[]> {
+  return get<string[]>("/api/v1/stocks/sectors")
+}
+
+export async function getStocksBySector(
+  sector: string,
+  limit = 30
+): Promise<SectorPeer[]> {
+  const params = new URLSearchParams({ sector, limit: limit.toString() })
+  return get<SectorPeer[]>(`/api/v1/stocks/by-sector?${params}`)
+}
+
 export async function getCompareSummary(symbols: string[]): Promise<CompareSummary> {
   return get<CompareSummary>(
     `/api/v1/stocks/compare-summary?symbols=${symbols.join(",")}`

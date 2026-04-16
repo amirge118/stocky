@@ -47,6 +47,19 @@ export async function removeItemFromWatchlist(
   await del(`/api/v1/watchlists/${listId}/items/${symbol}`)
 }
 
+export interface BulkAddResult {
+  added: WatchlistItem[]
+  skipped: string[]
+  failed: { symbol: string; error: string }[]
+}
+
+export async function bulkAddToWatchlist(
+  listId: number,
+  items: WatchlistItemAdd[]
+): Promise<BulkAddResult> {
+  return post<BulkAddResult>(`/api/v1/watchlists/${listId}/items/bulk`, { items })
+}
+
 export async function getWatchlistMomentumSignals(
   listId: number,
   symbols: string[]

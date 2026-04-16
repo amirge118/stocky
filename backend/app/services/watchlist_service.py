@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.watchlist import WatchlistItem, WatchlistList
@@ -157,6 +158,43 @@ async def compute_momentum_signals(symbols: list[str]) -> list[MomentumSignal]:
             )
 
     return results
+
+
+async def add_items_bulk(
+    db: AsyncSession,
+    list_id: int,
+    items: list[dict],
+) -> tuple[list[WatchlistItem], list[str], list[dict]]:
+    """Best-effort bulk add. Per-item commits so a single duplicate doesn't abort the batch.
+
+    Returns (added, skipped, failed) where:
+    - added  — successfully inserted WatchlistItem records
+    - skipped — symbols that were already in the list (IntegrityError)
+    - failed  — symbols that failed for other reasons, with error messages
+    """
+    added: list[WatchlistItem] = []
+    skipped: list[str] = []
+    failed: list[dict] = []
+    for it in items:
+        try:
+            record = WatchlistItem(
+                watchlist_id=list_id,
+                symbol=it["symbol"].upper(),
+                name=it["name"],
+                exchange=it.get("exchange", "NASDAQ"),
+                sector=it.get("sector"),
+            )
+            db.add(record)
+            await db.commit()
+            await db.refresh(record)
+            added.append(record)
+        except IntegrityError:
+            await db.rollback()
+            skipped.append(it["symbol"].upper())
+        except Exception as exc:  # noqa: BLE001
+            await db.rollback()
+            failed.append({"symbol": it["symbol"].upper(), "error": str(exc)})
+    return added, skipped, failed
 
 
 async def remove_item(db: AsyncSession, list_id: int, symbol: str) -> bool:

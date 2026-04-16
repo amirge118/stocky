@@ -5,7 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.limiter import limiter
 from app.schemas.watchlist import (
+    WatchlistBulkAddResult,
     WatchlistItemAdd,
+    WatchlistItemBulkAdd,
     WatchlistItemResponse,
     WatchlistListCreate,
     WatchlistListResponse,
@@ -124,6 +126,42 @@ async def add_item(
             detail=f"{data.symbol.upper()} is already in this watchlist",
         ) from None
     return WatchlistItemResponse.model_validate(item)
+
+
+@router.post(
+    "/{list_id}/items/bulk",
+    response_model=WatchlistBulkAddResult,
+    status_code=status.HTTP_201_CREATED,
+    summary="Bulk add stocks to a watchlist",
+)
+@limiter.limit("10/minute")
+async def bulk_add_items(
+    request: Request,
+    list_id: int,
+    data: WatchlistItemBulkAdd,
+    db: AsyncSession = Depends(get_db),
+) -> WatchlistBulkAddResult:
+    """Add multiple stocks to a watchlist in one request.
+
+    Duplicates are silently skipped (reported in `skipped`), not treated as errors.
+    Returns partial success: items that succeeded are in `added` even if others failed.
+    """
+    wl = await watchlist_service.get_list(db, list_id)
+    if not wl:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Watchlist {list_id} not found",
+        )
+    added, skipped, failed = await watchlist_service.add_items_bulk(
+        db,
+        list_id=list_id,
+        items=[i.model_dump() for i in data.items],
+    )
+    return WatchlistBulkAddResult(
+        added=[WatchlistItemResponse.model_validate(a) for a in added],
+        skipped=skipped,
+        failed=failed,
+    )
 
 
 @router.delete("/{list_id}/items/{symbol}", status_code=status.HTTP_204_NO_CONTENT)
