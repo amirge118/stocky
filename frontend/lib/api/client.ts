@@ -63,11 +63,11 @@ export async function apiRequest<T>(
 
     if (!response.ok) {
       const errorData = (await response.json().catch(() => ({}))) as ApiErrorResponse
-      const code = errorData.error?.code || "UNKNOWN_ERROR"
+      const code = errorData.error?.code || (response.status === 503 ? "SERVICE_UNAVAILABLE" : "UNKNOWN_ERROR")
       const message =
         errorData.error?.message ||
         (errorData as unknown as { detail?: string }).detail ||
-        "An error occurred"
+        (response.status === 503 ? "Service is warming up, please retry shortly" : "An error occurred")
       reportError({ name: "ApiError", status: response.status, code, message, endpoint })
       throw new ApiError(response.status, code, message, errorData.error?.details)
     }

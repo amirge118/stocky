@@ -3,6 +3,7 @@
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { getWatchlistMomentumSignals } from "@/lib/api/watchlists"
+import { ApiError } from "@/lib/api/client"
 import type { WatchlistItem, WatchlistSignal } from "@/types/watchlist"
 import type { StockData, StockEnrichedData } from "@/types/stock"
 
@@ -129,11 +130,22 @@ export function WatchlistSignalsBar({
   }, [symbols, batchPrices, enrichedMap, changePctMap, items])
 
   // ── Backend momentum signal ────────────────────────────────────────────────
+  // Retry up to 5× on 503 (Render cold start) with exponential backoff.
+  // This is a non-critical signal so errors are swallowed — the bar just
+  // shows frontend-only signals until the backend wakes up.
   const { data: momentumData } = useQuery({
     queryKey: ["watchlistMomentum", listId, symbols.join(",")],
     queryFn: () => getWatchlistMomentumSignals(listId!, symbols),
     enabled: listId !== null && symbols.length > 0,
     staleTime: 5 * 60_000,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.status === 503) {
+        return failureCount < 5
+      }
+      return failureCount < 2
+    },
+    retryDelay: (attempt) => Math.min(2000 * 2 ** attempt, 30_000),
+    throwOnError: false,
   })
 
   const momentumSignals = useMemo<WatchlistSignal[]>(() => {
