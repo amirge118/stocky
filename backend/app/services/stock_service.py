@@ -161,7 +161,13 @@ async def get_sector_browse_results(
     if not symbol_order:
         return []
 
-    batch = await fetch_stock_data_batch(symbol_order)
+    # Gracefully degrade: if price batch fails (e.g. cold-start rate limit),
+    # still return the symbol list with null prices rather than a 500.
+    try:
+        batch = await fetch_stock_data_batch(symbol_order)
+    except Exception:
+        batch = {}
+
     infos = await asyncio.gather(
         *[fetch_stock_info(s) for s in symbol_order],
         return_exceptions=True,

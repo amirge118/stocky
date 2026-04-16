@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { getSectors, getStocksBySector, searchStocks, type SectorPeer } from "@/lib/api/stocks"
 import { addItemToWatchlist, bulkAddToWatchlist } from "@/lib/api/watchlists"
+import { ApiError } from "@/lib/api/client"
 import { useToast } from "@/hooks/use-toast"
 import { Sparkline } from "@/components/features/stocks/Sparkline"
 import { SectorChipRow } from "./SectorChipRow"
@@ -106,11 +107,23 @@ export function WatchlistAddStockDialog({
   })
 
   // ── Browse: sector stocks query (lazy) ────────────────────────────────────
-  const { data: sectorStocks = [], isPending: sectorStocksLoading } = useQuery({
+  // Retry up to 5× on 503 (Render cold start) with exponential backoff.
+  const {
+    data: sectorStocks = [],
+    isPending: sectorStocksLoading,
+    isError: sectorStocksError,
+    failureCount: sectorStocksFailures,
+  } = useQuery({
     queryKey: ["stocks-by-sector", activeSector],
     queryFn: () => getStocksBySector(activeSector!, 30),
     staleTime: 5 * 60_000,
     enabled: mode === "browse" && !!activeSector,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.status === 503) return failureCount < 5
+      return failureCount < 2
+    },
+    retryDelay: (attempt) => Math.min(2000 * 2 ** attempt, 30_000),
+    throwOnError: false,
   })
 
   // ── Already-in-list symbols (from cache, zero extra network) ──────────────
@@ -483,6 +496,14 @@ export function WatchlistAddStockDialog({
                   <p className="text-sm font-medium text-zinc-400">Pick a sector to browse stocks</p>
                   <p className="text-xs text-zinc-600 mt-1">
                     Choose from Technology, Healthcare, ETFs, and more
+                  </p>
+                </div>
+              ) : sectorStocksError && sectorStocksFailures > 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-zinc-500">
+                  <div className="text-2xl mb-2">⚡</div>
+                  <p className="text-sm font-medium text-zinc-400">Backend warming up…</p>
+                  <p className="text-xs text-zinc-600 mt-1">
+                    Retrying ({sectorStocksFailures}/5) — this takes a few seconds on cold start
                   </p>
                 </div>
               ) : (
