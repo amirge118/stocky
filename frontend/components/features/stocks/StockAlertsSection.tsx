@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createAlert, fetchAlerts } from "@/lib/api/alerts"
+import { ApiError } from "@/lib/api/client"
 import { AlertRow } from "@/components/features/alerts/AlertRow"
 import { NotificationChannelHint } from "@/components/features/alerts/NotificationChannelHint"
 import type { ConditionType } from "@/types/alerts"
@@ -26,6 +27,12 @@ export function StockAlertsSection({ symbol, currentPrice }: Props) {
     queryKey: ["alerts", symbol],
     queryFn: () => fetchAlerts(50, 0, symbol),
     refetchInterval: 60_000,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.status === 503) return failureCount < 5
+      return failureCount < 2
+    },
+    retryDelay: (attempt) => Math.min(2000 * 2 ** attempt, 30_000),
+    throwOnError: false,
   })
 
   const mutation = useMutation({
