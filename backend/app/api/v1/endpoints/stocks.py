@@ -186,7 +186,7 @@ async def list_sectors(
     cache_key = "sectors:list"
     cached = await cache_get(cache_key)
     if cached is not None:
-        return cached  # type: ignore[return-value]
+        return list(cached)
     result = await stock_service.get_sector_list(db)
     await cache_set(cache_key, result, ttl=1800)  # 30 min — nearly static
     return result
