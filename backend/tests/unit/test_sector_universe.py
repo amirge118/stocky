@@ -1,7 +1,5 @@
 """Unit tests for the curated sector universe module."""
 
-import pytest
-
 from app.core.sector_universe import (
     SECTOR_DISPLAY_ORDER,
     SECTOR_UNIVERSE,

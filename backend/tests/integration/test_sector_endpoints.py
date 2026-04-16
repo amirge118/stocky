@@ -5,8 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.sector_universe import SECTOR_DISPLAY_ORDER, SECTOR_UNIVERSE
-
+from app.core.sector_universe import SECTOR_DISPLAY_ORDER
 
 # ── GET /stocks/sectors ──────────────────────────────────────────────────────
 
