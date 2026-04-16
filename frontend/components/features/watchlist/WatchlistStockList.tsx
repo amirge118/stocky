@@ -8,16 +8,14 @@ import type { StockData, StockEnrichedData } from "@/types/stock"
 
 type SortCol = "name" | "price" | "change" | "volume" | "mktcap"
 type SortDir = "asc" | "desc"
-type Period = "1d" | "1w" | "1m"
 
 interface WatchlistStockListProps {
   items: WatchlistItem[]
   listId: number
   priceMap: Record<string, PriceUpdate>
   sparklineMap: Record<string, number[]>
-  changePctMap: Record<string, number>
+  changePct1dMap: Record<string, number>
   batchPrices: Record<string, StockData>
-  period: Period
   enrichedMap: Record<string, StockEnrichedData>
 }
 
@@ -31,9 +29,8 @@ export function WatchlistStockList({
   listId,
   priceMap,
   sparklineMap,
-  changePctMap,
+  changePct1dMap,
   batchPrices,
-  period,
   enrichedMap,
 }: WatchlistStockListProps) {
   const [sortCol, setSortCol] = useState<SortCol>("name")
@@ -62,8 +59,8 @@ export function WatchlistStockList({
           bVal = priceMap[b.symbol]?.price ?? -Infinity
           break
         case "change":
-          aVal = changePctMap[a.symbol] ?? -Infinity
-          bVal = changePctMap[b.symbol] ?? -Infinity
+          aVal = changePct1dMap[a.symbol] ?? -Infinity
+          bVal = changePct1dMap[b.symbol] ?? -Infinity
           break
         case "volume":
           aVal = batchPrices[a.symbol]?.volume ?? -Infinity
@@ -80,7 +77,7 @@ export function WatchlistStockList({
       const n = (aVal as number) - (bVal as number)
       return sortDir === "asc" ? n : -n
     })
-  }, [items, sortCol, sortDir, priceMap, changePctMap, batchPrices])
+  }, [items, sortCol, sortDir, priceMap, changePct1dMap, batchPrices])
 
   if (items.length === 0) {
     return (
@@ -92,8 +89,6 @@ export function WatchlistStockList({
     )
   }
 
-  const periodLabel = period === "1d" ? "1D" : period === "1w" ? "1W" : "1M"
-
   return (
     <div>
       {/* Column headers */}
@@ -104,13 +99,13 @@ export function WatchlistStockList({
         >
           Name <SortIcon col="name" active={sortCol} dir={sortDir} />
         </button>
-        <div className="shrink-0 w-20" /> {/* sparkline spacer */}
+        <div className="shrink-0 w-36" /> {/* sparkline+toggle spacer */}
         <div className="hidden sm:flex items-center gap-3 shrink-0">
           <button
             onClick={() => handleSort("change")}
             className="w-14 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
           >
-            {periodLabel} <SortIcon col="change" active={sortCol} dir={sortDir} />
+            Chg% <SortIcon col="change" active={sortCol} dir={sortDir} />
           </button>
           <button
             onClick={() => handleSort("volume")}
@@ -142,10 +137,9 @@ export function WatchlistStockList({
             listId={listId}
             price={priceMap[item.symbol]}
             sparkline={sparklineMap[item.symbol]}
-            changePct={changePctMap[item.symbol]}
+            changePct1d={changePct1dMap[item.symbol]}
             volume={batchPrices[item.symbol]?.volume ?? undefined}
             marketCap={batchPrices[item.symbol]?.market_cap ?? undefined}
-            period={period}
             enriched={enrichedMap[item.symbol]}
           />
         ))}

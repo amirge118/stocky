@@ -3,8 +3,9 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Bell } from "lucide-react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { removeItemFromWatchlist } from "@/lib/api/watchlists"
+import { getStockHistory } from "@/lib/api/stocks"
 import { Sparkline } from "@/components/features/stocks/Sparkline"
 import { AlertDialog } from "@/components/features/stocks/AlertDialog"
 import type { WatchlistItem, WatchlistListResponse, WatchlistListSummary } from "@/types/watchlist"
@@ -19,10 +20,9 @@ interface WatchlistStockRowProps {
   listId: number
   price: PriceUpdate | undefined
   sparkline: number[] | undefined
-  changePct: number | undefined
+  changePct1d: number | undefined
   volume: number | undefined
   marketCap: number | undefined
-  period: Period
   enriched: StockEnrichedData | undefined
 }
 
@@ -120,14 +120,34 @@ export function WatchlistStockRow({
   listId,
   price,
   sparkline,
-  changePct,
+  changePct1d,
   volume,
   marketCap,
-  period,
   enriched,
 }: WatchlistStockRowProps) {
   const queryClient = useQueryClient()
   const [alertOpen, setAlertOpen] = useState(false)
+  const [period, setPeriod] = useState<Period>("1d")
+
+  // Lazy fetch 1W / 1M history only when the user switches to that period
+  const { data: periodHistory } = useQuery({
+    queryKey: ["stockHistory", item.symbol, period] as const,
+    queryFn: () => getStockHistory(item.symbol, period),
+    staleTime: 5 * 60_000,
+    enabled: period !== "1d",
+  })
+
+  // Compute change% for the active period
+  const changePct: number | undefined = (() => {
+    if (period === "1d") return changePct1d
+    const closes = periodHistory?.data?.map((p) => p.c)
+    if (closes && closes.length >= 2) {
+      const first = closes[0]
+      const last = closes[closes.length - 1]
+      if (first > 0) return ((last - first) / first) * 100
+    }
+    return undefined
+  })()
 
   const removeMutation = useMutation({
     mutationFn: () => removeItemFromWatchlist(listId, item.symbol),
@@ -157,7 +177,6 @@ export function WatchlistStockRow({
   const displayPrice = price?.price
   const flashClass = usePriceFlash(displayPrice)
   const isUp = changePct !== undefined ? changePct >= 0 : true
-  const periodLabel = period === "1d" ? "1D" : period === "1w" ? "1W" : "1M"
 
   return (
     <div className="flex items-center gap-4 px-4 py-3 rounded-lg bg-zinc-900 hover:bg-zinc-800/50 transition-colors">
@@ -178,27 +197,45 @@ export function WatchlistStockRow({
         )}
       </div>
 
-      {/* Sparkline */}
-      <div className="shrink-0">
-        {sparkline && sparkline.length >= 2 ? (
-          <Sparkline data={sparkline} width={80} height={28} />
-        ) : (
-          <div className="w-20 h-7 bg-zinc-800/50 rounded skeleton-shimmer" />
-        )}
-      </div>
-
-      {/* Stats: period % / Vol / Mkt Cap */}
-      <div className="hidden sm:flex items-center gap-3 shrink-0">
-        <div className="text-center w-14">
-          <div className="text-xs text-zinc-600 mb-0.5">{periodLabel}</div>
+      {/* Sparkline (always 1D) + inline period toggle + change% */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="shrink-0">
+          {sparkline && sparkline.length >= 2 ? (
+            <Sparkline data={sparkline} width={80} height={28} />
+          ) : (
+            <div className="w-20 h-7 bg-zinc-800/50 rounded skeleton-shimmer" />
+          )}
+        </div>
+        <div className="flex flex-col items-start gap-1">
+          {/* Period toggle pills */}
+          <div className="flex rounded overflow-hidden border border-zinc-700/60">
+            {(["1d", "1w", "1m"] as Period[]).map((p) => (
+              <button
+                key={p}
+                onClick={(e) => { e.preventDefault(); setPeriod(p) }}
+                className={`px-1.5 py-0.5 text-[9px] font-mono uppercase transition-colors ${
+                  period === p
+                    ? "bg-zinc-600 text-white"
+                    : "bg-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          {/* Change % for selected period */}
           {changePct != null ? (
-            <div className={`text-xs font-mono tabular-nums font-medium ${isUp ? "text-green-400" : "text-red-400"}`}>
+            <div className={`text-xs font-mono tabular-nums font-medium leading-none ${isUp ? "text-green-400" : "text-red-400"}`}>
               {isUp ? "+" : ""}{changePct.toFixed(2)}%
             </div>
           ) : (
-            <div className="text-xs text-zinc-600">—</div>
+            <div className="text-[10px] text-zinc-600 leading-none">—</div>
           )}
         </div>
+      </div>
+
+      {/* Stats: Vol / Mkt Cap */}
+      <div className="hidden sm:flex items-center gap-3 shrink-0">
         <div className="text-center w-16">
           <div className="text-xs text-zinc-600 mb-0.5">Vol</div>
           {volume != null ? (

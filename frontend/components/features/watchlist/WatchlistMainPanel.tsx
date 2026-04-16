@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button"
 import type { WatchlistItem } from "@/types/watchlist"
 import type { StockData, StockEnrichedData } from "@/types/stock"
 
-type Period = "1d" | "1w" | "1m"
 type ViewMode = "table" | "heatmap"
 
 interface WatchlistMainPanelProps {
@@ -23,7 +22,6 @@ interface WatchlistMainPanelProps {
 
 export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
   const [addOpen, setAddOpen] = useState(false)
-  const [period, setPeriod] = useState<Period>("1w")
   const [viewMode, setViewMode] = useState<ViewMode>("table")
 
   // "All" view: fetch all lists, then each individual list
@@ -107,11 +105,11 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
     })
   ) as Record<string, import("@/lib/hooks/useStockPrices").PriceUpdate>
 
-  // Sparklines — parameterised by period
+  // Sparklines — always 1D (period toggle lives inside each row)
   const sparklineQueries = useQueries({
     queries: symbols.map((sym) => ({
-      queryKey: ["stockHistory", sym, period] as const,
-      queryFn: () => getStockHistory(sym, period),
+      queryKey: ["stockHistory", sym, "1d"] as const,
+      queryFn: () => getStockHistory(sym, "1d"),
       staleTime: 5 * 60_000,
     })),
   })
@@ -122,16 +120,10 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
   symbols.forEach((sym, idx) => {
     const history = sparklineQueries[idx]?.data
     if (history?.data && history.data.length >= 2) {
-      const closes = history.data.map((p) => p.c)
-      sparklineMap[sym] = closes
-      if (period !== "1d") {
-        const first = closes[0]
-        const last = closes[closes.length - 1]
-        if (first > 0) periodChangeMap[sym] = ((last - first) / first) * 100
-      }
+      sparklineMap[sym] = history.data.map((p) => p.c)
     }
-    // For 1d, use batch price change_percent
-    if (period === "1d" && batchPrices?.[sym]?.change_percent != null) {
+    // Always use 1D batch price change for signals/heatmap
+    if (batchPrices?.[sym]?.change_percent != null) {
       periodChangeMap[sym] = batchPrices[sym].change_percent
     }
   })
@@ -184,22 +176,6 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
                 }`}
               >
                 {v === "table" ? "≡" : "⊞"}
-              </button>
-            ))}
-          </div>
-          {/* Period toggle */}
-          <div className="flex rounded-md border border-zinc-700 overflow-hidden text-xs">
-            {(["1d", "1w", "1m"] as Period[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-2.5 py-1 font-mono uppercase transition-colors ${
-                  period === p
-                    ? "bg-zinc-700 text-white"
-                    : "bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
-                }`}
-              >
-                {p}
               </button>
             ))}
           </div>
@@ -262,9 +238,8 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
           listId={displayListId}
           priceMap={priceMap}
           sparklineMap={sparklineMap}
-          changePctMap={periodChangeMap}
+          changePct1dMap={periodChangeMap}
           batchPrices={batchPrices ?? {}}
-          period={period}
           enrichedMap={enrichedMap}
         />
       )}
