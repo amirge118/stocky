@@ -105,7 +105,7 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
     })
   ) as Record<string, import("@/lib/hooks/useStockPrices").PriceUpdate>
 
-  // Sparklines — always 1D (period toggle lives inside each row)
+  // Sparklines — always 1D chart shape
   const sparklineQueries = useQueries({
     queries: symbols.map((sym) => ({
       queryKey: ["stockHistory", sym, "1d"] as const,
@@ -114,19 +114,58 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
     })),
   })
 
+  // 1W history for period change column
+  const history1wQueries = useQueries({
+    queries: symbols.map((sym) => ({
+      queryKey: ["stockHistory", sym, "1w"] as const,
+      queryFn: () => getStockHistory(sym, "1w"),
+      staleTime: 5 * 60_000,
+      enabled: symbols.length > 0,
+    })),
+  })
+
+  // 1M history for period change column
+  const history1mQueries = useQueries({
+    queries: symbols.map((sym) => ({
+      queryKey: ["stockHistory", sym, "1m"] as const,
+      queryFn: () => getStockHistory(sym, "1m"),
+      staleTime: 5 * 60_000,
+      enabled: symbols.length > 0,
+    })),
+  })
+
   const sparklineMap: Record<string, number[]> = {}
-  const periodChangeMap: Record<string, number> = {}
+  const changePct1dMap: Record<string, number> = {}
+  const changePct1wMap: Record<string, number> = {}
+  const changePct1mMap: Record<string, number> = {}
 
   symbols.forEach((sym, idx) => {
-    const history = sparklineQueries[idx]?.data
-    if (history?.data && history.data.length >= 2) {
-      sparklineMap[sym] = history.data.map((p) => p.c)
+    // Sparkline shape from 1D history
+    const hist1d = sparklineQueries[idx]?.data
+    if (hist1d?.data && hist1d.data.length >= 2) {
+      sparklineMap[sym] = hist1d.data.map((p) => p.c)
     }
-    // Always use 1D batch price change for signals/heatmap
+
+    // 1D change% from batch price (most accurate for today)
     if (batchPrices?.[sym]?.change_percent != null) {
-      periodChangeMap[sym] = batchPrices[sym].change_percent
+      changePct1dMap[sym] = batchPrices[sym].change_percent
+    }
+
+    // 1W change% from history
+    const closes1w = history1wQueries[idx]?.data?.data?.map((p) => p.c)
+    if (closes1w && closes1w.length >= 2 && closes1w[0] > 0) {
+      changePct1wMap[sym] = ((closes1w[closes1w.length - 1] - closes1w[0]) / closes1w[0]) * 100
+    }
+
+    // 1M change% from history
+    const closes1m = history1mQueries[idx]?.data?.data?.map((p) => p.c)
+    if (closes1m && closes1m.length >= 2 && closes1m[0] > 0) {
+      changePct1mMap[sym] = ((closes1m[closes1m.length - 1] - closes1m[0]) / closes1m[0]) * 100
     }
   })
+
+  // 1D map also used for heatmap/signals (same as before)
+  const periodChangeMap = changePct1dMap
 
   // Enriched data — slow-changing, cached 1hr
   const { data: enrichedRaw } = useQuery({
@@ -238,7 +277,9 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
           listId={displayListId}
           priceMap={priceMap}
           sparklineMap={sparklineMap}
-          changePct1dMap={periodChangeMap}
+          changePct1dMap={changePct1dMap}
+          changePct1wMap={changePct1wMap}
+          changePct1mMap={changePct1mMap}
           batchPrices={batchPrices ?? {}}
           enrichedMap={enrichedMap}
         />

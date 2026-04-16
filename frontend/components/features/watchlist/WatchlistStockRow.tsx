@@ -3,9 +3,8 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Bell } from "lucide-react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { removeItemFromWatchlist } from "@/lib/api/watchlists"
-import { getStockHistory } from "@/lib/api/stocks"
 import { Sparkline } from "@/components/features/stocks/Sparkline"
 import { AlertDialog } from "@/components/features/stocks/AlertDialog"
 import type { WatchlistItem, WatchlistListResponse, WatchlistListSummary } from "@/types/watchlist"
@@ -13,14 +12,14 @@ import type { PriceUpdate } from "@/lib/hooks/useStockPrices"
 import type { StockEnrichedData } from "@/types/stock"
 import { usePriceFlash } from "@/lib/hooks/usePriceFlash"
 
-type Period = "1d" | "1w" | "1m"
-
 interface WatchlistStockRowProps {
   item: WatchlistItem
   listId: number
   price: PriceUpdate | undefined
   sparkline: number[] | undefined
   changePct1d: number | undefined
+  changePct1w: number | undefined
+  changePct1m: number | undefined
   volume: number | undefined
   marketCap: number | undefined
   enriched: StockEnrichedData | undefined
@@ -61,7 +60,7 @@ function AnalystBadge({ rating }: { rating: string | null | undefined }) {
 function RelVolBadge({ volume, avgVolume }: { volume: number | undefined; avgVolume: number | null | undefined }) {
   if (!volume || !avgVolume || avgVolume <= 0) return null
   const ratio = volume / avgVolume
-  if (ratio >= 0.7 && ratio < 1.5) return null // normal, no badge
+  if (ratio >= 0.7 && ratio < 1.5) return null
 
   if (ratio < 0.7) {
     return (
@@ -78,7 +77,6 @@ function RelVolBadge({ volume, avgVolume }: { volume: number | undefined; avgVol
       </span>
     )
   }
-  // 1.5× – 2×
   return (
     <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
       {label}
@@ -100,17 +98,25 @@ function FiftyTwoWeekBar({
   return (
     <div className="mt-1 w-full" title={`52W Low $${low.toFixed(2)} — High $${high.toFixed(2)}`}>
       <div className="relative h-1 rounded-full bg-zinc-700/60 overflow-visible">
-        {/* green fill */}
         <div
           className="absolute inset-y-0 left-0 bg-green-500/50 rounded-full"
           style={{ width: `${pct}%` }}
         />
-        {/* dot marker */}
         <div
           className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-green-400 border border-zinc-900 shadow"
           style={{ left: `calc(${pct}% - 4px)` }}
         />
       </div>
+    </div>
+  )
+}
+
+function ChangePctCell({ value }: { value: number | undefined }) {
+  if (value == null) return <div className="text-xs text-zinc-700 tabular-nums">—</div>
+  const isUp = value >= 0
+  return (
+    <div className={`text-xs font-mono tabular-nums font-medium ${isUp ? "text-green-400" : "text-red-400"}`}>
+      {isUp ? "+" : ""}{value.toFixed(2)}%
     </div>
   )
 }
@@ -121,33 +127,14 @@ export function WatchlistStockRow({
   price,
   sparkline,
   changePct1d,
+  changePct1w,
+  changePct1m,
   volume,
   marketCap,
   enriched,
 }: WatchlistStockRowProps) {
   const queryClient = useQueryClient()
   const [alertOpen, setAlertOpen] = useState(false)
-  const [period, setPeriod] = useState<Period>("1d")
-
-  // Lazy fetch 1W / 1M history only when the user switches to that period
-  const { data: periodHistory } = useQuery({
-    queryKey: ["stockHistory", item.symbol, period] as const,
-    queryFn: () => getStockHistory(item.symbol, period),
-    staleTime: 5 * 60_000,
-    enabled: period !== "1d",
-  })
-
-  // Compute change% for the active period
-  const changePct: number | undefined = (() => {
-    if (period === "1d") return changePct1d
-    const closes = periodHistory?.data?.map((p) => p.c)
-    if (closes && closes.length >= 2) {
-      const first = closes[0]
-      const last = closes[closes.length - 1]
-      if (first > 0) return ((last - first) / first) * 100
-    }
-    return undefined
-  })()
 
   const removeMutation = useMutation({
     mutationFn: () => removeItemFromWatchlist(listId, item.symbol),
@@ -176,10 +163,9 @@ export function WatchlistStockRow({
 
   const displayPrice = price?.price
   const flashClass = usePriceFlash(displayPrice)
-  const isUp = changePct !== undefined ? changePct >= 0 : true
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3 rounded-lg bg-zinc-900 hover:bg-zinc-800/50 transition-colors">
+    <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-zinc-900 hover:bg-zinc-800/50 transition-colors">
       {/* Symbol + name */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -197,47 +183,29 @@ export function WatchlistStockRow({
         )}
       </div>
 
-      {/* Sparkline (always 1D) + inline period toggle + change% */}
-      <div className="flex items-center gap-2 shrink-0">
-        <div className="shrink-0">
-          {sparkline && sparkline.length >= 2 ? (
-            <Sparkline data={sparkline} width={80} height={28} />
-          ) : (
-            <div className="w-20 h-7 bg-zinc-800/50 rounded skeleton-shimmer" />
-          )}
-        </div>
-        <div className="flex flex-col items-start gap-1">
-          {/* Period toggle pills */}
-          <div className="flex rounded overflow-hidden border border-zinc-700/60">
-            {(["1d", "1w", "1m"] as Period[]).map((p) => (
-              <button
-                key={p}
-                onClick={(e) => { e.preventDefault(); setPeriod(p) }}
-                className={`px-1.5 py-0.5 text-[9px] font-mono uppercase transition-colors ${
-                  period === p
-                    ? "bg-zinc-600 text-white"
-                    : "bg-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-          {/* Change % for selected period */}
-          {changePct != null ? (
-            <div className={`text-xs font-mono tabular-nums font-medium leading-none ${isUp ? "text-green-400" : "text-red-400"}`}>
-              {isUp ? "+" : ""}{changePct.toFixed(2)}%
-            </div>
-          ) : (
-            <div className="text-[10px] text-zinc-600 leading-none">—</div>
-          )}
-        </div>
+      {/* Sparkline — always 1D shape */}
+      <div className="shrink-0">
+        {sparkline && sparkline.length >= 2 ? (
+          <Sparkline data={sparkline} width={80} height={28} />
+        ) : (
+          <div className="w-20 h-7 bg-zinc-800/50 rounded skeleton-shimmer" />
+        )}
       </div>
 
-      {/* Stats: Vol / Mkt Cap */}
-      <div className="hidden sm:flex items-center gap-3 shrink-0">
+      {/* Period columns: 1D | 1W | 1M */}
+      <div className="hidden sm:flex items-center gap-2 shrink-0">
+        <div className="w-12 text-center">
+          <ChangePctCell value={changePct1d} />
+        </div>
+        <div className="w-12 text-center">
+          <ChangePctCell value={changePct1w} />
+        </div>
+        <div className="w-12 text-center">
+          <ChangePctCell value={changePct1m} />
+        </div>
+
+        {/* Vol */}
         <div className="text-center w-16">
-          <div className="text-xs text-zinc-600 mb-0.5">Vol</div>
           {volume != null ? (
             <div className="flex flex-col items-center gap-0.5">
               <div className="text-xs font-mono tabular-nums text-zinc-400">
@@ -246,17 +214,18 @@ export function WatchlistStockRow({
               <RelVolBadge volume={volume} avgVolume={enriched?.avg_volume} />
             </div>
           ) : (
-            <div className="text-xs text-zinc-600">—</div>
+            <div className="text-xs text-zinc-700">—</div>
           )}
         </div>
+
+        {/* Mkt Cap */}
         <div className="text-center w-20">
-          <div className="text-xs text-zinc-600 mb-0.5">Mkt Cap</div>
           {marketCap != null ? (
             <div className="text-xs font-mono tabular-nums text-zinc-400">
               ${formatMarketCap(marketCap)}
             </div>
           ) : (
-            <div className="text-xs text-zinc-600">—</div>
+            <div className="text-xs text-zinc-700">—</div>
           )}
         </div>
       </div>
@@ -304,6 +273,7 @@ export function WatchlistStockRow({
           ✕
         </button>
       </div>
+
       <AlertDialog
         open={alertOpen}
         onOpenChange={setAlertOpen}

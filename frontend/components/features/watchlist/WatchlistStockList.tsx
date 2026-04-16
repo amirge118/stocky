@@ -6,7 +6,7 @@ import type { WatchlistItem } from "@/types/watchlist"
 import type { PriceUpdate } from "@/lib/hooks/useStockPrices"
 import type { StockData, StockEnrichedData } from "@/types/stock"
 
-type SortCol = "name" | "price" | "change" | "volume" | "mktcap"
+type SortCol = "name" | "price" | "chg1d" | "chg1w" | "chg1m" | "volume" | "mktcap"
 type SortDir = "asc" | "desc"
 
 interface WatchlistStockListProps {
@@ -15,6 +15,8 @@ interface WatchlistStockListProps {
   priceMap: Record<string, PriceUpdate>
   sparklineMap: Record<string, number[]>
   changePct1dMap: Record<string, number>
+  changePct1wMap: Record<string, number>
+  changePct1mMap: Record<string, number>
   batchPrices: Record<string, StockData>
   enrichedMap: Record<string, StockEnrichedData>
 }
@@ -30,6 +32,8 @@ export function WatchlistStockList({
   priceMap,
   sparklineMap,
   changePct1dMap,
+  changePct1wMap,
+  changePct1mMap,
   batchPrices,
   enrichedMap,
 }: WatchlistStockListProps) {
@@ -58,9 +62,17 @@ export function WatchlistStockList({
           aVal = priceMap[a.symbol]?.price ?? -Infinity
           bVal = priceMap[b.symbol]?.price ?? -Infinity
           break
-        case "change":
+        case "chg1d":
           aVal = changePct1dMap[a.symbol] ?? -Infinity
           bVal = changePct1dMap[b.symbol] ?? -Infinity
+          break
+        case "chg1w":
+          aVal = changePct1wMap[a.symbol] ?? -Infinity
+          bVal = changePct1wMap[b.symbol] ?? -Infinity
+          break
+        case "chg1m":
+          aVal = changePct1mMap[a.symbol] ?? -Infinity
+          bVal = changePct1mMap[b.symbol] ?? -Infinity
           break
         case "volume":
           aVal = batchPrices[a.symbol]?.volume ?? -Infinity
@@ -77,7 +89,7 @@ export function WatchlistStockList({
       const n = (aVal as number) - (bVal as number)
       return sortDir === "asc" ? n : -n
     })
-  }, [items, sortCol, sortDir, priceMap, changePct1dMap, batchPrices])
+  }, [items, sortCol, sortDir, priceMap, changePct1dMap, changePct1wMap, changePct1mMap, batchPrices])
 
   if (items.length === 0) {
     return (
@@ -92,20 +104,32 @@ export function WatchlistStockList({
   return (
     <div>
       {/* Column headers */}
-      <div className="flex items-center gap-4 px-4 py-1.5 text-xs text-zinc-600 select-none mb-1">
+      <div className="flex items-center gap-3 px-4 py-1.5 text-xs text-zinc-600 select-none mb-1">
         <button
           onClick={() => handleSort("name")}
           className="flex-1 text-left flex items-center hover:text-zinc-400 transition-colors"
         >
           Name <SortIcon col="name" active={sortCol} dir={sortDir} />
         </button>
-        <div className="shrink-0 w-36" /> {/* sparkline+toggle spacer */}
-        <div className="hidden sm:flex items-center gap-3 shrink-0">
+        <div className="shrink-0 w-20" /> {/* sparkline spacer */}
+        <div className="hidden sm:flex items-center gap-2 shrink-0">
           <button
-            onClick={() => handleSort("change")}
-            className="w-14 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+            onClick={() => handleSort("chg1d")}
+            className="w-12 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
           >
-            Chg% <SortIcon col="change" active={sortCol} dir={sortDir} />
+            1D <SortIcon col="chg1d" active={sortCol} dir={sortDir} />
+          </button>
+          <button
+            onClick={() => handleSort("chg1w")}
+            className="w-12 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+          >
+            1W <SortIcon col="chg1w" active={sortCol} dir={sortDir} />
+          </button>
+          <button
+            onClick={() => handleSort("chg1m")}
+            className="w-12 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+          >
+            1M <SortIcon col="chg1m" active={sortCol} dir={sortDir} />
           </button>
           <button
             onClick={() => handleSort("volume")}
@@ -138,6 +162,8 @@ export function WatchlistStockList({
             price={priceMap[item.symbol]}
             sparkline={sparklineMap[item.symbol]}
             changePct1d={changePct1dMap[item.symbol]}
+            changePct1w={changePct1wMap[item.symbol]}
+            changePct1m={changePct1mMap[item.symbol]}
             volume={batchPrices[item.symbol]?.volume ?? undefined}
             marketCap={batchPrices[item.symbol]?.market_cap ?? undefined}
             enriched={enrichedMap[item.symbol]}
