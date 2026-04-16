@@ -112,25 +112,26 @@ export function WatchlistStockList({
           Name <SortIcon col="name" active={sortCol} dir={sortDir} />
         </button>
         <div className="shrink-0 w-20" /> {/* sparkline spacer */}
-        <div className="hidden sm:flex items-center gap-2 shrink-0">
+        <div className="hidden sm:flex items-center gap-1 shrink-0">
           <button
             onClick={() => handleSort("chg1d")}
-            className="w-12 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+            className="w-14 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
           >
             1D <SortIcon col="chg1d" active={sortCol} dir={sortDir} />
           </button>
           <button
             onClick={() => handleSort("chg1w")}
-            className="w-12 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+            className="w-14 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
           >
             1W <SortIcon col="chg1w" active={sortCol} dir={sortDir} />
           </button>
           <button
             onClick={() => handleSort("chg1m")}
-            className="w-12 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
+            className="w-14 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"
           >
             1M <SortIcon col="chg1m" active={sortCol} dir={sortDir} />
           </button>
+          <div className="w-px mx-1" /> {/* spacer aligns with row divider */}
           <button
             onClick={() => handleSort("volume")}
             className="w-16 text-center flex items-center justify-center hover:text-zinc-400 transition-colors"

@@ -111,12 +111,17 @@ function FiftyTwoWeekBar({
   )
 }
 
-function ChangePctCell({ value }: { value: number | undefined }) {
-  if (value == null) return <div className="text-xs text-zinc-700 tabular-nums">—</div>
-  const isUp = value >= 0
+function ChangePctCell({ value, label }: { value: number | undefined; label: string }) {
   return (
-    <div className={`text-xs font-mono tabular-nums font-medium ${isUp ? "text-green-400" : "text-red-400"}`}>
-      {isUp ? "+" : ""}{value.toFixed(2)}%
+    <div className="text-center w-14">
+      <div className="text-[10px] text-zinc-600 mb-0.5 font-mono uppercase">{label}</div>
+      {value != null ? (
+        <div className={`text-xs font-mono tabular-nums font-medium ${value >= 0 ? "text-green-400" : "text-red-400"}`}>
+          {value >= 0 ? "+" : ""}{value.toFixed(2)}%
+        </div>
+      ) : (
+        <div className="text-xs text-zinc-700">—</div>
+      )}
     </div>
   )
 }
@@ -193,19 +198,17 @@ export function WatchlistStockRow({
       </div>
 
       {/* Period columns: 1D | 1W | 1M */}
-      <div className="hidden sm:flex items-center gap-2 shrink-0">
-        <div className="w-12 text-center">
-          <ChangePctCell value={changePct1d} />
-        </div>
-        <div className="w-12 text-center">
-          <ChangePctCell value={changePct1w} />
-        </div>
-        <div className="w-12 text-center">
-          <ChangePctCell value={changePct1m} />
-        </div>
+      <div className="hidden sm:flex items-center gap-1 shrink-0">
+        <ChangePctCell value={changePct1d} label="1D" />
+        <ChangePctCell value={changePct1w} label="1W" />
+        <ChangePctCell value={changePct1m} label="1M" />
+
+        {/* Divider */}
+        <div className="w-px h-8 bg-zinc-800 mx-1 shrink-0" />
 
         {/* Vol */}
         <div className="text-center w-16">
+          <div className="text-[10px] text-zinc-600 mb-0.5 font-mono uppercase">Vol</div>
           {volume != null ? (
             <div className="flex flex-col items-center gap-0.5">
               <div className="text-xs font-mono tabular-nums text-zinc-400">
@@ -220,6 +223,7 @@ export function WatchlistStockRow({
 
         {/* Mkt Cap */}
         <div className="text-center w-20">
+          <div className="text-[10px] text-zinc-600 mb-0.5 font-mono uppercase">Mkt Cap</div>
           {marketCap != null ? (
             <div className="text-xs font-mono tabular-nums text-zinc-400">
               ${formatMarketCap(marketCap)}
