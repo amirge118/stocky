@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +15,8 @@ from app.schemas.sector_breakdown import SectorBreakdownResponse
 from app.schemas.stock import PortfolioNewsItem
 from app.services import holding_service
 
+_logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
@@ -25,7 +29,18 @@ async def get_portfolio(db: AsyncSession = Depends(get_db)) -> PortfolioSummary:
 @router.get("/summary", response_model=PortfolioSummaryWithSector)
 async def get_portfolio_summary(db: AsyncSession = Depends(get_db)) -> PortfolioSummaryWithSector:
     """Return portfolio and sector breakdown in one request (avoids duplicate fetches)."""
-    portfolio, sector_breakdown = await holding_service.get_portfolio_summary(db)
+    try:
+        portfolio, sector_breakdown = await holding_service.get_portfolio_summary(db)
+    except Exception as exc:
+        _logger.error("get_portfolio_summary failed, returning empty: %s", exc, exc_info=True)
+        portfolio = PortfolioSummary(
+            positions=[],
+            total_value=0.0,
+            total_cost=0.0,
+            total_gain_loss=0.0,
+            total_gain_loss_pct=0.0,
+        )
+        sector_breakdown = SectorBreakdownResponse(sectors=[], total_value=0.0)
     return PortfolioSummaryWithSector(portfolio=portfolio, sector_breakdown=sector_breakdown)
 
 
@@ -66,7 +81,7 @@ async def add_holding(
 
 @router.get("/news", response_model=list[PortfolioNewsItem])
 async def get_portfolio_news(
-    limit: int = Query(20, ge=1, le=50),
+    limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ) -> list[PortfolioNewsItem]:
     """Fetch unified news feed for all portfolio holdings."""

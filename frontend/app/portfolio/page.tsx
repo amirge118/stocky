@@ -30,8 +30,8 @@ export default function PortfolioPage() {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     retry: (count, err) => {
-      // Retry 502/503 up to 12× (~60s) — Render free tier cold starts can take up to 60s
-      if (err instanceof ApiError && (err.status === 502 || err.status === 503)) {
+      // Retry 500/502/503 up to 12× (~60s) — Render free tier cold starts can return any of these
+      if (err instanceof ApiError && (err.status === 500 || err.status === 502 || err.status === 503)) {
         return count < 12
       }
       return false
@@ -44,8 +44,8 @@ export default function PortfolioPage() {
   const hasPositions = (data?.positions.length ?? 0) > 0
 
   const { data: newsItems, isPending: newsPending } = useQuery({
-    queryKey: ["portfolio-news", 80],
-    queryFn: () => getPortfolioNews(80),
+    queryKey: ["portfolio-news", 50],
+    queryFn: () => getPortfolioNews(50),
     staleTime: 5 * 60_000,
     enabled: hasPositions,
   })
