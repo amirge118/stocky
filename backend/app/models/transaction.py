@@ -1,7 +1,4 @@
-from __future__ import annotations
-
 from datetime import date
-from typing import Optional
 
 import sqlalchemy as sa
 from sqlalchemy import Float, String
@@ -18,7 +15,7 @@ class Transaction(BaseModel):
     shares: Mapped[float] = mapped_column(Float, nullable=False)
     price_per_share: Mapped[float] = mapped_column(Float, nullable=False)
     total_amount: Mapped[float] = mapped_column(Float, nullable=False)
-    realized_gain: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    realized_gain: Mapped[float | None] = mapped_column(Float, nullable=True)
     transaction_date: Mapped[date] = mapped_column(
         sa.Date, nullable=False, server_default=sa.func.current_date()
     )

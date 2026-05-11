@@ -1,14 +1,14 @@
 """Integration tests for portfolio sell and transaction endpoints."""
+from datetime import date
+
 import pytest
 from fastapi.testclient import TestClient
 
 from app.models.holding import Holding
+from app.models.transaction import Transaction
 
 
 def _seed_holding(db_session, symbol="AAPL", name="Apple Inc.", shares=10.0, avg_cost=150.0):
-    from app.models.transaction import Transaction
-    from datetime import date
-
     holding = Holding(
         symbol=symbol,
         name=name,
