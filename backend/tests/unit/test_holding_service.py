@@ -1,10 +1,14 @@
 """Unit tests for holding service."""
+from datetime import date
 from unittest.mock import patch
 
 import pytest
+from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.holding import Holding
+from app.models.transaction import Transaction
 from app.schemas.stock import (
     StockDataResponse,
     StockNewsItem,
@@ -131,3 +135,109 @@ async def test_get_portfolio_includes_purchase_date(mock_fetch, db_session: Asyn
 
     result = await holding_service.get_portfolio(db_session)
     assert result.positions[0].purchase_date == date_cls(2023, 6, 1)
+
+
+# ── Transaction tests ────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_upsert_holding_creates_buy_transaction(db_session: AsyncSession):
+    """upsert_holding should create a BUY transaction alongside the holding."""
+    await holding_service.upsert_holding(
+        db_session, "AAPL", "Apple Inc.", 10.0, 150.0, purchase_date=date(2024, 1, 15)
+    )
+
+    result = await db_session.execute(select(Transaction).where(Transaction.symbol == "AAPL"))
+    txs = result.scalars().all()
+    assert len(txs) == 1
+    tx = txs[0]
+    assert tx.type == "BUY"
+    assert tx.shares == 10.0
+    assert tx.price_per_share == 150.0
+    assert tx.total_amount == 1500.0
+    assert tx.realized_gain is None
+    assert tx.transaction_date == date(2024, 1, 15)
+
+
+@pytest.mark.asyncio
+async def test_sell_holding_partial(db_session: AsyncSession):
+    """Partial sell: reduces shares, keeps avg_cost, creates SELL transaction."""
+    await holding_service.upsert_holding(db_session, "AAPL", "Apple Inc.", 10.0, 150.0)
+
+    result = await holding_service.sell_holding(db_session, "AAPL", 3.0, 180.0)
+
+    assert result is not None
+    assert result.shares == pytest.approx(7.0)
+    assert result.avg_cost == pytest.approx(150.0)  # unchanged with weighted average
+    assert result.total_cost == pytest.approx(1050.0)
+
+    txs_result = await db_session.execute(
+        select(Transaction).where(Transaction.symbol == "AAPL", Transaction.type == "SELL")
+    )
+    sell_txs = txs_result.scalars().all()
+    assert len(sell_txs) == 1
+    tx = sell_txs[0]
+    assert tx.shares == 3.0
+    assert tx.price_per_share == 180.0
+    assert tx.realized_gain == pytest.approx(90.0)  # (180 - 150) * 3
+
+
+@pytest.mark.asyncio
+async def test_sell_holding_full(db_session: AsyncSession):
+    """Full sell: deletes holding, returns None, creates SELL transaction."""
+    await holding_service.upsert_holding(db_session, "MSFT", "Microsoft", 5.0, 300.0)
+
+    result = await holding_service.sell_holding(db_session, "MSFT", 5.0, 320.0)
+
+    assert result is None
+
+    holding_result = await db_session.execute(
+        select(Holding).where(Holding.symbol == "MSFT")
+    )
+    assert holding_result.scalar_one_or_none() is None
+
+    tx_result = await db_session.execute(
+        select(Transaction).where(Transaction.symbol == "MSFT", Transaction.type == "SELL")
+    )
+    sell_tx = tx_result.scalar_one()
+    assert sell_tx.realized_gain == pytest.approx(100.0)  # (320 - 300) * 5
+
+
+@pytest.mark.asyncio
+async def test_sell_holding_not_found(db_session: AsyncSession):
+    """Selling a non-existent holding raises 404."""
+    with pytest.raises(HTTPException) as exc_info:
+        await holding_service.sell_holding(db_session, "FAKE", 1.0, 100.0)
+    assert exc_info.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_sell_holding_over_sell(db_session: AsyncSession):
+    """Selling more shares than held raises 422."""
+    await holding_service.upsert_holding(db_session, "GOOG", "Alphabet", 2.0, 100.0)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await holding_service.sell_holding(db_session, "GOOG", 5.0, 110.0)
+    assert exc_info.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_get_transactions_all(db_session: AsyncSession):
+    """get_transactions returns all transactions when no symbol filter."""
+    await holding_service.upsert_holding(db_session, "AAPL", "Apple", 10.0, 150.0)
+    await holding_service.upsert_holding(db_session, "MSFT", "Microsoft", 5.0, 300.0)
+
+    txs = await holding_service.get_transactions(db_session)
+    assert len(txs) == 2
+    symbols = {t.symbol for t in txs}
+    assert symbols == {"AAPL", "MSFT"}
+
+
+@pytest.mark.asyncio
+async def test_get_transactions_filtered(db_session: AsyncSession):
+    """get_transactions filters by symbol."""
+    await holding_service.upsert_holding(db_session, "AAPL", "Apple", 10.0, 150.0)
+    await holding_service.upsert_holding(db_session, "MSFT", "Microsoft", 5.0, 300.0)
+
+    txs = await holding_service.get_transactions(db_session, symbol="AAPL")
+    assert len(txs) == 1
+    assert txs[0].symbol == "AAPL"

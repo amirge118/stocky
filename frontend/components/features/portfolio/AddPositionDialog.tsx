@@ -58,10 +58,12 @@ export interface AddPositionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
+  /** When provided, skips Step 1 and pre-fills the symbol/name for adding more shares. */
+  defaultPosition?: { symbol: string; name: string; current_price: number | null }
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPositionDialogProps) {
+export function AddPositionDialog({ open, onOpenChange, onSuccess, defaultPosition }: AddPositionDialogProps) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [step, setStep] = useState<1 | 2>(1)
@@ -74,7 +76,7 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
   const [purchaseDate, setPurchaseDate] = useState("")
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Reset when closed
+  // Reset when closed; if defaultPosition provided, jump to step 2
   useEffect(() => {
     if (!open) {
       setStep(1)
@@ -85,8 +87,27 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
       setShares("")
       setPurchasePrice("")
       setPurchaseDate("")
+    } else if (defaultPosition) {
+      const prefilled: StockSearchResult = {
+        symbol: defaultPosition.symbol,
+        name: defaultPosition.name,
+        exchange: "",
+        current_price: defaultPosition.current_price,
+        sparkline: null,
+        sector: null,
+        industry: null,
+        currency: null,
+        country: null,
+      }
+      setSelected(prefilled)
+      setPurchasePrice(
+        defaultPosition.current_price != null
+          ? defaultPosition.current_price.toFixed(2)
+          : ""
+      )
+      setStep(2)
     }
-  }, [open])
+  }, [open, defaultPosition])
 
   // Debounced search
   useEffect(() => {
@@ -193,7 +214,11 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess }: AddPosition
       <DialogContent className="sm:max-w-[620px] bg-zinc-900 border-zinc-700">
         <DialogHeader>
           <DialogTitle className="text-white">
-            {step === 1 ? "Add Position — Search" : "Add Position — Configure"}
+            {step === 1
+              ? "Add Position — Search"
+              : defaultPosition
+                ? `Add Shares — ${defaultPosition.symbol}`
+                : "Add Position — Configure"}
           </DialogTitle>
         </DialogHeader>
 

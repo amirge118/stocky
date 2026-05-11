@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -10,6 +13,8 @@ from app.schemas.holding import (
     PortfolioPosition,
     PortfolioSummary,
     PortfolioSummaryWithSector,
+    SellHoldingRequest,
+    TransactionResponse,
 )
 from app.schemas.sector_breakdown import SectorBreakdownResponse
 from app.schemas.stock import PortfolioNewsItem
@@ -86,6 +91,50 @@ async def get_portfolio_news(
 ) -> list[PortfolioNewsItem]:
     """Fetch unified news feed for all portfolio holdings."""
     return await holding_service.get_portfolio_news(db, limit=limit)
+
+
+@router.get("/transactions", response_model=list[TransactionResponse])
+async def get_transactions(
+    symbol: str | None = Query(None, description="Filter by ticker symbol"),
+    db: AsyncSession = Depends(get_db),
+) -> list[TransactionResponse]:
+    """Return trade history, optionally filtered by symbol. Newest first."""
+    return await holding_service.get_transactions(db, symbol.upper() if symbol else None)
+
+
+@router.post("/{symbol}/sell", status_code=status.HTTP_200_OK)
+@limiter.limit("30/minute")
+async def sell_holding(
+    request: Request,
+    symbol: str,
+    data: SellHoldingRequest,
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Sell shares from a position (partial or full). Returns updated position or 204 if closed."""
+    result = await holding_service.sell_holding(
+        db,
+        symbol=symbol.upper(),
+        shares_to_sell=data.shares,
+        price_per_share=data.price_per_share,
+        transaction_date=data.transaction_date,
+    )
+    if result is None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    position = PortfolioPosition(
+        symbol=result.symbol,
+        name=result.name,
+        shares=result.shares,
+        avg_cost=result.avg_cost,
+        total_cost=result.total_cost,
+        current_price=None,
+        current_value=None,
+        gain_loss=None,
+        gain_loss_pct=None,
+        portfolio_pct=None,
+        purchase_date=result.purchase_date,
+    )
+    return JSONResponse(content=position.model_dump(mode="json"))
 
 
 @router.delete("/{symbol}", status_code=status.HTTP_204_NO_CONTENT)

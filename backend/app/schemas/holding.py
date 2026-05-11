@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.sector_breakdown import SectorBreakdownResponse
 
@@ -61,3 +61,23 @@ class PortfolioSummaryWithSector(BaseModel):
 
     portfolio: PortfolioSummary
     sector_breakdown: SectorBreakdownResponse
+
+
+class SellHoldingRequest(BaseModel):
+    shares: float = Field(gt=0, description="Number of shares to sell")
+    price_per_share: float = Field(gt=0, description="Sale price per share")
+    transaction_date: date | None = None
+
+
+class TransactionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    symbol: str
+    type: str
+    shares: float
+    price_per_share: float
+    total_amount: float
+    realized_gain: float | None
+    transaction_date: date
+    created_at: datetime

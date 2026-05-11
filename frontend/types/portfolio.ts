@@ -57,3 +57,21 @@ export interface PortfolioNewsItem {
   link: string | null
   published_at: number | null
 }
+
+export interface SellHoldingRequest {
+  shares: number
+  price_per_share: number
+  transaction_date?: string
+}
+
+export interface Transaction {
+  id: number
+  symbol: string
+  type: "BUY" | "SELL"
+  shares: number
+  price_per_share: number
+  total_amount: number
+  realized_gain: number | null
+  transaction_date: string
+  created_at: string
+}

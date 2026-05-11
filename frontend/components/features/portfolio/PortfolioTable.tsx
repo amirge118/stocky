@@ -4,7 +4,7 @@ import { Fragment, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  X,
+  MoreHorizontal,
   TrendingUp,
   TrendingDown,
   Download,
@@ -12,14 +12,26 @@ import {
   ChevronUp,
   ChevronDown,
   Newspaper,
+  PlusCircle,
+  MinusCircle,
+  Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { removeHolding } from "@/lib/api/portfolio"
 import { fetchAlerts } from "@/lib/api/alerts"
 import { ApiError } from "@/lib/api/client"
 import type { PortfolioNewsItem, PortfolioPosition, PortfolioSummaryWithSector } from "@/types/portfolio"
 import { shortNewsLinkLabel } from "@/lib/format/newsHeadline"
 import type { Alert } from "@/types/alerts"
+import { AddPositionDialog } from "./AddPositionDialog"
+import { SellPositionDialog } from "./SellPositionDialog"
 
 interface Props {
   positions: PortfolioPosition[]
@@ -173,6 +185,8 @@ export function PortfolioTable({ positions, isPending, headlineBySymbol = {} }: 
     col: "symbol",
     dir: "asc",
   })
+  const [addSharesPosition, setAddSharesPosition] = useState<PortfolioPosition | null>(null)
+  const [sellPosition, setSellPosition] = useState<PortfolioPosition | null>(null)
 
   const { data: alerts = [] } = useQuery({
     queryKey: ["alerts"],
@@ -451,20 +465,50 @@ export function PortfolioTable({ positions, isPending, headlineBySymbol = {} }: 
                   <PortfolioBar pct={pos.portfolio_pct} />
                 </td>
 
-                {/* Remove */}
+                {/* Row actions */}
                 <td
                   className="px-3 py-3.5"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                    disabled={removeMutation.isPending}
-                    onClick={() => removeMutation.mutate(pos.symbol)}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="bg-zinc-900 border-zinc-700 text-zinc-200"
+                    >
+                      <DropdownMenuItem
+                        onClick={() => setAddSharesPosition(pos)}
+                        className="cursor-pointer hover:bg-zinc-800 focus:bg-zinc-800"
+                      >
+                        <PlusCircle className="mr-2 h-4 w-4 text-green-400" />
+                        Add shares
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setSellPosition(pos)}
+                        className="cursor-pointer hover:bg-zinc-800 focus:bg-zinc-800"
+                      >
+                        <MinusCircle className="mr-2 h-4 w-4 text-red-400" />
+                        Sell shares
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-zinc-700" />
+                      <DropdownMenuItem
+                        onClick={() => removeMutation.mutate(pos.symbol)}
+                        disabled={removeMutation.isPending}
+                        className="cursor-pointer text-red-400 hover:bg-red-400/10 focus:bg-red-400/10 focus:text-red-400"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Remove position
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </tr>
               {headline && (
@@ -521,6 +565,28 @@ export function PortfolioTable({ positions, isPending, headlineBySymbol = {} }: 
           })}
         </tbody>
       </table>
+
+      {/* Add shares dialog (pre-fills symbol, skips search) */}
+      {addSharesPosition && (
+        <AddPositionDialog
+          open={addSharesPosition !== null}
+          onOpenChange={(o) => { if (!o) setAddSharesPosition(null) }}
+          defaultPosition={{
+            symbol: addSharesPosition.symbol,
+            name: addSharesPosition.name,
+            current_price: addSharesPosition.current_price,
+          }}
+        />
+      )}
+
+      {/* Sell shares dialog */}
+      {sellPosition && (
+        <SellPositionDialog
+          position={sellPosition}
+          open={sellPosition !== null}
+          onOpenChange={(o) => { if (!o) setSellPosition(null) }}
+        />
+      )}
     </div>
   )
 }

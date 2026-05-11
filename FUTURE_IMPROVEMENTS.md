@@ -278,7 +278,14 @@ Every request, feature idea, or improvement suggestion should be added here.
 - [ ] Add a "Trending in sector" sort option on `SectorStockList` (sort by day_change_percent desc) [MEDIUM]
 - [ ] Support multi-select checkboxes in search mode (not just browse mode) for bulk-adding search results [MEDIUM]
 
+- [ ] Transaction history UI: add a collapsible "Trade History" table per position (symbol-filtered) and a full portfolio-level transaction log page [MEDIUM]
+- [ ] FIFO cost basis: track individual buy lots so partial sells calculate realized gain per lot for tax reporting [MEDIUM]
+- [ ] Realized gains summary: aggregate total realized P&L across all SELL transactions for a given year (tax reporting) [HIGH]
+- [ ] Multi-portfolio support: scope holdings and transactions to named portfolios (e.g. "Roth IRA", "Taxable") [HIGH]
+- [ ] CSV import for transactions: bulk-upload historical trades from broker export files [MEDIUM]
+- [ ] Dividend transactions: add DIVIDEND as a third transaction type with automatic yield calculation [LOW]
+
 ---
 
-**Last Updated**: 2026-04-16
-**Open Items**: ~84
+**Last Updated**: 2026-05-11
+**Open Items**: ~90

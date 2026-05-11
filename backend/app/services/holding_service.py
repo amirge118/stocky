@@ -2,14 +2,17 @@ import asyncio
 from datetime import date
 from typing import Optional
 
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.holding import Holding
+from app.models.transaction import Transaction
 from app.schemas.holding import (
     HoldingResponse,
     PortfolioPosition,
     PortfolioSummary,
+    TransactionResponse,
 )
 from app.schemas.sector_breakdown import SectorBreakdownResponse, SectorSlice
 from app.schemas.stock import (
@@ -41,6 +44,8 @@ async def upsert_holding(
     result = await db.execute(select(Holding).where(Holding.symbol == sym))
     existing = result.scalar_one_or_none()
 
+    tx_date = purchase_date or date.today()
+
     if existing is None:
         holding = Holding(
             symbol=sym,
@@ -48,7 +53,7 @@ async def upsert_holding(
             shares=shares,
             avg_cost=price_per_share,
             total_cost=shares * price_per_share,
-            purchase_date=purchase_date or date.today(),
+            purchase_date=tx_date,
         )
         db.add(holding)
     else:
@@ -60,6 +65,18 @@ async def upsert_holding(
         existing.name = name
         # Do NOT overwrite purchase_date on update
         holding = existing
+
+    db.add(
+        Transaction(
+            symbol=sym,
+            type="BUY",
+            shares=shares,
+            price_per_share=price_per_share,
+            total_amount=round(shares * price_per_share, 4),
+            realized_gain=None,
+            transaction_date=tx_date,
+        )
+    )
 
     await db.commit()
     await db.refresh(holding)
@@ -76,6 +93,73 @@ async def delete_holding(db: AsyncSession, symbol: str) -> bool:
     await db.delete(holding)
     await db.commit()
     return True
+
+
+async def sell_holding(
+    db: AsyncSession,
+    symbol: str,
+    shares_to_sell: float,
+    price_per_share: float,
+    transaction_date: Optional[date] = None,
+) -> Optional[HoldingResponse]:
+    """Sell shares from a position. Returns updated HoldingResponse or None if fully closed."""
+    sym = symbol.upper()
+    result = await db.execute(select(Holding).where(Holding.symbol == sym))
+    holding = result.scalar_one_or_none()
+
+    if holding is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No holding found for symbol {sym}",
+        )
+
+    if shares_to_sell <= 0 or shares_to_sell > holding.shares + 1e-9:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Cannot sell {shares_to_sell} shares — only {holding.shares} held",
+        )
+
+    tx_date = transaction_date or date.today()
+    realized_gain = round((price_per_share - holding.avg_cost) * shares_to_sell, 4)
+
+    db.add(
+        Transaction(
+            symbol=sym,
+            type="SELL",
+            shares=shares_to_sell,
+            price_per_share=price_per_share,
+            total_amount=round(shares_to_sell * price_per_share, 4),
+            realized_gain=realized_gain,
+            transaction_date=tx_date,
+        )
+    )
+
+    if shares_to_sell >= holding.shares - 1e-9:
+        # Full exit — remove the position
+        await db.delete(holding)
+        await db.commit()
+        return None
+
+    holding.shares = round(holding.shares - shares_to_sell, 10)
+    # Weighted-average: avg_cost unchanged on sell; recalculate total_cost
+    holding.total_cost = round(holding.shares * holding.avg_cost, 4)
+
+    await db.commit()
+    await db.refresh(holding)
+    return HoldingResponse.model_validate(holding)
+
+
+async def get_transactions(
+    db: AsyncSession, symbol: Optional[str] = None
+) -> list[TransactionResponse]:
+    """Return all transactions, optionally filtered by symbol, newest first."""
+    stmt = select(Transaction).order_by(
+        Transaction.transaction_date.desc(), Transaction.created_at.desc()
+    )
+    if symbol:
+        stmt = stmt.where(Transaction.symbol == symbol.upper())
+    result = await db.execute(stmt)
+    return [TransactionResponse.model_validate(tx) for tx in result.scalars().all()]
 
 
 async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
