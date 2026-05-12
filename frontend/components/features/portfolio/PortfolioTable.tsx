@@ -27,6 +27,7 @@ import {
 import { removeHolding } from "@/lib/api/portfolio"
 import { fetchAlerts } from "@/lib/api/alerts"
 import { ApiError } from "@/lib/api/client"
+import { usePriceFlash } from "@/lib/hooks/usePriceFlash"
 import type { PortfolioNewsItem, PortfolioPosition, PortfolioSummaryWithSector } from "@/types/portfolio"
 import { shortNewsLinkLabel } from "@/lib/format/newsHeadline"
 import type { Alert } from "@/types/alerts"
@@ -154,6 +155,17 @@ function newsTimeAgo(ms: number | null): string {
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs}h ago`
   return `${Math.floor(hrs / 24)}d ago`
+}
+
+function PriceCell({ price, color }: { price: number | null; color: string }) {
+  const flashClass = usePriceFlash(price)
+  return (
+    <span className={`tabular-nums font-mono font-semibold ${color} ${flashClass}`}>
+      {price != null
+        ? price.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : "—"}
+    </span>
+  )
 }
 
 function sortPositions(
@@ -422,9 +434,7 @@ export function PortfolioTable({ positions, isPending, headlineBySymbol = {} }: 
 
                 {/* Current Price */}
                 <td className="px-5 py-3.5 text-right">
-                  <span className={`tabular-nums font-mono font-semibold ${priceColor}`}>
-                    {fmtUSD(pos.current_price)}
-                  </span>
+                  <PriceCell price={pos.current_price} color={priceColor} />
                 </td>
 
                 {/* Day Change */}

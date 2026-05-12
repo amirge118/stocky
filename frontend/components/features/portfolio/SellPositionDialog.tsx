@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { sellHolding } from "@/lib/api/portfolio"
 import { ApiError } from "@/lib/api/client"
 import { useToast } from "@/hooks/use-toast"
-import type { PortfolioPosition } from "@/types/portfolio"
+import type { PortfolioPosition, PortfolioSummaryWithSector } from "@/types/portfolio"
 
 interface Props {
   position: PortfolioPosition
@@ -70,6 +70,22 @@ export function SellPositionDialog({ position, open, onOpenChange }: Props) {
         price_per_share: pricePerShare,
         transaction_date: dateInput || undefined,
       }),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["portfolio-summary"] })
+      const previous = queryClient.getQueryData<PortfolioSummaryWithSector>(["portfolio-summary"])
+      queryClient.setQueryData<PortfolioSummaryWithSector>(["portfolio-summary"], (old) => {
+        if (!old) return old
+        const p = old.portfolio
+        const remaining = position.shares - sharesToSell
+        const newPositions = remaining <= 0
+          ? p.positions.filter((pos) => pos.symbol !== position.symbol)
+          : p.positions.map((pos) =>
+              pos.symbol === position.symbol ? { ...pos, shares: remaining } : pos
+            )
+        return { ...old, portfolio: { ...p, positions: newPositions } }
+      })
+      return { previous }
+    },
     onSuccess: (result) => {
       if (result === null) {
         toast({ title: `Position closed`, description: `${position.symbol} fully sold` })
@@ -81,11 +97,12 @@ export function SellPositionDialog({ position, open, onOpenChange }: Props) {
             : undefined,
         })
       }
-      queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
-      queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
       onOpenChange(false)
     },
-    onError: (err: Error) => {
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["portfolio-summary"], context.previous)
+      }
       const is503 = err instanceof ApiError && err.status === 503
       toast({
         title: "Sell failed",
@@ -94,6 +111,10 @@ export function SellPositionDialog({ position, open, onOpenChange }: Props) {
           : err.message,
         variant: "destructive",
       })
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["portfolio-summary"] })
+      queryClient.invalidateQueries({ queryKey: ["portfolio-news"] })
     },
   })
 

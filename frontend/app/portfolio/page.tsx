@@ -74,7 +74,7 @@ export default function PortfolioPage() {
                 <TrendingUp className="h-5 w-5 text-violet-300" aria-hidden />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold tracking-[0.22em] uppercase text-zinc-500">
+                <p className="text-xs font-semibold tracking-[0.22em] uppercase text-zinc-500">
                   Equity Portfolio
                 </p>
                 <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-white">
@@ -167,7 +167,7 @@ export default function PortfolioPage() {
               <TrendingUp className="h-5 w-5 text-violet-300" aria-hidden />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold tracking-[0.22em] uppercase text-zinc-500">
+              <p className="text-xs font-semibold tracking-[0.22em] uppercase text-zinc-500">
                 Equity Portfolio
               </p>
               <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-white">

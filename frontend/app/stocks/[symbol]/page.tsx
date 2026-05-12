@@ -3,18 +3,29 @@
 import { useParams, useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { ArrowLeft, ExternalLink } from "lucide-react"
+import dynamic from "next/dynamic"
 import { LivePriceBadge } from "@/components/features/stocks/LivePriceBadge"
 import { getStock, fetchStockData, getStockInfo } from "@/lib/api/stocks"
 import { ApiError } from "@/lib/api/client"
-import { UnifiedStockChart } from "@/components/features/stocks/UnifiedStockChart"
 import { StockKeyStats } from "@/components/features/stocks/StockKeyStats"
 import { StockAbout } from "@/components/features/stocks/StockAbout"
 import { StockNews } from "@/components/features/stocks/StockNews"
 import { SectorNews } from "@/components/features/stocks/SectorNews"
-import { StockAIAnalysis } from "@/components/features/stocks/StockAIAnalysis"
-import { StockSectorOverview } from "@/components/features/stocks/StockSectorOverview"
 import { StockDividends } from "@/components/features/stocks/StockDividends"
 import { StockAlertsSection } from "@/components/features/stocks/StockAlertsSection"
+
+const UnifiedStockChart = dynamic(
+  () => import("@/components/features/stocks/UnifiedStockChart").then((m) => ({ default: m.UnifiedStockChart })),
+  { ssr: false, loading: () => <div className="skeleton-shimmer rounded-xl h-[520px]" /> }
+)
+const StockAIAnalysis = dynamic(
+  () => import("@/components/features/stocks/StockAIAnalysis").then((m) => ({ default: m.StockAIAnalysis })),
+  { ssr: false, loading: () => <div className="skeleton-shimmer rounded-xl h-40" /> }
+)
+const StockSectorOverview = dynamic(
+  () => import("@/components/features/stocks/StockSectorOverview").then((m) => ({ default: m.StockSectorOverview })),
+  { ssr: false, loading: () => <div className="skeleton-shimmer rounded-xl h-40" /> }
+)
 
 export default function StockDetailPage() {
   const params = useParams()
@@ -68,9 +79,9 @@ export default function StockDetailPage() {
         {/* Header */}
         <div>
           {stockLoading ? (
-            <div className="animate-pulse space-y-2">
-              <div className="h-8 bg-zinc-800 rounded w-32" />
-              <div className="h-5 bg-zinc-800 rounded w-48" />
+            <div className="space-y-2">
+              <div className="skeleton-shimmer h-8 bg-zinc-800 rounded w-32" />
+              <div className="skeleton-shimmer h-5 bg-zinc-800 rounded w-48" />
             </div>
           ) : (
             <>
@@ -114,7 +125,7 @@ export default function StockDetailPage() {
 
               <div className="flex items-center gap-3 flex-wrap mt-1.5">
                 {liveLoading && !liveData ? (
-                  <div className="animate-pulse h-8 bg-zinc-800 rounded w-28" />
+                  <div className="skeleton-shimmer h-8 bg-zinc-800 rounded w-28" />
                 ) : (
                   <LivePriceBadge
                     symbol={symbol}
@@ -137,7 +148,7 @@ export default function StockDetailPage() {
           <div className="space-y-4">
             {/* About — compact strip above chart */}
             {infoLoading ? (
-              <div className="animate-pulse h-10 rounded-xl bg-zinc-900 border border-zinc-800" />
+              <div className="skeleton-shimmer h-10 rounded-xl bg-zinc-900 border border-zinc-800" />
             ) : info ? (
               <StockAbout info={info} compact />
             ) : null}
@@ -147,7 +158,7 @@ export default function StockDetailPage() {
 
             {/* Key Stats — 2–3 rows below chart */}
             {infoLoading ? (
-              <div className="rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-3 animate-pulse">
+              <div className="card-surface px-4 py-3 skeleton-shimmer">
                 <div className="h-3 w-24 rounded bg-zinc-800 mb-3" />
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2.5">
                   {Array.from({ length: 8 }).map((_, i) => (

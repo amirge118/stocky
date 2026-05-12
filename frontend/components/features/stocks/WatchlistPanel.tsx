@@ -11,7 +11,7 @@ export function WatchlistPanel() {
 
   if (watchlist.length === 0) {
     return (
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="card-surface p-6">
         <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide mb-3 flex items-center gap-2">
           <Star size={14} className="text-amber-400" />
           Watchlist
@@ -24,7 +24,7 @@ export function WatchlistPanel() {
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+    <div className="card-surface p-5">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide flex items-center gap-2">
           <Star size={14} className="text-amber-400" />

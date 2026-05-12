@@ -58,21 +58,11 @@ export function StockSectorOverview({ symbol, sector, industry }: StockSectorOve
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-800/60">
-                <th className="text-left py-2 text-[11px] font-medium text-zinc-600 uppercase tracking-widest">
-                  Symbol
-                </th>
-                <th className="text-right py-2 text-[11px] font-medium text-zinc-600 uppercase tracking-widest">
-                  Price
-                </th>
-                <th className="text-right py-2 text-[11px] font-medium text-zinc-600 uppercase tracking-widest">
-                  Day %
-                </th>
-                <th className="text-right py-2 text-[11px] font-medium text-zinc-600 uppercase tracking-widest">
-                  P/E
-                </th>
-                <th className="text-right py-2 text-[11px] font-medium text-zinc-600 uppercase tracking-widest">
-                  Mkt Cap
-                </th>
+                <th className="text-left py-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Symbol</th>
+                <th className="text-right py-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Price</th>
+                <th className="text-right py-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Day %</th>
+                <th className="text-right py-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">P/E</th>
+                <th className="text-right py-2 text-xs font-medium text-zinc-400 uppercase tracking-wide">Mkt Cap</th>
               </tr>
             </thead>
             <tbody>

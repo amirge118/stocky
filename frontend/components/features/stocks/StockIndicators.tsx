@@ -47,7 +47,7 @@ function ChartSkeleton() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-1 block">
+    <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1 block">
       {children}
     </span>
   )

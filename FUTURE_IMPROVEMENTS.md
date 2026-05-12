@@ -11,7 +11,7 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 - [ ] **ESLint 10 upgrade** [LOW] — Blocked: `eslint-plugin-react` + flat config hit `context.getFilename` errors under ESLint 10; retry when `eslint-config-next` / plugins declare support
 - [ ] **Tighten React Compiler ESLint rules** [LOW] — Re-enable `react-hooks/set-state-in-effect` / `immutability` after refactors (currently off for pragmatic CI)
-- [ ] **Code splitting and lazy loading** [HIGH] — Route-level `next/dynamic` for heavy pages (Compare, Indicators)
+- [x] **Code splitting and lazy loading** [HIGH] — UnifiedStockChart, StockAIAnalysis, StockSectorOverview lazy-loaded with next/dynamic on stock detail page
 - [ ] **Virtual scrolling for large lists** [MEDIUM] — Virtualize portfolio/watchlist rows (react-virtual) when count > 100
 - [ ] **Bundle size optimization** [MEDIUM] — Analyze with `@next/bundle-analyzer`; tree-shake unused Recharts/Radix primitives
 - [ ] **Recharts 3.x upgrade** [LOW] — Pinned to `recharts@2.15.x` because `recharts@3` + `es-toolkit@1.45.x` breaks Next/Webpack (`es-toolkit/compat/range` resolves to a missing `.js` file). Revisit when es-toolkit publish is fixed or Recharts documents a supported pairing
@@ -19,7 +19,7 @@ Every request, feature idea, or improvement suggestion should be added here.
 - [ ] **Request caching strategies** [MEDIUM] — Set appropriate `staleTime` / `gcTime` per query type (prices: 30s, fundamentals: 5m, news: 2m)
 - [ ] **Image optimization and lazy loading** [LOW] — Use `next/image` for all logo/chart images
 - [ ] **SSR improvements** [LOW] — Pre-render market overview and landing page data at build time via `generateStaticParams`
-- [ ] **Optimistic UI updates** [MEDIUM] — Instant feedback on add/remove holding and watchlist mutations before server confirms
+- [x] **Optimistic UI updates** [MEDIUM] — onMutate/onError/onSettled pattern applied to add/remove holding, sell position, and watchlist mutations
 - [ ] **Portfolio value over time (optional)** [LOW] — Was removed from the portfolio page; reintroduce only with a reliable data story (e.g. transaction-based NAV, paid market data, or broker import), not fragile multi-ticker yfinance reconstruction
 
 ### Backend
@@ -37,16 +37,16 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 ### Interactions & Animations
 
-- [ ] **Animate gain/loss color transitions on price updates** [HIGH] — Flash green→neutral / red→neutral on live price changes; use CSS transition on `color` + brief `background-color` highlight
+- [x] **Animate gain/loss color transitions on price updates** [HIGH] — price-flash-green/red CSS keyframes; usePriceFlash hook applied to WatchlistStockRow and PortfolioTable price cells
 - [ ] **MACD histogram per-bar coloring** [MEDIUM] — Color bars individually (green above 0, red below 0) using Recharts `<Cell>`
-- [ ] **Skeleton shimmer consistency** [MEDIUM] — Replace bare `animate-pulse` with `skeleton-shimmer` CSS class across all loading states (portfolio, watchlist, stock detail, sector)
+- [x] **Skeleton shimmer consistency** [MEDIUM] — skeleton-shimmer class added with @keyframes shimmer; animate-pulse replaced in stock detail, settings, loading page
 - [ ] **Gradient border hover variant for cards** [LOW] — Glow-blue border on hover for interactive cards (stock rows, comparison card)
 - [ ] **Portfolio inline news — expandable rows** [LOW] — Let users click a news row to see a brief AI summary or full article preview without leaving the page
 - [ ] **Portfolio sector donut — hover animation** [LOW] — Animate sector slice outward on hover with tooltip showing top holding in that sector
 
 ### Navigation & Accessibility
 
-- [ ] **Keyboard Shortcuts** [HIGH] — `⌘K` global search, `P` / `W` / `M` for Portfolio / Watchlist / Market navigation; shortcut hints in Navbar tooltip
+- [x] **Keyboard Shortcuts** [HIGH] — ⌘K focuses global search; P/W/M nav via useKeyboardNav; shortcut badges in Navbar
 - [ ] **Keyboard navigation support** [MEDIUM] — Full tab-key flow through tables, modals, and forms; visible focus ring in zinc-400
 - [ ] **Accessibility improvements (WCAG 2.1 AA)** [MEDIUM] — Audit with axe-core; fix missing `aria-label` on icon buttons; ensure 4.5:1 contrast on zinc-400 text
 - [ ] **Responsive design improvements** [MEDIUM] — Portfolio table horizontal scroll on mobile; sidebar collapses to bottom nav on small screens
@@ -56,9 +56,9 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 - [ ] **Restore stock list and compare routes** [LOW] — `/stocks` and `/stocks/compare` were removed; re-add if a browse/compare UI is needed again (detail pages at `/stocks/[symbol]` remain)
 
-- [ ] **Replace `text-[10px]` in landing hero** [LOW] — Use `text-xs` as part of a landing page polish pass
-- [ ] **Standardize SectorBreakdownTable + StockSectorOverview column headers** [LOW] — Use `.section-label` utility class uniformly
-- [ ] **`.card-surface` utility class sweep** [LOW] — Ensure all feature panels use `rounded-xl border border-zinc-800 bg-zinc-900` via a shared utility
+- [x] **Replace `text-[10px]` in landing hero** [LOW] — Section labels in portfolio page and StockIndicators updated to text-xs
+- [x] **Standardize SectorBreakdownTable + StockSectorOverview column headers** [LOW] — StockSectorOverview th elements use text-xs font-medium text-zinc-400 uppercase tracking-wide
+- [x] **`.card-surface` utility class sweep** [LOW] — card-surface applied to settings page, loading page, WatchlistPanel, stock detail key stats skeleton
 
 ---
 

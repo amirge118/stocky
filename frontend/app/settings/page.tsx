@@ -92,11 +92,11 @@ export default function SettingsPage() {
         </div>
 
         {/* Notification Channels — toggles */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 space-y-6">
+        <div className="card-surface p-6 space-y-6">
           <h2 className="text-sm font-semibold text-white uppercase tracking-wide">Notification Channels</h2>
 
           {isPending ? (
-            <div className="space-y-4 animate-pulse">
+            <div className="space-y-4">
               <div className="h-12 bg-zinc-800 rounded-lg" />
               <div className="h-12 bg-zinc-800 rounded-lg" />
               <div className="h-12 bg-zinc-800 rounded-lg" />
@@ -161,7 +161,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Telegram Configuration */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 space-y-4">
+        <div className="card-surface p-6 space-y-4">
           <h2 className="text-sm font-semibold text-white uppercase tracking-wide">Telegram Configuration</h2>
           <p className="text-sm text-zinc-400">
             To find your Chat ID: open Telegram, message{" "}
@@ -171,7 +171,7 @@ export default function SettingsPage() {
             It will reply with your numeric ID.
           </p>
           {isPending ? (
-            <div className="animate-pulse h-10 bg-zinc-800 rounded-lg" />
+            <div className="skeleton-shimmer h-10 bg-zinc-800 rounded-lg" />
           ) : (
             <div className="flex gap-2">
               <Input
@@ -203,7 +203,7 @@ export default function SettingsPage() {
         </div>
 
         {/* WhatsApp Configuration */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 space-y-4">
+        <div className="card-surface p-6 space-y-4">
           <h2 className="text-sm font-semibold text-white uppercase tracking-wide">WhatsApp Configuration</h2>
           <p className="text-sm text-zinc-400">
             Uses the{" "}
@@ -214,7 +214,7 @@ export default function SettingsPage() {
             <code className="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-200 text-xs">WHATSAPP_PHONE_NUMBER_ID</code> set.
           </p>
           {isPending ? (
-            <div className="animate-pulse h-10 bg-zinc-800 rounded-lg" />
+            <div className="skeleton-shimmer h-10 bg-zinc-800 rounded-lg" />
           ) : (
             <div className="flex gap-2">
               <Input
