@@ -31,6 +31,7 @@ from app.models.alert import Alert  # noqa: F401
 from app.models.holding import Holding  # noqa: F401
 from app.models.notification_settings import NotificationSettings  # noqa: F401
 from app.models.stock import Stock  # noqa: F401
+from app.models.transaction import Transaction  # noqa: F401
 
 _sentry_dsn = (settings.sentry_dsn or "").strip()
 if _sentry_dsn.startswith("https://"):

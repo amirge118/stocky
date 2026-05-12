@@ -29,6 +29,7 @@ Every request, feature idea, or improvement suggestion should be added here.
 - [ ] **Redis response caching for yfinance** [HIGH] — Cache `GET /api/v1/stocks/{symbol}` and market overview responses in Redis with TTL 60s; avoid repeated yfinance fetches on bursty loads
 - [ ] **Database read replicas** [LOW] — Route read-heavy queries (holdings list, news) to read replica
 - [ ] **Database migration rollback strategies** [LOW] — Document and test `alembic downgrade` paths for every migration
+- [ ] **Migration health-check endpoint** [LOW] — Add `GET /health/migrations` that compares `alembic_version` table against `alembic head` to surface schema drift before it causes 503s
 
 ---
 
