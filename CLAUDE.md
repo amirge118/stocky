@@ -43,7 +43,15 @@ Use `isPending` for loading skeletons (NOT `isLoading` — that's v4). Get query
 ### 5. No Direct `fetch` in Components
 Use `get`/`post`/`put`/`del` from `@/lib/api/client.ts`. Never call `fetch()` directly from components or hooks.
 
-### 6. Finance Number Formatting
+### 6. New SQLAlchemy Models — Three Mandatory Places
+Every new model added under `backend/app/models/` MUST be registered in three places or the table will silently not exist in production:
+1. **`backend/app/main.py`** — add `from app.models.<name> import <Model>  # noqa: F401` alongside the other model imports (so SQLAlchemy metadata is complete)
+2. **`backend/alembic/env.py`** — same import (so `alembic autogenerate` detects the table)
+3. **`backend/alembic/versions/`** — a new migration that creates the table via `op.create_table()`
+
+Skipping any of these causes "Database temporarily unavailable" in production when code tries to INSERT into the missing table.
+
+### 7. Finance Number Formatting
 - Currency: `toLocaleString("en-US", { style: "currency", currency: "USD" })`
 - Percentages: `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
 - Prices: `font-mono` class; numeric tables: `tabular-nums`
