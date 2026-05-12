@@ -247,7 +247,7 @@ async def test_reorder_watchlists(client: TestClient):
     assert r.status_code == 204
 
     lists = client.get("/api/v1/watchlists").json()
-    names = [l["name"] for l in lists]
+    names = [wl["name"] for wl in lists]
     assert names == ["Gamma", "Alpha", "Beta"]
 
 
