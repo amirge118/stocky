@@ -94,31 +94,12 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 ### HIGH Priority
 
-- [ ] **Earnings Calendar** [HIGH]
-  - Dedicated `/earnings` page + upcoming-earnings widget on portfolio page
-  - Show date, EPS estimate, previous EPS, expected move % for all portfolio + watchlist symbols
-  - Backend: `yfinance` `Ticker.calendar` + `earnings_dates` → new `earnings_service.py`
-  - New endpoint: `GET /api/v1/stocks/{symbol}/earnings`
-  - Frontend: timeline/table view, color-coded by days until earnings
-
-- [ ] **AI Portfolio Health Coach** [HIGH]
-  - Claude AI analyzes entire portfolio: concentration risk, sector imbalance, correlation, overweight positions
-  - Actionable plain-language recommendations ("Your portfolio is 60% tech — consider diversifying")
-  - Backend: `POST /api/v1/portfolio/ai-analysis` using `anthropic` SDK (same pattern as per-stock AI analysis)
-  - Frontend: "AI Coach" card/tab on portfolio page with streaming output
-
 - [ ] **Backend-Driven Alert Checker Cron Job** [HIGH]
   - Fire Telegram/WhatsApp alerts even when browser is closed
   - Celery Beat scheduled task polls active alerts vs live yfinance prices every 60s
   - Already has infrastructure: `backend/app/celery_app.py`, `backend/app/tasks/alert_tasks.py`
 
 ### MEDIUM Priority
-
-- [ ] **Price Target Consensus Panel** [MEDIUM]
-  - On stock detail: analyst buy / hold / sell count + average price target vs current price
-  - Upside/downside % with color-coded progress bar
-  - `yfinance`: `Ticker.analyst_price_targets`, `recommendations_summary`
-  - New "Analyst Consensus" tab in StockDetail
 
 - [ ] **Portfolio Rebalancing Wizard** [MEDIUM]
   - Set target allocation % per symbol; app shows current vs target drift
@@ -138,10 +119,6 @@ Every request, feature idea, or improvement suggestion should be added here.
   - Frontend: `/calendar` route or home-page widget (market overview lives on `/`)
 
 - [ ] **VIX / volatility on home snapshot** [LOW] — Add VIX (or similar) to `MarketSnapshotBar` when backend market overview includes it; keep copy aligned with `MarketContextPanel`.
-
-- [ ] **Stock Screener with Multi-Filter UI** [MEDIUM]
-  - Filter by sector, P/E range, market cap, dividend yield, analyst rating, 52W performance
-  - Save / share screener configurations via URL params
 
 ### LOW Priority
 
@@ -284,8 +261,6 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 - [ ] Transaction history UI: add a collapsible "Trade History" table per position (symbol-filtered) and a full portfolio-level transaction log page [MEDIUM]
 - [ ] FIFO cost basis: track individual buy lots so partial sells calculate realized gain per lot for tax reporting [MEDIUM]
-- [ ] Realized gains summary: aggregate total realized P&L across all SELL transactions for a given year (tax reporting) [HIGH]
-- [ ] Multi-portfolio support: scope holdings and transactions to named portfolios (e.g. "Roth IRA", "Taxable") [HIGH]
 - [ ] CSV import for transactions: bulk-upload historical trades from broker export files [MEDIUM]
 - [ ] Dividend transactions: add DIVIDEND as a third transaction type with automatic yield calculation [LOW]
 
