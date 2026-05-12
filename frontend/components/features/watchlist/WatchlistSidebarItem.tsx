@@ -2,6 +2,9 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { GripVertical } from "lucide-react"
 import { deleteWatchlist, renameWatchlist } from "@/lib/api/watchlists"
 import { DeleteWatchlistDialog } from "./DeleteWatchlistDialog"
 import type { WatchlistListSummary } from "@/types/watchlist"
@@ -25,6 +28,14 @@ export function WatchlistSidebarItem({
   const [menuOpen, setMenuOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: list.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
 
   useEffect(() => {
     if (!menuOpen) return
@@ -78,12 +89,26 @@ export function WatchlistSidebarItem({
   return (
     <>
       <div
+        ref={setNodeRef}
+        style={style}
         className={`group flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer select-none transition-colors ${
+          isDragging ? "opacity-50 bg-zinc-800" : ""
+        } ${
           isActive ? "bg-zinc-800 text-white" : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
         }`}
         onClick={() => !isRenaming && onSelect(list.id)}
       >
-        <span className="text-zinc-500 text-xs">★</span>
+        {/* Drag handle — only shown on hover, does not trigger row click */}
+        <button
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 shrink-0 -ml-1 transition-opacity"
+          aria-label="Drag to reorder"
+          tabIndex={-1}
+        >
+          <GripVertical size={14} />
+        </button>
 
         {isRenaming ? (
           <input

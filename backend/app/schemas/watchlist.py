@@ -52,6 +52,10 @@ class WatchlistItemAdd(BaseModel):
     sector: Optional[str] = Field(None, max_length=100)
 
 
+class WatchlistReorderRequest(BaseModel):
+    ordered_ids: list[int] = Field(..., min_length=1)
+
+
 class MomentumSignal(BaseModel):
     symbol: str
     z_score: float

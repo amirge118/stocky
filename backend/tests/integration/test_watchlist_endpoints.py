@@ -230,3 +230,28 @@ async def test_momentum_signals_endpoint_empty_symbols(client: TestClient):
     r = client.get(f"/api/v1/watchlists/{wl['id']}/signals/momentum?symbols=")
     assert r.status_code == 200
     assert r.json() == {"signals": []}
+
+
+# ── PATCH /watchlists/reorder ────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_reorder_watchlists(client: TestClient):
+    a = _create_list(client, "Alpha")
+    b = _create_list(client, "Beta")
+    c = _create_list(client, "Gamma")
+
+    r = client.patch(
+        "/api/v1/watchlists/reorder",
+        json={"ordered_ids": [c["id"], a["id"], b["id"]]},
+    )
+    assert r.status_code == 204
+
+    lists = client.get("/api/v1/watchlists").json()
+    names = [l["name"] for l in lists]
+    assert names == ["Gamma", "Alpha", "Beta"]
+
+
+@pytest.mark.asyncio
+async def test_reorder_watchlists_empty_body_rejected(client: TestClient):
+    r = client.patch("/api/v1/watchlists/reorder", json={"ordered_ids": []})
+    assert r.status_code == 422

@@ -234,3 +234,28 @@ async def test_multiple_lists_independent_item_counts(db_session: AsyncSession):
     counts = {s.name: s.item_count for s in summaries}
     assert counts["List A"] == 2
     assert counts["List B"] == 1
+
+
+# ── reorder_lists ─────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_reorder_lists_updates_positions(db_session: AsyncSession):
+    """reorder_lists assigns sequential positions matching the provided order."""
+    a = await watchlist_service.create_list(db_session, "Alpha")
+    b = await watchlist_service.create_list(db_session, "Beta")
+    c = await watchlist_service.create_list(db_session, "Gamma")
+
+    await watchlist_service.reorder_lists(db_session, [c.id, a.id, b.id])
+
+    summaries = await watchlist_service.get_all_lists(db_session)
+    order = [s.name for s in summaries]
+    assert order == ["Gamma", "Alpha", "Beta"]
+
+
+@pytest.mark.asyncio
+async def test_reorder_lists_ignores_unknown_ids(db_session: AsyncSession):
+    """Unknown IDs in ordered_ids are silently skipped without error."""
+    a = await watchlist_service.create_list(db_session, "Only")
+    await watchlist_service.reorder_lists(db_session, [9999, a.id])
+    summaries = await watchlist_service.get_all_lists(db_session)
+    assert summaries[0].name == "Only"

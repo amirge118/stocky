@@ -161,6 +161,9 @@ Every request, feature idea, or improvement suggestion should be added here.
   - Multiple named watchlists ("Tech Picks", "Dividend Stocks")
   - Drag-drop symbols between groups
 
+- [ ] **Drag-to-reorder stocks within a watchlist** [LOW]
+  - Currently only the list order (sidebar) can be reordered; stock rows within a list have a static position field but no drag UX
+
 - [ ] **Dividend Income Projection** [LOW]
   - Per-holding and total annual dividend income on portfolio page
   - Monthly income calendar view

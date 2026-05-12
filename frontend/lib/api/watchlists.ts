@@ -1,4 +1,4 @@
-import { del, get, post, put } from "./client"
+import { del, get, patch, post, put } from "./client"
 import type {
   WatchlistItem,
   WatchlistItemAdd,
@@ -58,6 +58,10 @@ export async function bulkAddToWatchlist(
   items: WatchlistItemAdd[]
 ): Promise<BulkAddResult> {
   return post<BulkAddResult>(`/api/v1/watchlists/${listId}/items/bulk`, { items })
+}
+
+export async function reorderWatchlists(orderedIds: number[]): Promise<void> {
+  await patch("/api/v1/watchlists/reorder", { ordered_ids: orderedIds })
 }
 
 export async function getWatchlistMomentumSignals(

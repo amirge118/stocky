@@ -14,6 +14,7 @@ from app.schemas.watchlist import (
     WatchlistListSummary,
     WatchlistListUpdate,
     WatchlistMomentumResponse,
+    WatchlistReorderRequest,
 )
 from app.services import watchlist_service
 
@@ -44,6 +45,15 @@ async def create_watchlist(
         created_at=wl.created_at,
         items=[],
     )
+
+
+@router.patch("/reorder", status_code=status.HTTP_204_NO_CONTENT)
+async def reorder_watchlists(
+    data: WatchlistReorderRequest,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Persist the user-defined order of watchlists."""
+    await watchlist_service.reorder_lists(db, data.ordered_ids)
 
 
 @router.get("/{list_id}", response_model=WatchlistListResponse)

@@ -85,6 +85,16 @@ async def delete_list(db: AsyncSession, list_id: int) -> bool:
     return True
 
 
+async def reorder_lists(db: AsyncSession, ordered_ids: list[int]) -> None:
+    """Set position for each watchlist according to the provided id ordering."""
+    result = await db.execute(select(WatchlistList).where(WatchlistList.id.in_(ordered_ids)))
+    lists_by_id = {wl.id: wl for wl in result.scalars().all()}
+    for position, list_id in enumerate(ordered_ids):
+        if list_id in lists_by_id:
+            lists_by_id[list_id].position = position
+    await db.commit()
+
+
 async def add_item(
     db: AsyncSession,
     list_id: int,

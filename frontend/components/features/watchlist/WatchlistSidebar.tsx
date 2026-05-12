@@ -2,7 +2,22 @@
 
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { createWatchlist } from "@/lib/api/watchlists"
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { createWatchlist, reorderWatchlists } from "@/lib/api/watchlists"
 import { WatchlistSidebarItem } from "./WatchlistSidebarItem"
 import { NewListInput } from "./NewListInput"
 import type { WatchlistListSummary } from "@/types/watchlist"
@@ -21,6 +36,11 @@ export function WatchlistSidebar({
   const queryClient = useQueryClient()
   const [showNewInput, setShowNewInput] = useState(false)
   const totalCount = lists.reduce((acc, l) => acc + l.item_count, 0)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   const createMutation = useMutation({
     mutationFn: (name: string) => createWatchlist({ name }),
@@ -51,6 +71,38 @@ export function WatchlistSidebar({
     },
   })
 
+  const reorderMutation = useMutation({
+    mutationFn: (orderedIds: number[]) => reorderWatchlists(orderedIds),
+    onMutate: async (orderedIds) => {
+      await queryClient.cancelQueries({ queryKey: ["watchlists"] })
+      const prev = queryClient.getQueryData<WatchlistListSummary[]>(["watchlists"])
+      queryClient.setQueryData<WatchlistListSummary[]>(["watchlists"], (old) => {
+        if (!old) return old
+        const byId = new Map(old.map((l) => [l.id, l]))
+        return orderedIds
+          .map((id, idx) => byId.has(id) ? { ...byId.get(id)!, position: idx } : null)
+          .filter(Boolean) as WatchlistListSummary[]
+      })
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(["watchlists"], ctx.prev)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["watchlists"] })
+    },
+  })
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = lists.findIndex((l) => l.id === active.id)
+    const newIndex = lists.findIndex((l) => l.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const reordered = arrayMove(lists, oldIndex, newIndex)
+    reorderMutation.mutate(reordered.map((l) => l.id))
+  }
+
   return (
     <aside className="w-64 shrink-0 sticky top-[53px] max-h-[calc(100vh-53px)] overflow-y-auto bg-zinc-900 border-r border-zinc-800 flex flex-col py-4">
       {/* All row */}
@@ -70,19 +122,30 @@ export function WatchlistSidebar({
       {/* Divider */}
       {lists.length > 0 && <div className="my-2 mx-3 border-t border-zinc-800" />}
 
-      {/* List items */}
+      {/* Sortable list */}
       <div className="flex-1 px-2 space-y-0.5">
-        {lists.map((list) => (
-          <WatchlistSidebarItem
-            key={list.id}
-            list={list}
-            isActive={activeListId === list.id}
-            onSelect={onSelect}
-            onDeleted={(id) => {
-              if (activeListId === id) onSelect(null)
-            }}
-          />
-        ))}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={lists.map((l) => l.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {lists.map((list) => (
+              <WatchlistSidebarItem
+                key={list.id}
+                list={list}
+                isActive={activeListId === list.id}
+                onSelect={onSelect}
+                onDeleted={(id) => {
+                  if (activeListId === id) onSelect(null)
+                }}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
 
         {/* New list input */}
         {showNewInput && (
