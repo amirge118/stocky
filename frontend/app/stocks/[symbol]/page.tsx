@@ -6,8 +6,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react"
 import { LivePriceBadge } from "@/components/features/stocks/LivePriceBadge"
 import { getStock, fetchStockData, getStockInfo } from "@/lib/api/stocks"
 import { ApiError } from "@/lib/api/client"
-import { StockChart } from "@/components/features/stocks/StockChart"
-import { StockIndicators } from "@/components/features/stocks/StockIndicators"
+import { UnifiedStockChart } from "@/components/features/stocks/UnifiedStockChart"
 import { StockKeyStats } from "@/components/features/stocks/StockKeyStats"
 import { StockAbout } from "@/components/features/stocks/StockAbout"
 import { StockNews } from "@/components/features/stocks/StockNews"
@@ -143,11 +142,8 @@ export default function StockDetailPage() {
               <StockAbout info={info} compact />
             ) : null}
 
-            {/* Chart */}
-            <StockChart symbol={symbol} currency={liveData?.currency} />
-
-            {/* Technical Indicators */}
-            <StockIndicators symbol={symbol} />
+            {/* Unified Chart with all overlays */}
+            <UnifiedStockChart symbol={symbol} currency={liveData?.currency} />
 
             {/* Key Stats — 2–3 rows below chart */}
             {infoLoading ? (
