@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { sellHolding } from "@/lib/api/portfolio"
+import { ApiError } from "@/lib/api/client"
 import { useToast } from "@/hooks/use-toast"
 import type { PortfolioPosition } from "@/types/portfolio"
 
@@ -85,7 +86,14 @@ export function SellPositionDialog({ position, open, onOpenChange }: Props) {
       onOpenChange(false)
     },
     onError: (err: Error) => {
-      toast({ title: "Sell failed", description: err.message, variant: "destructive" })
+      const is503 = err instanceof ApiError && err.status === 503
+      toast({
+        title: "Sell failed",
+        description: is503
+          ? "Server is warming up — please try again in a few seconds."
+          : err.message,
+        variant: "destructive",
+      })
     },
   })
 

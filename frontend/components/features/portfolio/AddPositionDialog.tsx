@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { searchStocks } from "@/lib/api/stocks"
 import { addHolding } from "@/lib/api/portfolio"
+import { ApiError } from "@/lib/api/client"
 import { useToast } from "@/hooks/use-toast"
 import type {
   PortfolioPosition,
@@ -172,7 +173,14 @@ export function AddPositionDialog({ open, onOpenChange, onSuccess, defaultPositi
       if (context?.previous) {
         queryClient.setQueryData(["portfolio-summary"], context.previous)
       }
-      toast({ title: "Error", description: err.message, variant: "destructive" })
+      const is503 = err instanceof ApiError && err.status === 503
+      toast({
+        title: "Error",
+        description: is503
+          ? "Server is warming up — please try again in a few seconds."
+          : err.message,
+        variant: "destructive",
+      })
     },
     onSuccess: () => {
       toast({ title: `${selected?.symbol} added to portfolio` })
