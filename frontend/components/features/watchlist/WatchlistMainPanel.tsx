@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useQuery, useQueries } from "@tanstack/react-query"
 import { getWatchlist, getWatchlists } from "@/lib/api/watchlists"
+import { ApiError } from "@/lib/api/client"
 import { fetchStockDataBatch, getStockHistory, fetchStockEnrichedBatch } from "@/lib/api/stocks"
 import { useStockPrices } from "@/lib/hooks/useStockPrices"
 import { WatchlistStockList } from "./WatchlistStockList"
@@ -24,10 +25,18 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
   const [addOpen, setAddOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>("table")
 
+  const retryOn503 = (failureCount: number, error: Error) => {
+    if (error instanceof ApiError && error.status === 503) return failureCount < 5
+    return failureCount < 2
+  }
+  const retryDelay = (attempt: number) => Math.min(2000 * 2 ** attempt, 30_000)
+
   // "All" view: fetch all lists, then each individual list
-  const { data: summaries, isError: summariesError } = useQuery({
+  const { data: summaries, isError: summariesError, error: summariesErr } = useQuery({
     queryKey: ["watchlists"],
     queryFn: getWatchlists,
+    retry: retryOn503,
+    retryDelay,
   })
 
   const allListIds = summaries?.map((s) => s.id) ?? []
@@ -46,6 +55,8 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
     queryKey: ["watchlists", activeListId!],
     queryFn: () => getWatchlist(activeListId!),
     enabled: activeListId !== null,
+    retry: retryOn503,
+    retryDelay,
   })
 
   // Derive items to display
@@ -252,8 +263,10 @@ export function WatchlistMainPanel({ activeListId }: WatchlistMainPanelProps) {
 
       {/* Error state */}
       {summariesError && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4 text-sm text-zinc-400 mb-4">
-          Failed to load watchlist data. Check your connection.
+        <div className="rounded-xl border border-amber-800/50 bg-amber-950/30 px-5 py-4 text-sm text-amber-300 mb-4">
+          {summariesErr instanceof ApiError && summariesErr.status === 503
+            ? "Server is waking up — watchlist data will load shortly. Try refreshing."
+            : "Failed to load watchlist data. Check your connection."}
         </div>
       )}
 
