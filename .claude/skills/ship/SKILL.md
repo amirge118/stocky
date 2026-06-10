@@ -22,6 +22,24 @@ git log --oneline -3
 
 ---
 
+## Step 1b — Pre-push lint (backend)
+
+Before pushing, always run ruff on any changed Python files to catch import sort and formatting errors before CI sees them:
+
+```bash
+cd backend && .venv/bin/ruff check --fix app/ && .venv/bin/ruff format app/
+```
+
+If ruff made changes: stage and amend the last commit (only if it hasn't been pushed yet):
+```bash
+git add -u backend/app/
+git commit --amend --no-edit
+```
+
+If the commit was already pushed: create a new `fix(ci): ruff` commit instead.
+
+---
+
 ## Step 2 — Push to GitHub
 
 **If on `main`:**
