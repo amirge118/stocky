@@ -185,9 +185,13 @@ async def get_sector_browse_results(
             SectorPeerResponse(
                 symbol=sym,
                 name=(
-                    (meta.name if meta else None)
-                    or (data.name if data else None)
-                    or sym
+                    next(
+                        (n for n in [
+                            meta.name if meta else None,
+                            data.name if data else None,
+                        ] if n and n.upper() != sym.upper()),
+                        sym,
+                    )
                 ),
                 sector=(info.sector if info else None) or sector,
                 industry=info.industry if info else None,
