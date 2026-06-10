@@ -65,7 +65,7 @@ function formatTooltipDate(ts: number, period: string): string {
 
 // ─── Candlestick via <Customized> (has access to real scale functions) ────────
 
-function CandlestickLayer({ xAxisMap, yAxisMap, data: chartData }: any) {
+function CandlestickLayer({ xAxisMap, yAxisMap, priceData }: any) {
   const xAxis = xAxisMap?.[0]
   const yAxis = yAxisMap?.["price"]
   if (!xAxis?.scale || !yAxis?.scale) return null
@@ -76,7 +76,7 @@ function CandlestickLayer({ xAxisMap, yAxisMap, data: chartData }: any) {
 
   return (
     <g>
-      {(chartData as UnifiedDataPoint[])?.map((d, i) => {
+      {(priceData as UnifiedDataPoint[])?.map((d, i) => {
         if (d.open == null || d.high == null || d.low == null) return null
         const rx = xScale(d.t)
         if (rx == null || isNaN(rx)) return null
@@ -413,7 +413,7 @@ export function UnifiedStockChart({ symbol, currency = "USD" }: UnifiedStockChar
                       legendType="none"
                       activeDot={{ r: 3, strokeWidth: 0, fill: priceColor }}
                     />
-                    <Customized component={CandlestickLayer} />
+                    <Customized component={(props: any) => <CandlestickLayer {...props} priceData={data} />} />
                   </>
                 )}
 

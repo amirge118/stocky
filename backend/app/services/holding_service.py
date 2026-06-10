@@ -20,6 +20,7 @@ from app.schemas.stock import (
     StockDataResponse,
     StockInfoResponse,
 )
+from app.core import yf_client
 from app.services.stock_data import (
     fetch_stock_data_from_yfinance,
     fetch_stock_info,
@@ -264,15 +265,28 @@ async def get_sector_breakdown(
     if not positions:
         return SectorBreakdownResponse(sectors=[], total_value=0.0)
 
-    # Use fetch_stock_info (cached 10min) instead of raw yfinance - includes sector
+    symbols = [pos.symbol for pos in positions]
+
+    # Primary: fetch_stock_info (cached, uses FMP then yfinance fallback)
     info_results = await asyncio.gather(
-        *[fetch_stock_info(pos.symbol) for pos in positions],
+        *[fetch_stock_info(sym) for sym in symbols],
         return_exceptions=True,
     )
-    sectors = [
+    sectors: list[Optional[str]] = [
         info.sector if isinstance(info, StockInfoResponse) else None
         for info in info_results
     ]
+
+    # Secondary fallback: direct yfinance call for any symbols still missing sector
+    missing_idx = [i for i, s in enumerate(sectors) if not s]
+    if missing_idx:
+        yf_results = await asyncio.gather(
+            *[yf_client.fetch_info(symbols[i]) for i in missing_idx],
+            return_exceptions=True,
+        )
+        for idx, yf_res in zip(missing_idx, yf_results):
+            if isinstance(yf_res, dict) and yf_res.get("sector"):
+                sectors[idx] = yf_res["sector"]
 
     # Group by sector
     sector_map: dict[str, dict] = {}
