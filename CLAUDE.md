@@ -47,11 +47,21 @@ Use `get`/`post`/`put`/`del` from `@/lib/api/client.ts`. Never call `fetch()` di
 Every new model added under `backend/app/models/` MUST be registered in three places or the table will silently not exist in production:
 1. **`backend/app/main.py`** — add `from app.models.<name> import <Model>  # noqa: F401` alongside the other model imports (so SQLAlchemy metadata is complete)
 2. **`backend/alembic/env.py`** — same import (so `alembic autogenerate` detects the table)
-3. **`backend/alembic/versions/`** — a new migration that creates the table via `op.create_table()`
+3. **`backend/alembic/versions/`** — a new migration that creates the table via `op.create_table()`, and immediately follows with `op.execute('ALTER TABLE public."<name>" ENABLE ROW LEVEL SECURITY')` in the same `upgrade()` function — otherwise Supabase Security Advisor flags it as an error.
 
 Skipping any of these causes "Database temporarily unavailable" in production when code tries to INSERT into the missing table.
 
-### 7. Finance Number Formatting
+### 7. Production DB Migrations — Always Run After Ship
+
+After any commit that adds a file under `backend/alembic/versions/`, run migrations against production Supabase from the local repo. The Render Dockerfile runs `alembic upgrade head` at container startup but is unreliable — it may lag or fail silently.
+
+```bash
+cd backend && .venv/bin/alembic upgrade head
+```
+
+The `.venv` binary reads `DATABASE_URL` from `backend/.env` (production Supabase at `aws-1-ap-northeast-1.pooler.supabase.com`). The `/ship` skill handles this automatically in Step 2b — never skip it.
+
+### 8. Finance Number Formatting
 - Currency: `toLocaleString("en-US", { style: "currency", currency: "USD" })`
 - Percentages: `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
 - Prices: `font-mono` class; numeric tables: `tabular-nums`
