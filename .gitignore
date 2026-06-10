@@ -90,3 +90,4 @@ docker-compose.override.yml
 backend/logs/
 frontend/logs/
 *.log
+.vercel

@@ -39,6 +39,27 @@ Wait for the PR merge to complete before proceeding.
 
 ---
 
+## Step 2b — Apply DB migrations (if any)
+
+Check if the commits being shipped touch any migration files:
+
+```bash
+git diff HEAD~1 HEAD --name-only | grep "backend/alembic/versions/"
+```
+
+- **No migration files changed** → skip this step entirely, proceed to Step 3.
+- **Migration files changed** → run:
+
+```bash
+cd backend && .venv/bin/alembic upgrade head
+```
+
+Report the alembic output to the user. If it errors, stop and report the error — do not continue to Step 3.
+
+> Note: `.venv/bin/alembic` uses `DATABASE_URL` from `backend/.env` which points to production Supabase. This is the authoritative migration path; the Render Dockerfile migration is a safety net only.
+
+---
+
 ## Step 3 — Get the CI run ID
 
 ```bash
