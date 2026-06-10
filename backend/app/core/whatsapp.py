@@ -81,7 +81,9 @@ async def send_test_whatsapp_message(phone: str) -> tuple[bool, str]:
         "messaging_product": "whatsapp",
         "to": phone.lstrip("+"),
         "type": "text",
-        "text": {"body": "🔔 Stocky: Test notification — your WhatsApp alerts are connected!"},
+        "text": {
+            "body": "🔔 Stocky: Test notification — your WhatsApp alerts are connected!"
+        },
     }
 
     try:

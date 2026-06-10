@@ -10,7 +10,9 @@ from app.models.base import BaseModel
 class Holding(BaseModel):
     __tablename__ = "holdings"
 
-    symbol: Mapped[str] = mapped_column(String(15), unique=True, nullable=False, index=True)
+    symbol: Mapped[str] = mapped_column(
+        String(15), unique=True, nullable=False, index=True
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     shares: Mapped[float] = mapped_column(Float, nullable=False)
     avg_cost: Mapped[float] = mapped_column(Float, nullable=False)

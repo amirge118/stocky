@@ -18,10 +18,7 @@ def _is_rate_limited(exc: BaseException) -> bool:
     """Return True when Yahoo Finance is throttling us (HTTP 429 or equivalent)."""
     s = str(exc).lower()
     return (
-        "429" in s
-        or "too many requests" in s
-        or "rate limit" in s
-        or "ratelimit" in s
+        "429" in s or "too many requests" in s or "rate limit" in s or "ratelimit" in s
     )
 
 
@@ -32,7 +29,15 @@ def _is_retryable(exc: BaseException) -> bool:
     s = str(exc).lower()
     return any(
         kw in s
-        for kw in ("timeout", "timed out", "connection", "temporarily", "reset", "eof", "network")
+        for kw in (
+            "timeout",
+            "timed out",
+            "connection",
+            "temporarily",
+            "reset",
+            "eof",
+            "network",
+        )
     )
 
 

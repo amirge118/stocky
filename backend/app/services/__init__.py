@@ -10,4 +10,12 @@ from app.services import (
     watchlist_service,
 )
 
-__all__ = ["alert_service", "stock_service", "stock_data", "stock_ai", "watchlist_service", "market_service", "price_service"]
+__all__ = [
+    "alert_service",
+    "stock_service",
+    "stock_data",
+    "stock_ai",
+    "watchlist_service",
+    "market_service",
+    "price_service",
+]

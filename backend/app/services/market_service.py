@@ -27,9 +27,26 @@ SECTORS: dict[str, str] = {}
 
 # Trimmed to ~20 mega-cap stocks confirmed available on the FMP basic plan
 TOP_MOVERS_UNIVERSE = [
-    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA",
-    "JPM", "XOM", "JNJ", "WMT", "BAC", "NFLX", "AMD",
-    "ORCL", "ADBE", "GE", "KO", "WFC", "MCD",
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "AMZN",
+    "GOOGL",
+    "META",
+    "TSLA",
+    "JPM",
+    "XOM",
+    "JNJ",
+    "WMT",
+    "BAC",
+    "NFLX",
+    "AMD",
+    "ORCL",
+    "ADBE",
+    "GE",
+    "KO",
+    "WFC",
+    "MCD",
 ]
 
 
@@ -39,7 +56,8 @@ def _parse_quote(q: dict) -> tuple[float, float, float, float]:
     change = float(q.get("change") or 0)
     prev_close = float(q.get("previousClose") or (price - change) or price)
     change_pct = float(
-        q.get("changePercentage") or ((change / prev_close * 100) if prev_close > 0 else 0.0)
+        q.get("changePercentage")
+        or ((change / prev_close * 100) if prev_close > 0 else 0.0)
     )
     return price, prev_close, change, change_pct
 
@@ -52,9 +70,11 @@ async def get_market_overview() -> MarketOverviewResponse:
         return MarketOverviewResponse.model_validate(cached)
 
     client = get_fmp_client()
-    all_syms = list(dict.fromkeys(
-        list(INDICES.values()) + list(SECTORS.values()) + TOP_MOVERS_UNIVERSE
-    ))
+    all_syms = list(
+        dict.fromkeys(
+            list(INDICES.values()) + list(SECTORS.values()) + TOP_MOVERS_UNIVERSE
+        )
+    )
 
     async def _get_quote(sym: str) -> tuple:
         try:

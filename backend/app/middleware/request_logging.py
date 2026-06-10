@@ -72,7 +72,11 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             request_body = await request.body()
 
             async def receive() -> dict:
-                return {"type": "http.request", "body": request_body, "more_body": False}
+                return {
+                    "type": "http.request",
+                    "body": request_body,
+                    "more_body": False,
+                }
 
             request = Request(request.scope, receive)
 
@@ -102,7 +106,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         else:
             log_level = logging.ERROR
 
-        parts = [f"[{request_id}] {client_ip} {method} {path} {status} {duration_ms:.0f}ms"]
+        parts = [
+            f"[{request_id}] {client_ip} {method} {path} {status} {duration_ms:.0f}ms"
+        ]
         if getattr(settings, "log_request_payload", True) and request_body:
             parts.append(f"  request: {_safe_payload(request_body)}")
         if getattr(settings, "log_response_payload", True) and response_body:

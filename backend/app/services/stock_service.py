@@ -43,9 +43,7 @@ __all__ = [
 
 async def get_stock_by_symbol(db: AsyncSession, symbol: str) -> Optional[Stock]:
     """Get a stock by its symbol."""
-    result = await db.execute(
-        select(Stock).where(Stock.symbol == symbol.upper())
-    )
+    result = await db.execute(select(Stock).where(Stock.symbol == symbol.upper()))
     return result.scalar_one_or_none()
 
 
@@ -186,10 +184,14 @@ async def get_sector_browse_results(
                 symbol=sym,
                 name=(
                     next(
-                        (n for n in [
-                            meta.name if meta else None,
-                            data.name if data else None,
-                        ] if n and n.upper() != sym.upper()),
+                        (
+                            n
+                            for n in [
+                                meta.name if meta else None,
+                                data.name if data else None,
+                            ]
+                            if n and n.upper() != sym.upper()
+                        ),
                         sym,
                     )
                 ),
@@ -226,8 +228,12 @@ async def get_sector_peers(
             fetch_stock_info(stock.symbol),
             return_exceptions=True,
         )
-        data: Optional[StockDataResponse] = data_res if isinstance(data_res, StockDataResponse) else None
-        info: Optional[StockInfoResponse] = info_res if isinstance(info_res, StockInfoResponse) else None
+        data: Optional[StockDataResponse] = (
+            data_res if isinstance(data_res, StockDataResponse) else None
+        )
+        info: Optional[StockInfoResponse] = (
+            info_res if isinstance(info_res, StockInfoResponse) else None
+        )
         return SectorPeerResponse(
             symbol=stock.symbol,
             name=stock.name,

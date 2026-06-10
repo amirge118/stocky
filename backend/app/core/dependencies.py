@@ -1,4 +1,3 @@
-
 from app.core.database import get_db
 
 # Re-export common dependencies

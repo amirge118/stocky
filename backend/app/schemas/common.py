@@ -8,6 +8,7 @@ class HealthCheck(BaseModel):
     status: str  # "ok" or "error"
     detail: Optional[str] = None
 
+
 class HealthResponse(BaseModel):
     status: str  # "healthy" or "degraded"
     timestamp: datetime

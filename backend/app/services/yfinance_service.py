@@ -14,9 +14,7 @@ from app.core.cache import cache_get, cache_set
 logger = logging.getLogger(__name__)
 
 
-async def fetch_history_daily(
-    symbol: str, start: date, end: date
-) -> dict[date, float]:
+async def fetch_history_daily(symbol: str, start: date, end: date) -> dict[date, float]:
     """Return daily close prices for *symbol* from *start* to *end* (inclusive).
 
     Returns an empty dict on any failure.
@@ -37,6 +35,7 @@ async def fetch_history_daily(
             return {}
         # yfinance ≥0.2.x may return MultiIndex columns — flatten to single level
         import pandas as pd
+
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
         return {idx.date(): float(price) for idx, price in df["Close"].items()}
@@ -69,9 +68,12 @@ async def fetch_history_intraday(
         if df.empty:
             return []
         import pandas as pd
+
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
-        return [(idx.to_pydatetime(), float(price)) for idx, price in df["Close"].items()]
+        return [
+            (idx.to_pydatetime(), float(price)) for idx, price in df["Close"].items()
+        ]
 
     try:
         result = await asyncio.to_thread(_sync)
@@ -79,5 +81,7 @@ async def fetch_history_intraday(
         logger.warning("yfinance intraday fetch failed for %s: %s", symbol, exc)
         return []
 
-    await cache_set(cache_key, [(ts.isoformat(), price) for ts, price in result], ttl=60)
+    await cache_set(
+        cache_key, [(ts.isoformat(), price) for ts, price in result], ttl=60
+    )
     return result

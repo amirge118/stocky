@@ -9,7 +9,9 @@ from app.services import market_service
 router = APIRouter()
 
 
-@router.get("/overview", response_model=MarketOverviewResponse, summary="Market overview")
+@router.get(
+    "/overview", response_model=MarketOverviewResponse, summary="Market overview"
+)
 async def get_market_overview() -> MarketOverviewResponse:
     """Return indices, sector heatmap, and top movers. Cached 60 seconds."""
     cache_key = "market:overview"

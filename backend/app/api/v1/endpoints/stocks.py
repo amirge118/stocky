@@ -44,7 +44,9 @@ class BatchStockDataRequest(BaseModel):
 
 
 @router.post("/batch-data", summary="Fetch live data for multiple stocks")
-async def get_batch_stock_data(body: BatchStockDataRequest) -> dict[str, StockDataResponse]:
+async def get_batch_stock_data(
+    body: BatchStockDataRequest,
+) -> dict[str, StockDataResponse]:
     """Fetch live stock data for up to 50 symbols in one request."""
     result = await stock_service.fetch_stock_data_batch(body.symbols)
     return result
@@ -57,7 +59,9 @@ async def options_batch_data() -> Response:
 
 
 @router.post("/enriched-batch", summary="Fetch enriched data for multiple stocks")
-async def get_enriched_batch(body: BatchStockDataRequest) -> dict[str, StockEnrichedData]:
+async def get_enriched_batch(
+    body: BatchStockDataRequest,
+) -> dict[str, StockEnrichedData]:
     """Fetch 52W range, avg volume, and analyst rating for up to 50 symbols. Cached 1hr."""
     return await stock_service.fetch_stock_enriched_batch(body.symbols)
 
@@ -77,7 +81,9 @@ async def list_stocks(
 ) -> StockListResponse:
     """Get a paginated list of all stocks."""
     skip = (page - 1) * limit
-    stocks, total = await stock_service.get_stocks(db, skip=skip, limit=limit, sector=sector)
+    stocks, total = await stock_service.get_stocks(
+        db, skip=skip, limit=limit, sector=sector
+    )
 
     total_pages = (total + limit - 1) // limit if total > 0 else 0
 
@@ -92,7 +98,11 @@ async def list_stocks(
     )
 
 
-@router.get("/compare-summary", response_model=CompareSummaryResponse, summary="AI compare summary")
+@router.get(
+    "/compare-summary",
+    response_model=CompareSummaryResponse,
+    summary="AI compare summary",
+)
 async def get_compare_summary(
     symbols: str = Query(..., description="Comma-separated symbols, max 5"),
 ) -> CompareSummaryResponse:
@@ -101,15 +111,21 @@ async def get_compare_summary(
     return await stock_service.generate_compare_summary(sym_list)
 
 
-@router.get("/sector-peers", response_model=list[SectorPeerResponse], summary="Get sector peers")
+@router.get(
+    "/sector-peers", response_model=list[SectorPeerResponse], summary="Get sector peers"
+)
 async def get_sector_peers(
     sector: str = Query(..., description="Sector name"),
-    symbol: Optional[str] = Query(None, description="Current stock symbol (highlighted in results)"),
+    symbol: Optional[str] = Query(
+        None, description="Current stock symbol (highlighted in results)"
+    ),
     limit: int = Query(10, ge=1, le=20),
     db: AsyncSession = Depends(get_db_session),
 ) -> list[SectorPeerResponse]:
     """Get stocks in the same sector with price and fundamentals."""
-    return await stock_service.get_sector_peers(db, sector=sector, current_symbol=symbol, limit=limit)
+    return await stock_service.get_sector_peers(
+        db, sector=sector, current_symbol=symbol, limit=limit
+    )
 
 
 @router.get("/search", response_model=list[StockSearchResult], summary="Search stocks")
@@ -123,7 +139,11 @@ async def search_stocks(
     return await stock_service.search_stocks_from_yfinance(q, limit=limit)
 
 
-@router.get("/{symbol}/history", response_model=StockHistoryResponse, summary="Get stock price history")
+@router.get(
+    "/{symbol}/history",
+    response_model=StockHistoryResponse,
+    summary="Get stock price history",
+)
 async def get_stock_history(
     symbol: str,
     period: str = Query("1m", description="Period: 1d | 1w | 1m | 6m | 1y"),
@@ -132,7 +152,11 @@ async def get_stock_history(
     return await stock_service.fetch_stock_history(symbol, period=period)
 
 
-@router.get("/{symbol}/info", response_model=StockInfoResponse, summary="Get detailed company info")
+@router.get(
+    "/{symbol}/info",
+    response_model=StockInfoResponse,
+    summary="Get detailed company info",
+)
 async def get_stock_info(symbol: str) -> StockInfoResponse:
     """Fetch detailed company information from yfinance. Cached 5 minutes."""
     cache_key = f"stock:info:{symbol.upper()}"
@@ -144,7 +168,9 @@ async def get_stock_info(symbol: str) -> StockInfoResponse:
     return result
 
 
-@router.get("/{symbol}/news", response_model=list[StockNewsItem], summary="Get stock news")
+@router.get(
+    "/{symbol}/news", response_model=list[StockNewsItem], summary="Get stock news"
+)
 async def get_stock_news(
     symbol: str,
     limit: int = Query(8, ge=1, le=20, description="Max news items to return"),
@@ -159,7 +185,11 @@ async def get_stock_news(
     return result
 
 
-@router.get("/{symbol}/analysis", response_model=StockAIAnalysisResponse, summary="Get AI stock analysis")
+@router.get(
+    "/{symbol}/analysis",
+    response_model=StockAIAnalysisResponse,
+    summary="Get AI stock analysis",
+)
 async def get_stock_analysis(symbol: str) -> StockAIAnalysisResponse:
     """Generate an AI-powered analysis for a stock using Anthropic Claude."""
     return await stock_service.generate_ai_analysis(symbol)
@@ -207,7 +237,9 @@ async def browse_stocks_by_sector(
     cached = await cache_get(cache_key)
     if cached is not None:
         return [SectorPeerResponse.model_validate(r) for r in cached]
-    result = await stock_service.get_sector_browse_results(db, sector=sector, limit=limit)
+    result = await stock_service.get_sector_browse_results(
+        db, sector=sector, limit=limit
+    )
     if result:
         await cache_set(cache_key, [r.model_dump() for r in result], ttl=300)
     return result
@@ -228,7 +260,11 @@ async def get_stock(
     return StockResponse.model_validate(stock)
 
 
-@router.get("/{symbol}/indicators", response_model=StockIndicatorsResponse, summary="Get technical indicators")
+@router.get(
+    "/{symbol}/indicators",
+    response_model=StockIndicatorsResponse,
+    summary="Get technical indicators",
+)
 async def get_stock_indicators(
     symbol: str,
     period: str = Query("6m", description="Period: 1m | 6m | 1y | 2y | 5y"),
@@ -245,7 +281,12 @@ async def get_stock_indicators(
     return result
 
 
-@router.post("", response_model=StockResponse, status_code=status.HTTP_201_CREATED, summary="Create a new stock")
+@router.post(
+    "",
+    response_model=StockResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new stock",
+)
 @limiter.limit("30/minute")
 async def create_stock(
     request: Request,
@@ -273,7 +314,9 @@ async def update_stock(
     return StockResponse.model_validate(stock)
 
 
-@router.delete("/{symbol}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a stock")
+@router.delete(
+    "/{symbol}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a stock"
+)
 async def delete_stock(
     symbol: str,
     db: AsyncSession = Depends(get_db_session),
@@ -287,7 +330,9 @@ async def delete_stock(
         )
 
 
-@router.get("/{symbol}/data", response_model=StockDataResponse, summary="Fetch live stock data")
+@router.get(
+    "/{symbol}/data", response_model=StockDataResponse, summary="Fetch live stock data"
+)
 async def get_stock_data(symbol: str) -> StockDataResponse:
     """Fetch live stock data from yfinance API."""
     return await stock_service.fetch_stock_data_from_yfinance(symbol)

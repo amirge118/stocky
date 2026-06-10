@@ -10,6 +10,7 @@ def _get_user_or_ip(request: Request) -> str:
     if auth.startswith("Bearer ") and len(auth) > 7:
         # Hash it to avoid storing raw tokens in Redis keys
         import hashlib
+
         return "user:" + hashlib.sha256(auth[7:].encode()).hexdigest()[:16]
     return get_remote_address(request)
 

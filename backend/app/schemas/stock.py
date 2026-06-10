@@ -6,19 +6,26 @@ from pydantic import BaseModel, Field
 
 class StockBase(BaseModel):
     """Base stock schema with common fields."""
-    symbol: str = Field(..., min_length=1, max_length=15, description="Stock ticker symbol")
+
+    symbol: str = Field(
+        ..., min_length=1, max_length=15, description="Stock ticker symbol"
+    )
     name: str = Field(..., min_length=1, max_length=255, description="Company name")
-    exchange: str = Field(..., min_length=1, max_length=50, description="Stock exchange")
+    exchange: str = Field(
+        ..., min_length=1, max_length=50, description="Stock exchange"
+    )
     sector: Optional[str] = Field(None, max_length=100, description="Industry sector")
 
 
 class StockCreate(StockBase):
     """Schema for creating a new stock."""
+
     pass
 
 
 class StockUpdate(BaseModel):
     """Schema for updating a stock."""
+
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     exchange: Optional[str] = Field(None, min_length=1, max_length=50)
     sector: Optional[str] = Field(None, max_length=100)
@@ -26,6 +33,7 @@ class StockUpdate(BaseModel):
 
 class StockResponse(StockBase):
     """Schema for stock API response."""
+
     id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -36,6 +44,7 @@ class StockResponse(StockBase):
 
 class StockDataResponse(BaseModel):
     """Schema for live stock data from yfinance."""
+
     symbol: str
     name: str
     current_price: float = Field(..., description="Current stock price")
@@ -49,6 +58,7 @@ class StockDataResponse(BaseModel):
 
 class StockSearchResult(BaseModel):
     """Schema for a stock search result from yfinance."""
+
     symbol: str
     name: str
     exchange: str
@@ -62,6 +72,7 @@ class StockSearchResult(BaseModel):
 
 class StockListResponse(BaseModel):
     """Schema for paginated stock list response."""
+
     data: list[StockResponse]
     meta: dict = Field(
         default_factory=lambda: {
@@ -76,16 +87,17 @@ class StockListResponse(BaseModel):
 class StockHistoryPoint(BaseModel):
     """A single OHLCV data point for stock history."""
 
-    t: int            # Unix ms timestamp
-    o: float          # open
-    h: float          # high
+    t: int  # Unix ms timestamp
+    o: float  # open
+    h: float  # high
     l: float  # noqa: E741  # low price (OHLC)
-    c: float          # close
+    c: float  # close
     v: Optional[int] = None  # volume
 
 
 class StockHistoryResponse(BaseModel):
     """Schema for stock price history response."""
+
     symbol: str
     period: str
     data: list[StockHistoryPoint]
@@ -93,6 +105,7 @@ class StockHistoryResponse(BaseModel):
 
 class StockInfoResponse(BaseModel):
     """Schema for detailed company information."""
+
     symbol: str
     description: Optional[str] = None
     website: Optional[str] = None
@@ -113,6 +126,7 @@ class StockInfoResponse(BaseModel):
 
 class StockNewsItem(BaseModel):
     """A single news item for a stock."""
+
     title: str
     publisher: Optional[str] = None
     link: Optional[str] = None
@@ -121,23 +135,27 @@ class StockNewsItem(BaseModel):
 
 class PortfolioNewsItem(StockNewsItem):
     """News item with source symbol for portfolio feed."""
+
     symbol: str
 
 
 class StockAIAnalysisResponse(BaseModel):
     """Schema for AI-generated stock analysis."""
+
     symbol: str
     analysis: str
 
 
 class CompareSummaryResponse(BaseModel):
     """AI-generated comparison summary for multiple stocks."""
+
     symbols: list[str]
     summary: str
 
 
 class SectorPeerResponse(BaseModel):
     """Sector peer with enriched price and fundamentals."""
+
     symbol: str
     name: str
     sector: Optional[str] = None
@@ -153,17 +171,20 @@ class IndicatorPoint(BaseModel):
     t: int  # Unix ms timestamp
     v: Optional[float]  # value (None for missing/warmup periods)
 
+
 class BollingerPoint(BaseModel):
     t: int
     upper: Optional[float]
     middle: Optional[float]  # SMA20
     lower: Optional[float]
 
+
 class MacdPoint(BaseModel):
     t: int
     macd: Optional[float]
     signal: Optional[float]
     hist: Optional[float]
+
 
 class StockIndicatorsResponse(BaseModel):
     symbol: str
@@ -176,8 +197,9 @@ class StockIndicatorsResponse(BaseModel):
 
 
 class DividendPoint(BaseModel):
-    t: int    # Unix ms timestamp of ex-dividend date
+    t: int  # Unix ms timestamp of ex-dividend date
     amount: float  # dividend amount per share
+
 
 class StockDividendsResponse(BaseModel):
     symbol: str
@@ -188,8 +210,11 @@ class StockDividendsResponse(BaseModel):
 
 class StockEnrichedData(BaseModel):
     """Slow-changing enrichment data: 52W range, avg volume, analyst rating."""
+
     symbol: str
     fifty_two_week_high: Optional[float] = None
     fifty_two_week_low: Optional[float] = None
-    avg_volume: Optional[int] = None          # averageDailyVolume10Day
-    analyst_rating: Optional[str] = None      # recommendationKey: "buy"|"hold"|"sell"|"strong_buy"|"underperform"
+    avg_volume: Optional[int] = None  # averageDailyVolume10Day
+    analyst_rating: Optional[
+        str
+    ] = None  # recommendationKey: "buy"|"hold"|"sell"|"strong_buy"|"underperform"

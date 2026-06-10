@@ -40,7 +40,9 @@ async def list_alerts(
     db: AsyncSession = Depends(get_db),
 ) -> list[AlertResponse]:
     """List all alerts, optionally filtered by ticker."""
-    alerts = await alert_service.list_alerts(db, limit=limit, offset=offset, ticker=ticker)
+    alerts = await alert_service.list_alerts(
+        db, limit=limit, offset=offset, ticker=ticker
+    )
     return [AlertResponse.model_validate(a) for a in alerts]
 
 

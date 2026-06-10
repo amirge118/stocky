@@ -31,6 +31,7 @@ def _get_redis() -> Optional[Any]:
         return None
     try:
         import redis.asyncio as aioredis
+
         _redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
         return _redis_client
     except Exception as exc:

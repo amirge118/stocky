@@ -115,5 +115,6 @@ def get_fmp_client() -> FMPClient:
     global _fmp_client
     if _fmp_client is None:
         from app.core.config import settings
+
         _fmp_client = FMPClient(api_key=settings.fmp_api_key)
     return _fmp_client

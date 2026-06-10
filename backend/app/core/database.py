@@ -103,7 +103,9 @@ def effective_database_url() -> str:
         return url
     if ipv4 == host:
         return url
-    _logger.info("Using IPv4 %s for database host %s (Docker / DATABASE_PREFER_IPV4)", ipv4, host)
+    _logger.info(
+        "Using IPv4 %s for database host %s (Docker / DATABASE_PREFER_IPV4)", ipv4, host
+    )
     return str(u.set(host=ipv4))
 
 

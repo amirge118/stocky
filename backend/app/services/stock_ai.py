@@ -51,8 +51,16 @@ async def generate_ai_analysis(symbol: str) -> StockAIAnalysisResponse:
     else:
         market_cap_str = "N/A"
     pe = f"{info.pe_ratio:.1f}" if (info and info.pe_ratio) else "N/A"
-    hi52 = f"${info.fifty_two_week_high:.2f}" if (info and info.fifty_two_week_high) else "N/A"
-    lo52 = f"${info.fifty_two_week_low:.2f}" if (info and info.fifty_two_week_low) else "N/A"
+    hi52 = (
+        f"${info.fifty_two_week_high:.2f}"
+        if (info and info.fifty_two_week_high)
+        else "N/A"
+    )
+    lo52 = (
+        f"${info.fifty_two_week_low:.2f}"
+        if (info and info.fifty_two_week_low)
+        else "N/A"
+    )
 
     prompt = (
         f"Provide a concise 3-4 sentence investment analysis for {sym}. "
@@ -70,11 +78,11 @@ async def generate_ai_analysis(symbol: str) -> StockAIAnalysisResponse:
             max_tokens=300,
             messages=[{"role": "user", "content": prompt}],
         )
-        analysis_text = assistant_message_text(
-            message, default="Analysis unavailable."
-        )
+        analysis_text = assistant_message_text(message, default="Analysis unavailable.")
         result = StockAIAnalysisResponse(symbol=sym, analysis=analysis_text)
-        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_ANALYSIS_CACHE_TTL)
+        await cache_set(
+            cache_key, result.model_dump(mode="json"), ttl=_ANALYSIS_CACHE_TTL
+        )
         return result
     except Exception as e:
         raise HTTPException(
@@ -104,8 +112,12 @@ async def generate_compare_summary(symbols: list[str]) -> CompareSummaryResponse
 
     parts: list[str] = []
     for sym, data, info in zip(syms, data_list, info_list):
-        d: Optional[StockDataResponse] = data if isinstance(data, StockDataResponse) else None
-        i: Optional[StockInfoResponse] = info if isinstance(info, StockInfoResponse) else None
+        d: Optional[StockDataResponse] = (
+            data if isinstance(data, StockDataResponse) else None
+        )
+        i: Optional[StockInfoResponse] = (
+            info if isinstance(info, StockInfoResponse) else None
+        )
         price = f"${d.current_price:.2f}" if d else "N/A"
         chg = f"{d.change_percent:+.2f}%" if d else "N/A"
         pe = f"{i.pe_ratio:.1f}" if i and i.pe_ratio else "N/A"
@@ -133,7 +145,9 @@ async def generate_compare_summary(symbols: list[str]) -> CompareSummaryResponse
         )
         summary = assistant_message_text(message, default="Comparison unavailable.")
         result = CompareSummaryResponse(symbols=syms, summary=summary)
-        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_ANALYSIS_CACHE_TTL)
+        await cache_set(
+            cache_key, result.model_dump(mode="json"), ttl=_ANALYSIS_CACHE_TTL
+        )
         return result
     except Exception as e:
         return CompareSummaryResponse(

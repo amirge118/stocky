@@ -25,7 +25,9 @@ class Alert(BaseModel):
         Enum(ConditionType, name="conditiontype"), nullable=False
     )
     target_price: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, index=True
+    )
     last_triggered: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

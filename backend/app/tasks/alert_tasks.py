@@ -77,7 +77,9 @@ async def _check_alerts_async() -> dict:
                     current_price=stock.current_price,
                 )
             except Exception as exc:
-                logger.error("Failed to send Telegram alert for %s: %s", alert.ticker, exc)
+                logger.error(
+                    "Failed to send Telegram alert for %s: %s", alert.ticker, exc
+                )
 
             try:
                 if (
@@ -93,11 +95,15 @@ async def _check_alerts_async() -> dict:
                         phone=notif_settings.whatsapp_phone,
                     )
             except Exception as exc:
-                logger.error("Failed to send WhatsApp alert for %s: %s", alert.ticker, exc)
+                logger.error(
+                    "Failed to send WhatsApp alert for %s: %s", alert.ticker, exc
+                )
 
         logger.info(
             "check_alerts: checked %d, triggered %d, failed %d",
-            len(alerts), triggered, failed,
+            len(alerts),
+            triggered,
+            failed,
         )
         return {"checked": len(alerts), "triggered": triggered, "failed": failed}
 

@@ -30,13 +30,13 @@ from app.schemas.stock import (
 
 logger = logging.getLogger(__name__)
 
-_CACHE_TTL = 600          # 10 minutes
-_INFO_CACHE_TTL = 1800    # 30 minutes
-_SEARCH_CACHE_TTL = 600   # 10 minutes
+_CACHE_TTL = 600  # 10 minutes
+_INFO_CACHE_TTL = 1800  # 30 minutes
+_SEARCH_CACHE_TTL = 600  # 10 minutes
 _HISTORY_CACHE_TTL = 900  # 15 minutes
-_NEWS_CACHE_TTL = 900     # 15 minutes
+_NEWS_CACHE_TTL = 900  # 15 minutes
 _DIVIDENDS_CACHE_TTL = 7200  # 2 hours
-_QUOTE_CACHE_TTL = 300    # 5 min — shared across all services
+_QUOTE_CACHE_TTL = 300  # 5 min — shared across all services
 _ENRICHED_CACHE_TTL = 3600  # 1 hour — 52W range, avg volume, analyst rating
 
 
@@ -70,7 +70,10 @@ def _safe_int(x: Any) -> Optional[int]:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _yf_history_to_response(sym: str, period: str, rows: list[dict]) -> StockHistoryResponse:
+
+def _yf_history_to_response(
+    sym: str, period: str, rows: list[dict]
+) -> StockHistoryResponse:
     """Convert yfinance history row dicts to StockHistoryResponse."""
     points: list[StockHistoryPoint] = []
     for item in rows:
@@ -82,14 +85,16 @@ def _yf_history_to_response(sym: str, period: str, rows: list[dict]) -> StockHis
             t_ms = int(dt.timestamp() * 1000)
         except Exception:
             continue
-        points.append(StockHistoryPoint(
-            t=t_ms,
-            o=round(float(item.get("open", 0)), 4),
-            h=round(float(item.get("high", 0)), 4),
-            l=round(float(item.get("low", 0)), 4),
-            c=round(float(item.get("close", 0)), 4),
-            v=_safe_int(item.get("volume")),
-        ))
+        points.append(
+            StockHistoryPoint(
+                t=t_ms,
+                o=round(float(item.get("open", 0)), 4),
+                h=round(float(item.get("high", 0)), 4),
+                l=round(float(item.get("low", 0)), 4),
+                c=round(float(item.get("close", 0)), 4),
+                v=_safe_int(item.get("volume")),
+            )
+        )
     return StockHistoryResponse(symbol=sym, period=period, data=points)
 
 
@@ -142,7 +147,10 @@ async def _get_cached_quote(client: object, sym: str) -> Optional[dict]:
 # Search
 # ---------------------------------------------------------------------------
 
-async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockSearchResult]:
+
+async def search_stocks_from_yfinance(
+    query: str, limit: int = 8
+) -> list[StockSearchResult]:
     """Search for stocks using FMP + yfinance Search + TASE table.
 
     Merge order: TASE matches first (always visible), then yfinance Search,
@@ -157,10 +165,15 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
 
     async def _fmp_search() -> list[dict]:
         try:
-            raw = await client.get("/stable/search-symbol", {"query": query.strip(), "limit": 20})
+            raw = await client.get(
+                "/stable/search-symbol", {"query": query.strip(), "limit": 20}
+            )
             return raw if isinstance(raw, list) else []
         except FMPRateLimitError:
-            logger.warning("FMP rate limit hit during search for %r — falling back to yfinance only", query)
+            logger.warning(
+                "FMP rate limit hit during search for %r — falling back to yfinance only",
+                query,
+            )
             return []
         except Exception:
             return []
@@ -185,10 +198,7 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
     ]
 
     # Filter yf results: skip TASE (already covered) and empty symbols
-    yf_filtered = [
-        i for i in yf_items
-        if i.get("symbol") and not _is_tase(i["symbol"])
-    ]
+    yf_filtered = [i for i in yf_items if i.get("symbol") and not _is_tase(i["symbol"])]
 
     # Merge: TASE first so they're never cut off, then yfinance, then FMP
     seen: set[str] = set()
@@ -204,8 +214,12 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
         return []
 
     # Enrich with live quotes: FMP for non-TASE, yfinance for TASE
-    fmp_symbols = [i["symbol"] for i in items if i.get("symbol") and not _is_tase(i["symbol"])]
-    tase_symbols = [i["symbol"] for i in items if i.get("symbol") and _is_tase(i["symbol"])]
+    fmp_symbols = [
+        i["symbol"] for i in items if i.get("symbol") and not _is_tase(i["symbol"])
+    ]
+    tase_symbols = [
+        i["symbol"] for i in items if i.get("symbol") and _is_tase(i["symbol"])
+    ]
 
     fmp_quotes_raw, tase_quotes_raw = await asyncio.gather(
         asyncio.gather(*[_fetch_single_quote(client, s) for s in fmp_symbols]),
@@ -224,17 +238,21 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
     for item in items:
         sym = item.get("symbol", "")
         q = quotes.get(sym, {})
-        results.append(StockSearchResult(
-            symbol=sym,
-            name=item.get("name") or sym,
-            exchange=item.get("stockExchange") or item.get("exchangeShortName") or "",
-            sector=None,
-            industry=None,
-            current_price=_safe_float(q.get("price")),
-            currency=item.get("currency") or q.get("currency"),
-            country=item.get("country"),
-            sparkline=None,
-        ))
+        results.append(
+            StockSearchResult(
+                symbol=sym,
+                name=item.get("name") or sym,
+                exchange=item.get("stockExchange")
+                or item.get("exchangeShortName")
+                or "",
+                sector=None,
+                industry=None,
+                current_price=_safe_float(q.get("price")),
+                currency=item.get("currency") or q.get("currency"),
+                country=item.get("country"),
+                sparkline=None,
+            )
+        )
 
     serializable = [r.model_dump(mode="json") for r in results]
     await cache_set(cache_key, serializable, ttl=_SEARCH_CACHE_TTL)
@@ -244,6 +262,7 @@ async def search_stocks_from_yfinance(query: str, limit: int = 8) -> list[StockS
 # ---------------------------------------------------------------------------
 # Live quote
 # ---------------------------------------------------------------------------
+
 
 async def fetch_stock_data_from_yfinance(symbol: str) -> StockDataResponse:
     """Fetch live stock data. TASE → yfinance; others → FMP with yfinance fallback."""
@@ -318,6 +337,7 @@ async def fetch_stock_data_from_yfinance(symbol: str) -> StockDataResponse:
 # Batch quote
 # ---------------------------------------------------------------------------
 
+
 async def fetch_stock_data_batch(symbols: list[str]) -> dict[str, StockDataResponse]:
     """Fetch stock data for multiple symbols. TASE → yfinance; others → FMP."""
     if not symbols:
@@ -371,6 +391,7 @@ async def fetch_stock_data_batch(symbols: list[str]) -> dict[str, StockDataRespo
 # History
 # ---------------------------------------------------------------------------
 
+
 def _date_range(period: str) -> tuple[str, str]:
     """Return (from_date, to_date) ISO strings for a given period."""
     today = date.today()
@@ -399,7 +420,9 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
     if _is_tase(sym):
         rows = await yf_client.fetch_history(sym, period)
         result = _yf_history_to_response(sym, period, rows)
-        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_HISTORY_CACHE_TTL)
+        await cache_set(
+            cache_key, result.model_dump(mode="json"), ttl=_HISTORY_CACHE_TTL
+        )
         return result
 
     client = get_fmp_client()
@@ -407,11 +430,20 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
 
     try:
         raw = await client.get(
-            "/stable/historical-price-eod/full", {"symbol": sym, "from": from_date, "to": to_date}
+            "/stable/historical-price-eod/full",
+            {"symbol": sym, "from": from_date, "to": to_date},
         )
-        items = raw if isinstance(raw, list) else (raw if isinstance(raw, dict) else {}).get("historical", [])
+        items = (
+            raw
+            if isinstance(raw, list)
+            else (raw if isinstance(raw, dict) else {}).get("historical", [])
+        )
     except FMPRateLimitError:
-        logger.warning("FMP rate limit hit for history %s/%s — falling back to yfinance", sym, period)
+        logger.warning(
+            "FMP rate limit hit for history %s/%s — falling back to yfinance",
+            sym,
+            period,
+        )
         items = []
     except Exception as e:
         raise HTTPException(
@@ -423,7 +455,9 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
     if not items:
         rows = await yf_client.fetch_history(sym, period)
         result = _yf_history_to_response(sym, period, rows)
-        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_HISTORY_CACHE_TTL)
+        await cache_set(
+            cache_key, result.model_dump(mode="json"), ttl=_HISTORY_CACHE_TTL
+        )
         return result
 
     # FMP returns newest-first; reverse to chronological order
@@ -442,14 +476,16 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
             t_ms = int(dt.timestamp() * 1000)
         except Exception:
             continue
-        points.append(StockHistoryPoint(
-            t=t_ms,
-            o=round(float(item.get("open", 0)), 4),
-            h=round(float(item.get("high", 0)), 4),
-            l=round(float(item.get("low", 0)), 4),
-            c=round(float(item.get("close", 0)), 4),
-            v=_safe_int(item.get("volume")),
-        ))
+        points.append(
+            StockHistoryPoint(
+                t=t_ms,
+                o=round(float(item.get("open", 0)), 4),
+                h=round(float(item.get("high", 0)), 4),
+                l=round(float(item.get("low", 0)), 4),
+                c=round(float(item.get("close", 0)), 4),
+                v=_safe_int(item.get("volume")),
+            )
+        )
 
     result = StockHistoryResponse(symbol=sym, period=period, data=points)
     await cache_set(cache_key, result.model_dump(mode="json"), ttl=_HISTORY_CACHE_TTL)
@@ -459,6 +495,7 @@ async def fetch_stock_history(symbol: str, period: str = "1m") -> StockHistoryRe
 # ---------------------------------------------------------------------------
 # Company info
 # ---------------------------------------------------------------------------
+
 
 async def fetch_stock_info(symbol: str) -> StockInfoResponse:
     """Fetch detailed company info. TASE → yfinance; others → FMP with yfinance fallback."""
@@ -536,7 +573,9 @@ async def fetch_stock_info(symbol: str) -> StockInfoResponse:
                 fifty_two_week_low=yf_info.get("fifty_two_week_low"),
                 average_volume=yf_info.get("average_volume"),
             )
-            await cache_set(cache_key, result.model_dump(mode="json"), ttl=_INFO_CACHE_TTL)
+            await cache_set(
+                cache_key, result.model_dump(mode="json"), ttl=_INFO_CACHE_TTL
+            )
             return result
 
     employees_raw = p.get("fullTimeEmployees")
@@ -547,7 +586,11 @@ async def fetch_stock_info(symbol: str) -> StockInfoResponse:
         except (ValueError, TypeError):
             pass
 
-    market_cap = _safe_float(p.get("marketCap")) or _safe_float(p.get("mktCap")) or _safe_float(q.get("marketCap"))
+    market_cap = (
+        _safe_float(p.get("marketCap"))
+        or _safe_float(p.get("mktCap"))
+        or _safe_float(q.get("marketCap"))
+    )
     price = _safe_float(p.get("price")) or _safe_float(q.get("price"))
     last_div = _safe_float(p.get("lastDividend")) or _safe_float(p.get("lastDiv"))
     dividend_yield: Optional[float] = None
@@ -582,7 +625,9 @@ async def fetch_stock_info(symbol: str) -> StockInfoResponse:
         dividend_yield=dividend_yield,
         fifty_two_week_high=week52_high,
         fifty_two_week_low=week52_low,
-        average_volume=_safe_int(p.get("volAvg")) or _safe_int(p.get("averageVolume")) or _safe_int(q.get("avgVolume")),
+        average_volume=_safe_int(p.get("volAvg"))
+        or _safe_int(p.get("averageVolume"))
+        or _safe_int(q.get("avgVolume")),
     )
 
     await cache_set(cache_key, result.model_dump(mode="json"), ttl=_INFO_CACHE_TTL)
@@ -592,6 +637,7 @@ async def fetch_stock_info(symbol: str) -> StockInfoResponse:
 # ---------------------------------------------------------------------------
 # News
 # ---------------------------------------------------------------------------
+
 
 async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
     """Fetch recent news. TASE → yfinance; others → FMP with yfinance fallback."""
@@ -615,7 +661,11 @@ async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
             if n.get("title")
         ]
         if items:
-            await cache_set(cache_key, [i.model_dump(mode="json") for i in items], ttl=_NEWS_CACHE_TTL)
+            await cache_set(
+                cache_key,
+                [i.model_dump(mode="json") for i in items],
+                ttl=_NEWS_CACHE_TTL,
+            )
         return items
 
     client = get_fmp_client()
@@ -625,7 +675,7 @@ async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
         raw = []
 
     items = []
-    for article in (raw if isinstance(raw, list) else []):
+    for article in raw if isinstance(raw, list) else []:
         title = article.get("title", "")
         if not title:
             continue
@@ -637,12 +687,14 @@ async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
                 published_at = int(dt.timestamp() * 1000)
             except Exception:
                 pass
-        items.append(StockNewsItem(
-            title=title,
-            publisher=article.get("site"),
-            link=article.get("url"),
-            published_at=published_at,
-        ))
+        items.append(
+            StockNewsItem(
+                title=title,
+                publisher=article.get("site"),
+                link=article.get("url"),
+                published_at=published_at,
+            )
+        )
 
     # Fallback to yfinance if FMP returned no news
     if not items:
@@ -659,13 +711,16 @@ async def fetch_stock_news(symbol: str, limit: int = 8) -> list[StockNewsItem]:
         ]
 
     if items:
-        await cache_set(cache_key, [i.model_dump(mode="json") for i in items], ttl=_NEWS_CACHE_TTL)
+        await cache_set(
+            cache_key, [i.model_dump(mode="json") for i in items], ttl=_NEWS_CACHE_TTL
+        )
     return items
 
 
 # ---------------------------------------------------------------------------
 # Dividends
 # ---------------------------------------------------------------------------
+
 
 async def fetch_stock_dividends(symbol: str, years: int = 5) -> StockDividendsResponse:
     """Fetch dividend history. TASE → yfinance; others → FMP with yfinance fallback."""
@@ -678,7 +733,9 @@ async def fetch_stock_dividends(symbol: str, years: int = 5) -> StockDividendsRe
     cutoff = date.today() - timedelta(days=years * 365)
     one_year_ago = date.today() - timedelta(days=365)
 
-    def _process_yf_dividends(rows: list[dict], price: Optional[float] = None) -> StockDividendsResponse:
+    def _process_yf_dividends(
+        rows: list[dict], price: Optional[float] = None
+    ) -> StockDividendsResponse:
         points: list[DividendPoint] = []
         trailing_sum = 0.0
         for row in rows:
@@ -691,7 +748,9 @@ async def fetch_stock_dividends(symbol: str, years: int = 5) -> StockDividendsRe
             amount = _safe_float(row.get("dividend"))
             if amount is None:
                 continue
-            t_ms = int(datetime.combine(div_date, datetime.min.time()).timestamp() * 1000)
+            t_ms = int(
+                datetime.combine(div_date, datetime.min.time()).timestamp() * 1000
+            )
             points.append(DividendPoint(t=t_ms, amount=round(amount, 4)))
             if div_date >= one_year_ago:
                 trailing_sum += amount
@@ -713,7 +772,9 @@ async def fetch_stock_dividends(symbol: str, years: int = 5) -> StockDividendsRe
         )
         price = _safe_float((yf_q or {}).get("price"))
         result = _process_yf_dividends(rows, price)
-        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_DIVIDENDS_CACHE_TTL)
+        await cache_set(
+            cache_key, result.model_dump(mode="json"), ttl=_DIVIDENDS_CACHE_TTL
+        )
         return result
 
     client = get_fmp_client()
@@ -742,7 +803,9 @@ async def fetch_stock_dividends(symbol: str, years: int = 5) -> StockDividendsRe
             fallback_price = _safe_float(quote_raw.get("price"))
         rows = await yf_client.fetch_dividends(sym, years)
         result = _process_yf_dividends(rows, fallback_price)
-        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_DIVIDENDS_CACHE_TTL)
+        await cache_set(
+            cache_key, result.model_dump(mode="json"), ttl=_DIVIDENDS_CACHE_TTL
+        )
         return result
 
     points: list[DividendPoint] = []
@@ -790,6 +853,7 @@ async def fetch_stock_dividends(symbol: str, years: int = 5) -> StockDividendsRe
 # Enriched batch (52W range, avg volume, analyst rating)
 # ---------------------------------------------------------------------------
 
+
 async def _fetch_enriched_single(sym: str) -> StockEnrichedData:
     """Fetch enriched data for a single symbol. Uses cache with 1h TTL."""
     cache_key = f"enriched:{sym}"
@@ -814,7 +878,9 @@ async def _fetch_enriched_single(sym: str) -> StockEnrichedData:
                     avg_volume=avg_vol,
                     analyst_rating=analyst,
                 )
-                await cache_set(cache_key, result.model_dump(mode="json"), ttl=_ENRICHED_CACHE_TTL)
+                await cache_set(
+                    cache_key, result.model_dump(mode="json"), ttl=_ENRICHED_CACHE_TTL
+                )
                 return result
 
     # Fallback to yfinance .info for TASE and when FMP has no data
@@ -830,7 +896,9 @@ async def _fetch_enriched_single(sym: str) -> StockEnrichedData:
             avg_volume=yf_info.get("average_volume"),
             analyst_rating=analyst_raw,
         )
-        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_ENRICHED_CACHE_TTL)
+        await cache_set(
+            cache_key, result.model_dump(mode="json"), ttl=_ENRICHED_CACHE_TTL
+        )
         return result
 
     result = StockEnrichedData(symbol=sym)
@@ -838,7 +906,9 @@ async def _fetch_enriched_single(sym: str) -> StockEnrichedData:
     return result
 
 
-async def fetch_stock_enriched_batch(symbols: list[str]) -> dict[str, StockEnrichedData]:
+async def fetch_stock_enriched_batch(
+    symbols: list[str],
+) -> dict[str, StockEnrichedData]:
     """Fetch enriched data (52W range, avg volume, analyst rating) for multiple symbols.
 
     Cached 1hr per symbol. Safe to call frequently — returns stale cache if fresh.
@@ -846,7 +916,9 @@ async def fetch_stock_enriched_batch(symbols: list[str]) -> dict[str, StockEnric
     if not symbols:
         return {}
     syms = list(dict.fromkeys(s.upper() for s in symbols))[:50]
-    results = await asyncio.gather(*[_fetch_enriched_single(s) for s in syms], return_exceptions=True)
+    results = await asyncio.gather(
+        *[_fetch_enriched_single(s) for s in syms], return_exceptions=True
+    )
     out: dict[str, StockEnrichedData] = {}
     for sym, res in zip(syms, results):
         if isinstance(res, StockEnrichedData):

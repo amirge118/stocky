@@ -73,5 +73,5 @@ class WatchlistItemBulkAdd(BaseModel):
 
 class WatchlistBulkAddResult(BaseModel):
     added: list[WatchlistItemResponse] = []
-    skipped: list[str] = []   # symbols already in the list (duplicate)
-    failed: list[dict] = []   # [{"symbol": "...", "error": "..."}]
+    skipped: list[str] = []  # symbols already in the list (duplicate)
+    failed: list[dict] = []  # [{"symbol": "...", "error": "..."}]

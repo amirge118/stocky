@@ -8,7 +8,9 @@ class Settings(BaseSettings):
     # Database
     database_url: str = ""
     # Optional overrides read from .env (Pydantic loads these; os.environ alone is NOT set from .env).
-    database_ssl: Optional[str] = Field(default=None, description="DATABASE_SSL: force on/off for asyncpg")
+    database_ssl: Optional[str] = Field(
+        default=None, description="DATABASE_SSL: force on/off for asyncpg"
+    )
     database_ssl_verify: bool = Field(
         default=True,
         description="DATABASE_SSL_VERIFY: set false for local dev if SSL verify fails (e.g. macOS LibreSSL)",

@@ -32,12 +32,16 @@ async def get_portfolio(db: AsyncSession = Depends(get_db)) -> PortfolioSummary:
 
 
 @router.get("/summary", response_model=PortfolioSummaryWithSector)
-async def get_portfolio_summary(db: AsyncSession = Depends(get_db)) -> PortfolioSummaryWithSector:
+async def get_portfolio_summary(
+    db: AsyncSession = Depends(get_db),
+) -> PortfolioSummaryWithSector:
     """Return portfolio and sector breakdown in one request (avoids duplicate fetches)."""
     try:
         portfolio, sector_breakdown = await holding_service.get_portfolio_summary(db)
     except Exception as exc:
-        _logger.error("get_portfolio_summary failed, returning empty: %s", exc, exc_info=True)
+        _logger.error(
+            "get_portfolio_summary failed, returning empty: %s", exc, exc_info=True
+        )
         portfolio = PortfolioSummary(
             positions=[],
             total_value=0.0,
@@ -46,7 +50,9 @@ async def get_portfolio_summary(db: AsyncSession = Depends(get_db)) -> Portfolio
             total_gain_loss_pct=0.0,
         )
         sector_breakdown = SectorBreakdownResponse(sectors=[], total_value=0.0)
-    return PortfolioSummaryWithSector(portfolio=portfolio, sector_breakdown=sector_breakdown)
+    return PortfolioSummaryWithSector(
+        portfolio=portfolio, sector_breakdown=sector_breakdown
+    )
 
 
 @router.post("", response_model=PortfolioPosition, status_code=status.HTTP_201_CREATED)
@@ -99,7 +105,9 @@ async def get_transactions(
     db: AsyncSession = Depends(get_db),
 ) -> list[TransactionResponse]:
     """Return trade history, optionally filtered by symbol. Newest first."""
-    return await holding_service.get_transactions(db, symbol.upper() if symbol else None)
+    return await holding_service.get_transactions(
+        db, symbol.upper() if symbol else None
+    )
 
 
 @router.post("/{symbol}/sell", status_code=status.HTTP_200_OK)
@@ -152,6 +160,8 @@ async def remove_holding(
 
 
 @router.get("/sector-breakdown", response_model=SectorBreakdownResponse)
-async def get_sector_breakdown(db: AsyncSession = Depends(get_db)) -> SectorBreakdownResponse:
+async def get_sector_breakdown(
+    db: AsyncSession = Depends(get_db),
+) -> SectorBreakdownResponse:
     """Return portfolio holdings grouped by sector with value and weight."""
     return await holding_service.get_sector_breakdown(db)

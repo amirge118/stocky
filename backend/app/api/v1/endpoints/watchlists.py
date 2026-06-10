@@ -29,7 +29,9 @@ async def get_watchlists(
     return await watchlist_service.get_all_lists(db)
 
 
-@router.post("", response_model=WatchlistListResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=WatchlistListResponse, status_code=status.HTTP_201_CREATED
+)
 @limiter.limit("30/minute")
 async def create_watchlist(
     request: Request,

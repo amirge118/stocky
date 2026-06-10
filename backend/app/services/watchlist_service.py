@@ -58,9 +58,7 @@ async def create_list(db: AsyncSession, name: str) -> WatchlistList:
 
 
 async def get_list(db: AsyncSession, list_id: int) -> Optional[WatchlistList]:
-    result = await db.execute(
-        select(WatchlistList).where(WatchlistList.id == list_id)
-    )
+    result = await db.execute(select(WatchlistList).where(WatchlistList.id == list_id))
     return result.scalars().first()
 
 
@@ -87,7 +85,9 @@ async def delete_list(db: AsyncSession, list_id: int) -> bool:
 
 async def reorder_lists(db: AsyncSession, ordered_ids: list[int]) -> None:
     """Set position for each watchlist according to the provided id ordering."""
-    result = await db.execute(select(WatchlistList).where(WatchlistList.id.in_(ordered_ids)))
+    result = await db.execute(
+        select(WatchlistList).where(WatchlistList.id.in_(ordered_ids))
+    )
     lists_by_id = {wl.id: wl for wl in result.scalars().all()}
     for position, list_id in enumerate(ordered_ids):
         if list_id in lists_by_id:
@@ -145,7 +145,9 @@ async def compute_momentum_signals(symbols: list[str]) -> list[MomentumSignal]:
         if len(prices) < 31:  # need at least 31 closes to get 30 returns
             continue
 
-        returns = [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
+        returns = [
+            (prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))
+        ]
         n = len(returns)
         mean = sum(returns) / n
         variance = sum((r - mean) ** 2 for r in returns) / n

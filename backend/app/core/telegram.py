@@ -57,7 +57,9 @@ async def send_alert_message(
                     retry_after = int(response.headers.get("Retry-After", "5"))
                     logger.warning(
                         "Telegram rate limited; retrying in %ds (attempt %d/%d)",
-                        retry_after, attempt + 1, max_retries,
+                        retry_after,
+                        attempt + 1,
+                        max_retries,
                     )
                     await asyncio.sleep(retry_after)
                     continue

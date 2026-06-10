@@ -17,6 +17,7 @@ def _sma(closes: list[float], period: int) -> list[Optional[float]]:
         result[i] = sum(closes[i - period + 1 : i + 1]) / period
     return result
 
+
 def _rsi(closes: list[float], period: int = 14) -> list[Optional[float]]:
     result: list[Optional[float]] = [None] * len(closes)
     if len(closes) < period + 1:
@@ -37,6 +38,7 @@ def _rsi(closes: list[float], period: int = 14) -> list[Optional[float]]:
         result[i] = round(100 - 100 / (1 + rs), 2)
     return result
 
+
 def _ema(closes: list[float], period: int) -> list[Optional[float]]:
     result: list[Optional[float]] = [None] * len(closes)
     if len(closes) < period:
@@ -51,7 +53,10 @@ def _ema(closes: list[float], period: int) -> list[Optional[float]]:
         prev = ema
     return result
 
-def _macd(closes: list[float]) -> tuple[list[Optional[float]], list[Optional[float]], list[Optional[float]]]:
+
+def _macd(
+    closes: list[float],
+) -> tuple[list[Optional[float]], list[Optional[float]], list[Optional[float]]]:
     ema12 = _ema(closes, 12)
     ema26 = _ema(closes, 26)
     macd_line: list[Optional[float]] = [
@@ -72,7 +77,10 @@ def _macd(closes: list[float]) -> tuple[list[Optional[float]], list[Optional[flo
                     hist_line[idx] = round(macd_line[idx] - v, 4)  # type: ignore[operator]
     return macd_line, signal_line, hist_line
 
-def _bollinger(closes: list[float], period: int = 20, std_dev: float = 2.0) -> tuple[list[Optional[float]], list[Optional[float]], list[Optional[float]]]:
+
+def _bollinger(
+    closes: list[float], period: int = 20, std_dev: float = 2.0
+) -> tuple[list[Optional[float]], list[Optional[float]], list[Optional[float]]]:
     upper_list: list[Optional[float]] = [None] * len(closes)
     middle_list: list[Optional[float]] = [None] * len(closes)
     lower_list: list[Optional[float]] = [None] * len(closes)
@@ -86,9 +94,20 @@ def _bollinger(closes: list[float], period: int = 20, std_dev: float = 2.0) -> t
         lower_list[i] = round(mean - std_dev * std, 4)
     return upper_list, middle_list, lower_list
 
-def compute_indicators(symbol: str, period: str, points: list[StockHistoryPoint]) -> StockIndicatorsResponse:
+
+def compute_indicators(
+    symbol: str, period: str, points: list[StockHistoryPoint]
+) -> StockIndicatorsResponse:
     if not points:
-        return StockIndicatorsResponse(symbol=symbol, period=period, sma20=[], sma50=[], rsi=[], macd=[], bollinger=[])
+        return StockIndicatorsResponse(
+            symbol=symbol,
+            period=period,
+            sma20=[],
+            sma50=[],
+            rsi=[],
+            macd=[],
+            bollinger=[],
+        )
     timestamps = [p.t for p in points]
     closes = [p.c for p in points]
     sma20_vals = _sma(closes, 20)
@@ -102,6 +121,12 @@ def compute_indicators(symbol: str, period: str, points: list[StockHistoryPoint]
         sma20=[IndicatorPoint(t=t, v=v) for t, v in zip(timestamps, sma20_vals)],
         sma50=[IndicatorPoint(t=t, v=v) for t, v in zip(timestamps, sma50_vals)],
         rsi=[IndicatorPoint(t=t, v=v) for t, v in zip(timestamps, rsi_vals)],
-        macd=[MacdPoint(t=t, macd=m, signal=s, hist=h) for t, m, s, h in zip(timestamps, macd_vals, signal_vals, hist_vals)],
-        bollinger=[BollingerPoint(t=t, upper=u, middle=mid, lower=lo) for t, u, mid, lo in zip(timestamps, upper_vals, middle_vals, lower_vals)],
+        macd=[
+            MacdPoint(t=t, macd=m, signal=s, hist=h)
+            for t, m, s, h in zip(timestamps, macd_vals, signal_vals, hist_vals)
+        ],
+        bollinger=[
+            BollingerPoint(t=t, upper=u, middle=mid, lower=lo)
+            for t, u, mid, lo in zip(timestamps, upper_vals, middle_vals, lower_vals)
+        ],
     )

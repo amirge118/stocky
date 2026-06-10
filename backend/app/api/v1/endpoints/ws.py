@@ -32,7 +32,9 @@ async def _broadcast_prices() -> None:
             prices = await get_prices(symbols)
 
             for symbol, price in prices.items():
-                payload = json.dumps({"type": "price", "symbol": symbol, "price": price})
+                payload = json.dumps(
+                    {"type": "price", "symbol": symbol, "price": price}
+                )
                 dead: list[WebSocket] = []
                 for ws in _subscribers.get(symbol, set()):
                     try:
@@ -82,7 +84,9 @@ async def websocket_prices(websocket: WebSocket) -> None:
                 data = json.loads(raw)
                 symbols = data.get("subscribe", [])
                 if isinstance(symbols, list):
-                    my_symbols = [str(s).upper().strip() for s in symbols[:20] if str(s).strip()]
+                    my_symbols = [
+                        str(s).upper().strip() for s in symbols[:20] if str(s).strip()
+                    ]
                     _add_subscription(websocket, my_symbols)
 
                     # Send immediate prices for newly subscribed symbols via batch
@@ -90,7 +94,11 @@ async def websocket_prices(websocket: WebSocket) -> None:
                         try:
                             prices = await get_prices(my_symbols)
                             for symbol, price in prices.items():
-                                payload = {"type": "price", "symbol": symbol, "price": price}
+                                payload = {
+                                    "type": "price",
+                                    "symbol": symbol,
+                                    "price": price,
+                                }
                                 await websocket.send_text(json.dumps(payload))
                         except Exception:
                             pass

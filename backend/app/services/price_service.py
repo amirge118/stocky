@@ -10,8 +10,8 @@ from app.core.fmp_client import FMPRateLimitError, get_fmp_client
 
 logger = logging.getLogger(__name__)
 
-_FRESH_TTL = 300      # 5 minutes — conserve API quota
-_STALE_TTL = 86400    # 24 hours
+_FRESH_TTL = 300  # 5 minutes — conserve API quota
+_STALE_TTL = 86400  # 24 hours
 
 
 def _fresh_key(ticker: str) -> str:
@@ -34,9 +34,7 @@ async def get_prices(tickers: list[str]) -> dict[str, float]:
         return {}
 
     # Step A — parallel Redis lookups
-    cached_values = await asyncio.gather(
-        *[cache_get(_fresh_key(t)) for t in tickers]
-    )
+    cached_values = await asyncio.gather(*[cache_get(_fresh_key(t)) for t in tickers])
 
     result: dict[str, float] = {}
     for ticker, value in zip(tickers, cached_values):
@@ -64,12 +62,14 @@ async def get_prices(tickers: list[str]) -> dict[str, float]:
 
     client = get_fmp_client()
     try:
+
         async def _get_price_yf(sym: str) -> tuple:
             def _sync() -> object:
                 try:
                     return yf.Ticker(sym).fast_info.last_price
                 except Exception:
                     return None
+
             price = await asyncio.to_thread(_sync)
             return sym, {"price": price} if price is not None else None
 
@@ -84,12 +84,14 @@ async def get_prices(tickers: list[str]) -> dict[str, float]:
             if q is not None:
                 await cache_set(f"quote:{sym}", q, ttl=_FRESH_TTL)
                 return sym, q
+
             # FMP has no price → fallback to yfinance
             def _sync_yf() -> object:
                 try:
                     return yf.Ticker(sym).fast_info.last_price
                 except Exception:
                     return None
+
             price = await asyncio.to_thread(_sync_yf)
             return sym, {"price": price} if price else None
 
@@ -120,7 +122,9 @@ async def get_prices(tickers: list[str]) -> dict[str, float]:
         result.update(fetched)
 
     except Exception as exc:
-        warning_prefix = "rate-limit" if isinstance(exc, FMPRateLimitError) else "API error"
+        warning_prefix = (
+            "rate-limit" if isinstance(exc, FMPRateLimitError) else "API error"
+        )
         logger.warning(
             "PriceService %s, falling back to stale cache: %s", warning_prefix, exc
         )
