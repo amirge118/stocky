@@ -13,7 +13,6 @@ import {
   Tooltip,
   ReferenceLine,
   Cell,
-  Customized,
 } from "recharts"
 import { useUnifiedChartData } from "@/lib/hooks/useUnifiedChartData"
 import type { UnifiedDataPoint } from "@/lib/hooks/useUnifiedChartData"
@@ -63,41 +62,38 @@ function formatTooltipDate(ts: number, period: string): string {
   return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })
 }
 
-// ─── Candlestick via <Customized> (has access to real scale functions) ────────
+// ─── Candlestick via <Bar shape> (no scale access needed — uses pixel coords) ──
 
-function CandlestickLayer({ xAxisMap, yAxisMap, priceData }: any) {
-  const xAxis = xAxisMap?.[0]
-  const yAxis = yAxisMap?.["price"]
-  if (!xAxis?.scale || !yAxis?.scale) return null
+function CandleBarShape(props: any) {
+  const { x, y, width, height, payload } = props
+  if (!payload || payload.close == null) return null
 
-  const xScale = xAxis.scale
-  const yScale = yAxis.scale
-  const bw     = typeof xScale.bandwidth === "function" ? xScale.bandwidth() : 4
+  const open  = payload.open  ?? payload.close
+  const close = payload.close
+  const high  = payload.high  ?? Math.max(open, close)
+  const low   = payload.low   ?? Math.min(open, close)
 
+  const bullish  = close >= open
+  const color    = bullish ? "#4ade80" : "#f87171"
+  const cx       = x + width / 2
+  const bodyRange = Math.max(open, close) - Math.min(open, close)
+  const bodyH    = Math.max(1, height)
+
+  // Extend wick beyond the body using the same px/unit ratio as the body
+  let wickTopY    = y
+  let wickBottomY = y + bodyH
+  if (bodyRange > 0 && height > 0) {
+    const pxPerUnit = height / bodyRange
+    wickTopY    = y - (high  - Math.max(open, close)) * pxPerUnit
+    wickBottomY = y + bodyH + (Math.min(open, close) - low) * pxPerUnit
+  }
+
+  const cw = Math.max(2, width * 0.7)
   return (
     <g>
-      {(priceData as UnifiedDataPoint[])?.map((d, i) => {
-        if (d.open == null || d.high == null || d.low == null) return null
-        const rx = xScale(d.t)
-        if (rx == null || isNaN(rx)) return null
-        const cx      = rx + bw / 2
-        const yH      = yScale(d.high)
-        const yL      = yScale(d.low)
-        const yO      = yScale(d.open)
-        const yC      = yScale(d.close)
-        const bullish = d.close >= d.open
-        const color   = bullish ? "#4ade80" : "#f87171"
-        const bodyTop = Math.min(yO, yC)
-        const bodyH   = Math.max(1, Math.abs(yO - yC))
-        const cw      = Math.max(2, bw * 0.7)
-        return (
-          <g key={i}>
-            <line x1={cx} y1={yH}           x2={cx} y2={bodyTop}        stroke={color} strokeWidth={1} />
-            <line x1={cx} y1={bodyTop + bodyH} x2={cx} y2={yL}          stroke={color} strokeWidth={1} />
-            <rect x={cx - cw / 2} y={bodyTop} width={cw} height={bodyH} fill={color}   opacity={0.9} />
-          </g>
-        )
-      })}
+      <line x1={cx} y1={wickTopY}    x2={cx} y2={y}          stroke={color} strokeWidth={1} />
+      <line x1={cx} y1={y + bodyH}   x2={cx} y2={wickBottomY} stroke={color} strokeWidth={1} />
+      <rect x={cx - cw / 2} y={y} width={cw} height={bodyH}  fill={color} opacity={0.9} />
     </g>
   )
 }
@@ -400,20 +396,22 @@ export function UnifiedStockChart({ symbol, currency = "USD" }: UnifiedStockChar
                   />
                 )}
 
-                {/* ── Candle: ghost lines fix Y-domain; Customized draws the candles ── */}
+                {/* ── Candle: ghost Lines set Y-domain; Bar renders body+wick ── */}
                 {chartType === "candle" && (
                   <>
-                    <Line yAxisId="price" dataKey="high"  strokeOpacity={0} dot={false} legendType="none" />
-                    <Line yAxisId="price" dataKey="low"   strokeOpacity={0} dot={false} legendType="none" />
-                    <Line
+                    <Line yAxisId="price" dataKey="high" strokeOpacity={0} dot={false} legendType="none" />
+                    <Line yAxisId="price" dataKey="low"  strokeOpacity={0} dot={false} legendType="none" />
+                    <Bar
                       yAxisId="price"
-                      dataKey="close"
-                      strokeOpacity={0}
-                      dot={false}
+                      dataKey={(d: UnifiedDataPoint) =>
+                        d.open != null
+                          ? [Math.min(d.open, d.close), Math.max(d.open, d.close)]
+                          : [d.close, d.close]
+                      }
+                      shape={<CandleBarShape />}
+                      isAnimationActive={false}
                       legendType="none"
-                      activeDot={{ r: 3, strokeWidth: 0, fill: priceColor }}
                     />
-                    <Customized component={(props: any) => <CandlestickLayer {...props} priceData={data} />} />
                   </>
                 )}
 
