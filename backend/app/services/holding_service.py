@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import yf_client
 from app.models.holding import Holding
 from app.models.transaction import Transaction
 from app.schemas.holding import (
@@ -20,7 +21,6 @@ from app.schemas.stock import (
     StockDataResponse,
     StockInfoResponse,
 )
-from app.core import yf_client
 from app.services.stock_data import (
     fetch_stock_data_from_yfinance,
     fetch_stock_info,
@@ -203,7 +203,11 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
             current_price = resp.current_price
             current_value = round(holding.shares * current_price, 2)
             gain_loss = round(current_value - holding.total_cost, 2)
-            gain_loss_pct = round((gain_loss / holding.total_cost) * 100, 2) if holding.total_cost else 0.0
+            gain_loss_pct = (
+                round((gain_loss / holding.total_cost) * 100, 2)
+                if holding.total_cost
+                else 0.0
+            )
             day_change = round(holding.shares * resp.change, 2)
             day_change_percent = resp.change_percent
             total_value += current_value
@@ -235,7 +239,9 @@ async def get_portfolio(db: AsyncSession) -> PortfolioSummary:
             pos.portfolio_pct = round((pos.current_value / total_value) * 100, 2)
 
     total_gain_loss = round(total_value - total_cost, 2)
-    total_gain_loss_pct = round((total_gain_loss / total_cost) * 100, 2) if total_cost else 0.0
+    total_gain_loss_pct = (
+        round((total_gain_loss / total_cost) * 100, 2) if total_cost else 0.0
+    )
     total_day_change_pct = (
         round((total_day_change / total_value) * 100, 2) if total_value > 0 else None
     )
@@ -300,7 +306,11 @@ async def get_sector_breakdown(
 
     slices: list[SectorSlice] = []
     for sec_name, data in sector_map.items():
-        weight = round(data["total_value"] / total_value * 100, 2) if total_value > 0 else 0.0
+        weight = (
+            round(data["total_value"] / total_value * 100, 2)
+            if total_value > 0
+            else 0.0
+        )
         slices.append(
             SectorSlice(
                 sector=sec_name,
@@ -315,14 +325,18 @@ async def get_sector_breakdown(
     return SectorBreakdownResponse(sectors=slices, total_value=round(total_value, 2))
 
 
-async def get_portfolio_summary(db: AsyncSession) -> tuple[PortfolioSummary, SectorBreakdownResponse]:
+async def get_portfolio_summary(
+    db: AsyncSession,
+) -> tuple[PortfolioSummary, SectorBreakdownResponse]:
     """Fetch portfolio and sector breakdown in one pass (avoids duplicate get_portfolio)."""
     portfolio = await get_portfolio(db)
     sector_breakdown = await get_sector_breakdown(db, portfolio=portfolio)
     return portfolio, sector_breakdown
 
 
-async def get_portfolio_news(db: AsyncSession, limit: int = 20) -> list[PortfolioNewsItem]:
+async def get_portfolio_news(
+    db: AsyncSession, limit: int = 20
+) -> list[PortfolioNewsItem]:
     """Fetch and merge news for all portfolio holdings, sorted by date (newest first)."""
     result = await db.execute(select(Holding).order_by(Holding.symbol))
     holdings = list(result.scalars().all())
