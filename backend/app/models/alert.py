@@ -32,4 +32,7 @@ class Alert(BaseModel):
         DateTime(timezone=True), nullable=True
     )
 
-    __table_args__ = (Index("idx_alerts_ticker_is_active", "ticker", "is_active"),)
+    __table_args__ = (
+        Index("idx_alerts_ticker_is_active", "ticker", "is_active"),
+        Index("idx_alerts_ticker_condition_type", "ticker", "condition_type"),
+    )

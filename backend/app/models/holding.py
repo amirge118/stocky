@@ -1,7 +1,7 @@
 from datetime import date
 
 import sqlalchemy as sa
-from sqlalchemy import Float, String
+from sqlalchemy import Float, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
@@ -19,4 +19,8 @@ class Holding(BaseModel):
     total_cost: Mapped[float] = mapped_column(Float, nullable=False)
     purchase_date: Mapped[date] = mapped_column(
         sa.Date, nullable=False, server_default=sa.func.current_date()
+    )
+
+    __table_args__ = (
+        Index("idx_holdings_symbol_purchase_date", "symbol", "purchase_date"),
     )

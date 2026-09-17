@@ -49,4 +49,5 @@ class WatchlistItem(BaseModel):
         UniqueConstraint("watchlist_id", "symbol", name="uq_watchlist_item"),
         Index("idx_watchlist_items_watchlist_id", "watchlist_id"),
         Index("idx_watchlist_items_symbol", "symbol"),
+        Index("idx_watchlist_items_watchlist_id_position", "watchlist_id", "position"),
     )
