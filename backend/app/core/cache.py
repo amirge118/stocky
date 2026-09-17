@@ -4,10 +4,12 @@ Redis is initialized once at first use. If it's unreachable, we fall back to
 an in-memory dict for the remainder of the process lifetime (no repeated retries).
 The in-memory fallback is bounded to MAX_MEMORY_ENTRIES to prevent unbounded growth.
 """
+
+import functools
 import json
 import logging
 import time
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from app.core.config import settings
 
@@ -91,3 +93,72 @@ async def cache_delete(key: str) -> None:
             logger.debug("Redis delete failed for %s: %s", key, exc)
 
     _memory_cache.pop(key, None)
+
+
+async def invalidate_pattern(prefix: str) -> int:
+    """Delete all keys matching ``prefix*``.
+
+    Returns the number of keys removed. Uses ``SCAN`` to avoid blocking Redis.
+    In the in-memory fallback, iterates the dict directly.
+    """
+    count = 0
+    r = _get_redis()
+    if r is not None:
+        try:
+            cursor: Union[int, bytes] = 0
+            while True:
+                cursor, keys = await r.scan(
+                    cursor=cursor, match=f"{prefix}*", count=200
+                )
+                if keys:
+                    count += await r.delete(*keys)
+                if cursor == 0:
+                    break
+            return count
+        except Exception as exc:
+            logger.debug("Redis SCAN/DELETE failed for prefix %s: %s", prefix, exc)
+
+    to_delete = [k for k in _memory_cache if k.startswith(prefix)]
+    for k in to_delete:
+        del _memory_cache[k]
+    return len(to_delete)
+
+
+def cached(ttl: int = 300, prefix: Optional[str] = None):
+    """Decorator that caches the return value of an async function.
+
+    Parameters
+    ----------
+    ttl : int
+        Time-to-live in seconds (default 300 = 5 min).
+    prefix : Optional[str]
+        Optional key prefix. When omitted the fully-qualified function name is used.
+
+    Key generation: ``<prefix>:<arg0>:<arg1>:...``
+    """
+
+    def decorator(fn):
+        key_prefix = prefix or f"{fn.__module__}.{fn.__qualname__}"
+
+        @functools.wraps(fn)
+        async def wrapper(*args, **kwargs):
+            parts = [key_prefix]
+            parts.extend(str(a) for a in args)
+            parts.extend(f"{k}={v}" for k, v in sorted(kwargs.items()))
+            cache_key = ":".join(parts)
+
+            hit = await cache_get(cache_key)
+            if hit is not None:
+                return hit
+
+            result = await fn(*args, **kwargs)
+
+            if result is not None:
+                await cache_set(cache_key, result, ttl=ttl)
+
+            return result
+
+        wrapper.cache_prefix = key_prefix  # type: ignore[attr-defined]
+        return wrapper
+
+    return decorator

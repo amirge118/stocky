@@ -11,6 +11,8 @@ from app.core.cache import (
     cache_delete,
     cache_get,
     cache_set,
+    cached,
+    invalidate_pattern,
 )
 
 
@@ -118,3 +120,46 @@ async def test_cache_get_falls_back_to_memory_on_redis_exception():
         result = await cache_get("fallback_key")
 
     assert result == "mem_value"
+
+
+# ── invalidate_pattern ────────────────────────────────────────────────────────
+
+
+async def test_invalidate_pattern_deletes_matching_keys():
+    await cache_set("stock:info:AAPL", "a", ttl=60)
+    await cache_set("stock:info:MSFT", "b", ttl=60)
+    await cache_set("stock:news:AAPL", "c", ttl=60)
+
+    count = await invalidate_pattern("stock:info:")
+    assert count == 2
+    assert await cache_get("stock:info:AAPL") is None
+    assert await cache_get("stock:info:MSFT") is None
+    assert await cache_get("stock:news:AAPL") == "c"
+
+
+async def test_invalidate_pattern_no_match_returns_zero():
+    await cache_set("other:key", "v", ttl=60)
+    count = await invalidate_pattern("nonexistent:")
+    assert count == 0
+
+
+# ── @cached decorator ─────────────────────────────────────────────────────────
+
+
+async def test_cached_decorator_caches_result():
+    call_count = 0
+
+    @cached(ttl=60, prefix="test_fn")
+    async def expensive_fn(x: int) -> dict:
+        nonlocal call_count
+        call_count += 1
+        return {"result": x * 2}
+
+    r1 = await expensive_fn(5)
+    assert r1 == {"result": 10}
+    assert call_count == 1
+
+    # Second call: cache hit
+    r2 = await expensive_fn(5)
+    assert r2 == {"result": 10}
+    assert call_count == 1
