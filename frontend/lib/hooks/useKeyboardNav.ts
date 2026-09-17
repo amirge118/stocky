@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation"
 
 /**
  * Single-key navigation shortcuts (only fires when no input/textarea/select is focused).
- * p → /portfolio  |  w → /watchlist  |  m → / (home)
+ * p → /portfolio  |  w → /watchlist  |  e → /earnings  |  m → / (home)
  */
 export function useKeyboardNav() {
   const router = useRouter()
@@ -15,7 +15,13 @@ export function useKeyboardNav() {
       // Skip if focus is inside an input, textarea, select, or contenteditable
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
       const isEditable = (e.target as HTMLElement)?.isContentEditable
-      if (tag === "input" || tag === "textarea" || tag === "select" || isEditable) return
+      if (
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        isEditable
+      )
+        return
 
       switch (e.key.toLowerCase()) {
         case "p":
@@ -25,6 +31,10 @@ export function useKeyboardNav() {
         case "w":
           e.preventDefault()
           router.push("/watchlist")
+          break
+        case "e":
+          e.preventDefault()
+          router.push("/earnings")
           break
         case "m":
           e.preventDefault()

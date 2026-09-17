@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.cache import cache_get, cache_set
 from app.core.dependencies import get_db_session
 from app.core.limiter import limiter
+from app.schemas.earnings import EarningsCalendarResponse
 from app.schemas.stock import (
     CompareSummaryResponse,
     SectorPeerResponse,
@@ -26,6 +27,7 @@ from app.schemas.stock import (
     StockUpdate,
 )
 from app.services import stock_service
+from app.services.earnings_service import get_earnings_for_symbol
 from app.services.indicators_service import compute_indicators
 
 router = APIRouter()
@@ -193,6 +195,17 @@ async def get_stock_news(
 async def get_stock_analysis(symbol: str) -> StockAIAnalysisResponse:
     """Generate an AI-powered analysis for a stock using Anthropic Claude."""
     return await stock_service.generate_ai_analysis(symbol)
+
+
+@router.get(
+    "/{symbol}/earnings",
+    response_model=EarningsCalendarResponse,
+    summary="Get earnings history and upcoming for a stock",
+)
+async def get_stock_earnings(symbol: str) -> EarningsCalendarResponse:
+    """Fetch earnings dates, EPS estimates/actuals, and revenue data for a stock."""
+    events = await get_earnings_for_symbol(symbol)
+    return EarningsCalendarResponse(items=events)
 
 
 @router.get("/{symbol}/dividends", summary="Get dividend history")

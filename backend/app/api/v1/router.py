@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
     alerts,
+    earnings,
     health,
     market,
     portfolio,
@@ -20,6 +21,7 @@ api_router.include_router(portfolio.router, prefix="/portfolio", tags=["portfoli
 api_router.include_router(watchlists.router, prefix="/watchlists", tags=["watchlists"])
 api_router.include_router(market.router, prefix="/market", tags=["market"])
 api_router.include_router(alerts.router, prefix="/alerts", tags=["alerts"])
+api_router.include_router(earnings.router, prefix="/earnings", tags=["earnings"])
 api_router.include_router(
     notification_settings.router, prefix="/settings", tags=["settings"]
 )

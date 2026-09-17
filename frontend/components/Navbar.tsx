@@ -8,7 +8,8 @@ import { useKeyboardNav } from "@/lib/hooks/useKeyboardNav"
 const NAV_LINKS = [
   { href: "/portfolio", label: "Portfolio", shortcut: "P" },
   { href: "/watchlist", label: "Watchlist", shortcut: "W" },
-  { href: "/settings",  label: "Settings",  shortcut: null },
+  { href: "/earnings", label: "Earnings", shortcut: "E" },
+  { href: "/settings", label: "Settings", shortcut: null },
 ]
 
 export function Navbar() {
@@ -17,22 +18,24 @@ export function Navbar() {
 
   const isActive = (href: string) =>
     pathname === href ||
-    (href !== "/portfolio" && href !== "/watchlist" && pathname.startsWith(href + "/")) ||
+    (href !== "/portfolio" &&
+      href !== "/watchlist" &&
+      pathname.startsWith(href + "/")) ||
     (href === "/watchlist" && pathname.startsWith("/watchlist"))
 
   return (
-    <nav className="glass-heavy border-b border-white/[0.06] sticky top-0 z-50">
-      <div className="max-w-5xl mx-auto px-4 h-13 flex items-center gap-8">
+    <nav className="glass-heavy sticky top-0 z-50 border-b border-white/[0.06]">
+      <div className="mx-auto flex h-13 max-w-5xl items-center gap-8 px-4">
         {/* Logo */}
         <Link
           href="/"
-          className="text-sm font-bold text-white tracking-tight hover:text-zinc-300 transition-colors shrink-0"
+          className="shrink-0 text-sm font-bold tracking-tight text-white transition-colors hover:text-zinc-300"
         >
           Stocky
         </Link>
 
         {/* Divider */}
-        <span className="h-4 w-px bg-zinc-700 shrink-0" />
+        <span className="h-4 w-px shrink-0 bg-zinc-700" />
 
         {/* Links */}
         <div className="flex items-center gap-1">
@@ -43,18 +46,15 @@ export function Navbar() {
                 key={href}
                 href={href}
                 title={shortcut ? `${label} (${shortcut})` : label}
-                className={`
-                  relative px-3 py-1.5 rounded-md text-sm font-medium transition-colors
-                  flex items-center gap-1.5
-                  ${active
-                    ? "text-electric-400 bg-electric-500/10 border border-electric-500/20 rounded-lg"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
-                  }
-                `}
+                className={`relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  active
+                    ? "text-electric-400 bg-electric-500/10 border-electric-500/20 rounded-lg border"
+                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                } `}
               >
                 {label}
                 {shortcut && (
-                  <span className="hidden lg:inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold text-zinc-600 bg-zinc-800 border border-zinc-700">
+                  <span className="hidden h-4 w-4 items-center justify-center rounded border border-zinc-700 bg-zinc-800 text-[9px] font-bold text-zinc-600 lg:inline-flex">
                     {shortcut}
                   </span>
                 )}
@@ -65,7 +65,7 @@ export function Navbar() {
 
         {/* Global Search */}
         <div className="ml-auto flex items-center gap-2">
-          <kbd className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 bg-zinc-800 border border-zinc-700 rounded">
+          <kbd className="hidden items-center gap-1 rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 lg:inline-flex">
             <span className="text-[11px]">⌘</span>K
           </kbd>
           <GlobalStockSearch />
