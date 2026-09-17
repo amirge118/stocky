@@ -193,7 +193,13 @@ def warn_if_supabase_ipv6_only_in_docker() -> None:
 # Create async engine
 _pool_kwargs: dict = {}
 if _RESOLVED_DATABASE_URL.startswith("postgresql"):
-    _pool_kwargs = {"pool_size": 10, "max_overflow": 20, "pool_pre_ping": True}
+    _pool_kwargs = {
+        "pool_size": settings.db_pool_size,
+        "max_overflow": settings.db_max_overflow,
+        "pool_pre_ping": settings.db_pool_pre_ping,
+        "pool_recycle": settings.db_pool_recycle,
+        "pool_timeout": settings.db_pool_timeout,
+    }
 
 engine = create_async_engine(
     _RESOLVED_DATABASE_URL,

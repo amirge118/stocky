@@ -37,9 +37,9 @@ _sentry_dsn = (settings.sentry_dsn or "").strip()
 if _sentry_dsn.startswith("https://"):
     sentry_sdk.init(
         dsn=_sentry_dsn,
-        traces_sample_rate=0.1,
-        profiles_sample_rate=0.1,
-        environment=settings.environment,
+        environment=settings.sentry_environment,
+        traces_sample_rate=settings.sentry_traces_sample_rate,
+        send_default_pii=False,
     )
 
 # Ensure request logging middleware logs are visible
@@ -75,9 +75,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers[
-            "Strict-Transport-Security"
-        ] = "max-age=63072000; includeSubDomains; preload"
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=63072000; includeSubDomains; preload"
+        )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         return response
 

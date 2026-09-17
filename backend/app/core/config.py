@@ -77,9 +77,18 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://redis:6379/0"
     celery_result_backend: str = "redis://redis:6379/1"
 
+    # Connection pool (only applies to PostgreSQL; SQLite uses StaticPool/NullPool)
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+    db_pool_recycle: int = 3600
+    db_pool_timeout: int = 30
+    db_pool_pre_ping: bool = True
+
     # Optional
     redis_url: Optional[str] = None
     sentry_dsn: Optional[str] = None
+    sentry_environment: str = "development"
+    sentry_traces_sample_rate: float = 0.1
     environment: str = "development"
     log_level: str = "INFO"
     log_request_payload: bool = True

@@ -1,5 +1,6 @@
 import logging
 
+import sentry_sdk
 from fastapi import Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -57,6 +58,7 @@ async def sqlalchemy_exception_handler(
     request: Request, exc: SQLAlchemyError
 ) -> JSONResponse:
     """DB errors: return 503 with a useful hint in development."""
+    sentry_sdk.capture_exception(exc)
     orig = getattr(exc, "orig", None)
     detail = str(orig) if orig is not None else str(exc)
     _logger.exception("Database error: %s", detail)
@@ -92,6 +94,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
     """Handle unexpected exceptions."""
     import traceback
 
+    sentry_sdk.capture_exception(exc)
     print(f"Unhandled exception: {exc}")
     traceback.print_exc()
 
