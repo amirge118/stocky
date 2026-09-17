@@ -24,9 +24,9 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 ### Backend
 
-- [ ] **Database connection pooling optimization** [HIGH] — Tune SQLAlchemy async pool size; add pool pre-ping; expose pool stats
-- [ ] **Database query optimization and indexing** [HIGH] — Add composite indexes on `(user_id, symbol)` for holdings and watchlists; profile slow queries with `EXPLAIN ANALYZE`
-- [ ] **Redis response caching for yfinance** [HIGH] — Cache `GET /api/v1/stocks/{symbol}` and market overview responses in Redis with TTL 60s; avoid repeated yfinance fetches on bursty loads
+- [x] **Database connection pooling optimization** [HIGH] — pool size/overflow/recycle/timeout/pre_ping are now Settings fields consumed by the async engine instead of hardcoded
+- [x] **Database query optimization and indexing** [HIGH] — added composite indexes: `(symbol, purchase_date)` on holdings, `(ticker, condition_type)` on alerts, `(watchlist_id, position)` on watchlist_items (no `user_id` column exists on these tables; `EXPLAIN ANALYZE` profiling still outstanding)
+- [x] **Redis response caching for yfinance** [HIGH] — `GET /api/v1/stocks/{symbol}/info`, `/news`, market overview, etc. already cache via `cache_get`/`cache_set`; added `invalidate_pattern()` and a `@cached` decorator for bulk invalidation and new call sites
 - [ ] **Database read replicas** [LOW] — Route read-heavy queries (holdings list, news) to read replica
 - [ ] **Database migration rollback strategies** [LOW] — Document and test `alembic downgrade` paths for every migration
 - [ ] **Migration health-check endpoint** [LOW] — Add `GET /health/migrations` that compares `alembic_version` table against `alembic head` to surface schema drift before it causes 503s
@@ -79,7 +79,7 @@ Every request, feature idea, or improvement suggestion should be added here.
 
 ### Monitoring & Observability
 
-- [ ] **Error tracking with Sentry** [HIGH] — Integrate `sentry-sdk` in FastAPI + Sentry browser SDK in Next.js; capture unhandled exceptions with stack traces
+- [x] **Error tracking with Sentry** [HIGH] — `sentry-sdk` was already wired into FastAPI's init; added `capture_exception` calls in both exception handlers so errors actually get reported, plus a Next.js `global-error.tsx` boundary and DSN-gated client/server/edge init
 - [ ] **Application performance monitoring (APM)** [MEDIUM] — Track p50/p95/p99 latency per endpoint; alert on regression
 - [ ] **Metrics collection with Prometheus** [MEDIUM] — Expose `/metrics` via `prometheus-fastapi-instrumentator`; Grafana dashboard for request rate, error rate, DB pool usage
 - [ ] **Structured logging with correlation IDs** [MEDIUM] — Inject `X-Request-ID` header; include in all log lines; propagate to Celery tasks
@@ -93,6 +93,12 @@ Every request, feature idea, or improvement suggestion should be added here.
 ## New Features
 
 ### HIGH Priority
+
+- [x] **Earnings Calendar** [HIGH]
+  - Dedicated `/earnings` page + `UpcomingEarningsCard` widget component
+  - Shows date, EPS estimate/actual, surprise %, and days-until for portfolio + watchlist symbols
+  - Backend: `yfinance` `Ticker.earnings_dates` → `earnings_service.py`, cached via Redis
+  - Follow-up: `UpcomingEarningsCard` isn't wired into the portfolio page yet
 
 - [ ] **Backend-Driven Alert Checker Cron Job** [HIGH]
   - Fire Telegram/WhatsApp alerts even when browser is closed
